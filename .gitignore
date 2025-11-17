@@ -1,42 +1,81 @@
 # =========================================
-# Reglas Generales (SO y Editores)
+# GENERAL (OS, Editores y Logs)
 # =========================================
+# Ignora logs en cualquier carpeta
+*.log
+
+# Archivos de Sistema Operativo
 .DS_Store
 Thumbs.db
-.vscode/
+
+# IntelliJ IDEA
 .idea/
 *.iml
-*.log
+*.iws
+*.ipr
+
+# VS Code
+.vscode/
+
+# Archivos de Microsoft Visual Studio
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
 
 # =========================================
-# Java / Maven / Spring Boot (para /backend)
+# backend-sqrc (Spring Boot, Maven, Java)
+# Reglas prefijadas con /backend-sqrc/
 # =========================================
-/backend/target/
-/backend/pom.xml.tag
-/backend/pom.xml.releaseBackup
-/backend/pom.xml.versionsBackup
-/backend/pom.xml.next
-/backend/release.properties
-/backend/dependency-reduced-pom.xml
-/backend/build-*.log
-/backend/.mvn/
-/backend/mvnw
-/backend/mvnw.cmd
-*.log
-.settings/
-.project
-.classpath
+
+# Salida de compilación de Maven
+/backend-sqrc/target/
+
+# Salida de compilación de Gradle
+/backend-sqrc/build/
+
+# Jar del Maven Wrapper (buena práctica)
+/backend-sqrc/.mvn/wrapper/maven-wrapper.jar
+
+# Archivos específicos de Spring Tool Suite (STS)
+/backend-sqrc/.apt_generated
+/backend-sqrc/.classpath
+/backend-sqrc/.factorypath
+/backend-sqrc/.project
+/backend-sqrc/.settings
+/backend-sqrc/.springBeans
+/backend-sqrc/.sts4-cache
+
+# Archivos de NetBeans
+/backend-sqrc/nbproject/private/
+/backend-sqrc/nbbuild/
+/backend-sqrc/dist/
+/backend-sqrc/nbdist/
+/backend-sqrc/.nb-gradle/
+
+# Archivo de ayuda de Spring
+/backend-sqrc/HELP.md
 
 # =========================================
-# Node / React (para /frontend)
+# frontend-sqrc (Node, Vite, React)
+# Reglas prefijadas con /frontend-sqrc/
 # =========================================
-/frontend/node_modules/
-/frontend/build/
-/frontend/coverage/
-/frontend/.env.local
-/frontend/.env.development.local
-/frontend/.env.test.local
-/frontend/.env.production.local
-/frontend/npm-debug.log*
-/frontend/yarn-debug.log*
-/frontend/yarn-error.log*
+
+# Dependencias
+/frontend-sqrc/node_modules/
+
+# Salidas de compilación (Vite usa 'dist')
+/frontend-sqrc/dist/
+/frontend-sqrc/dist-ssr/
+
+# Logs
+/frontend-sqrc/logs
+/frontend-sqrc/npm-debug.log*
+/frontend-sqrc/yarn-debug.log*
+/frontend-sqrc/yarn-error.log*
+/frontend-sqrc/pnpm-debug.log*
+/frontend-sqrc/lerna-debug.log*
+
+# Archivos de entorno local (¡Muy importante!)
+/frontend-sqrc/*.local
