@@ -1,0 +1,42 @@
+# =========================================
+# Reglas Generales (SO y Editores)
+# =========================================
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+*.iml
+*.log
+
+# =========================================
+# Java / Maven / Spring Boot (para /backend)
+# =========================================
+/backend/target/
+/backend/pom.xml.tag
+/backend/pom.xml.releaseBackup
+/backend/pom.xml.versionsBackup
+/backend/pom.xml.next
+/backend/release.properties
+/backend/dependency-reduced-pom.xml
+/backend/build-*.log
+/backend/.mvn/
+/backend/mvnw
+/backend/mvnw.cmd
+*.log
+.settings/
+.project
+.classpath
+
+# =========================================
+# Node / React (para /frontend)
+# =========================================
+/frontend/node_modules/
+/frontend/build/
+/frontend/coverage/
+/frontend/.env.local
+/frontend/.env.development.local
+/frontend/.env.test.local
+/frontend/.env.production.local
+/frontend/npm-debug.log*
+/frontend/yarn-debug.log*
+/frontend/yarn-error.log*
