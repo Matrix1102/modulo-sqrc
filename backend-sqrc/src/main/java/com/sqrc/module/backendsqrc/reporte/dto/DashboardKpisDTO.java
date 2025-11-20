@@ -1,4 +1,4 @@
-package com.sqrc.module.backendsqrc.encuesta.dto;
+package com.sqrc.module.backendsqrc.reporte.dto;
 
 import lombok.Builder;
 import lombok.Data;

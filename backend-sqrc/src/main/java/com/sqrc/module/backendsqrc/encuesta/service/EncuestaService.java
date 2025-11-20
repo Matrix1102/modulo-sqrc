@@ -6,6 +6,7 @@ import com.sqrc.module.backendsqrc.encuesta.model.*;
 import com.sqrc.module.backendsqrc.encuesta.repository.EncuestaRepository;
 import com.sqrc.module.backendsqrc.encuesta.repository.PlantillaRepository;
 // import com.sqrc.module.backendsqrc.ticket.repository.TicketRepository; // TODO: Descomentar cuando exista
+import com.sqrc.module.backendsqrc.reporte.dto.SurveyDashboardDTO;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
