@@ -194,4 +194,20 @@ public class EncuestaService {
                 .preguntas(preguntasDTO)
                 .build();
     }
+
+    public List<EncuestaResultadoDTO> listarRespuestas(String alcance, String agenteId, LocalDate start,
+            LocalDate end) {
+        // TODO: Implementar lógica de búsqueda con filtros en Repositorio
+        return new ArrayList<>();
+    }
+
+    public EncuestaResultadoDTO obtenerRespuestaPorId(String id) {
+        // TODO: Buscar por ID y convertir a DTO
+        return EncuestaResultadoDTO.builder().build();
+    }
+
+    public void reenviarEncuesta(String id) {
+        // TODO: Lógica de reenvío de correo
+        System.out.println("Reenviando encuesta " + id);
+    }
 }

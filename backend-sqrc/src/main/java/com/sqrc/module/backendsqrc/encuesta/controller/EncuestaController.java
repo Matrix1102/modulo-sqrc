@@ -1,6 +1,6 @@
 package com.sqrc.module.backendsqrc.encuesta.controller;
 
-import com.sqrc.module.backendsqrc.encuesta.dto.*; // Importa tus DTOs
+import com.sqrc.module.backendsqrc.encuesta.dto.*; // Importa PlantillaRequestDTO, EncuestaResultadoDTO, etc.
 import com.sqrc.module.backendsqrc.encuesta.service.EncuestaService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.format.annotation.DateTimeFormat;
@@ -12,54 +12,66 @@ import java.time.LocalDate;
 import java.util.List;
 
 @RestController
-@RequestMapping("/api/v1")
+@RequestMapping("/api/encuestas") // URL limpia (sin /v1)
 @RequiredArgsConstructor
 public class EncuestaController {
 
     private final EncuestaService encuestaService;
 
     // ==========================================
-    // 1. Gestión de Plantillas (Survey Templates)
+    // 1. GESTIÓN DE PLANTILLAS (Templates)
     // ==========================================
 
-    @GetMapping("/survey-templates")
+    @GetMapping("/plantillas")
     public ResponseEntity<List<PlantillaResponseDTO>> listarPlantillas() {
-        List<PlantillaResponseDTO> plantillas = encuestaService.listarPlantillas();
-        return ResponseEntity.ok(plantillas); 
+        return ResponseEntity.ok(encuestaService.listarPlantillas());
     }
 
-    @PostMapping("/survey-templates")
+    @PostMapping("/plantillas")
     public ResponseEntity<PlantillaResponseDTO> crearPlantilla(@RequestBody PlantillaRequestDTO request) {
-        PlantillaResponseDTO plantillaCreada = encuestaService.crearPlantilla(request);
-        return ResponseEntity.status(HttpStatus.CREATED).body(plantillaCreada);
+        PlantillaResponseDTO nueva = encuestaService.crearPlantilla(request);
+        return ResponseEntity.status(HttpStatus.CREATED).body(nueva);
     }
 
-    @GetMapping("/survey-templates/{templateId}")
-    public ResponseEntity<PlantillaResponseDTO> obtenerPlantilla(@PathVariable String templateId) {
-        PlantillaResponseDTO plantilla = encuestaService.obtenerPlantillaPorId(templateId);
-        return ResponseEntity.ok(plantilla);
+    @GetMapping("/plantillas/{id}")
+    public ResponseEntity<PlantillaResponseDTO> obtenerPlantilla(@PathVariable String id) {
+        return ResponseEntity.ok(encuestaService.obtenerPlantillaPorId(id));
+    }
+
+    @PutMapping("/plantillas/{id}")
+    public ResponseEntity<PlantillaResponseDTO> actualizarPlantilla(
+            @PathVariable String id,
+            @RequestBody PlantillaRequestDTO request) {
+        return ResponseEntity.ok(encuestaService.actualizarPlantilla(id, request));
     }
 
     // ==========================================
-    // 2. Dashboard de Encuestas
+    // 2. GESTIÓN DE RESPUESTAS (LO NUEVO QUE PEDISTE)
     // ==========================================
 
-    @GetMapping("/surveys/dashboard")
-    public ResponseEntity<SurveyDashboardDTO> obtenerDashboardEncuestas(
+    // Listar respuestas con filtros (para la grilla del Supervisor)
+    @GetMapping("/respuestas")
+    public ResponseEntity<List<EncuestaResultadoDTO>> listarRespuestas(
+            @RequestParam(required = false) String alcanceEvaluacion, // "AGENTE" o "SERVICIO"
+            @RequestParam(required = false) String agenteId,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
-            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate
-    ) {
-        SurveyDashboardDTO dashboard = encuestaService.obtenerKpisEncuestas(startDate, endDate);
-        return ResponseEntity.ok(dashboard);
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate) {
+        // Nota: Debes implementar este método en EncuestaService
+        return ResponseEntity.ok(encuestaService.listarRespuestas(alcanceEvaluacion, agenteId, startDate, endDate));
     }
 
-    // ==========================================
-    // 3. Gestión de Respuestas (Survey Responses)
-    // ==========================================
+    // Ver el detalle de una respuesta específica
+    @GetMapping("/respuestas/{responseId}")
+    public ResponseEntity<EncuestaResultadoDTO> obtenerDetalleRespuesta(@PathVariable String responseId) {
+        // Nota: Debes implementar este método en EncuestaService
+        return ResponseEntity.ok(encuestaService.obtenerRespuestaPorId(responseId));
+    }
 
-    @PostMapping("/survey-responses")
-    public ResponseEntity<String> recibirRespuesta(@RequestBody RespuestaClienteDTO respuesta) {
-        encuestaService.guardarRespuesta(respuesta);
-        return ResponseEntity.ok("Respuesta recibida correctamente");
+    // Reenviar encuesta (HU-006)
+    @PostMapping("/respuestas/{responseId}/resend")
+    public ResponseEntity<Void> reenviarEncuesta(@PathVariable String responseId) {
+        // Nota: Debes implementar este método en EncuestaService
+        encuestaService.reenviarEncuesta(responseId);
+        return ResponseEntity.accepted().build();
     }
 }
