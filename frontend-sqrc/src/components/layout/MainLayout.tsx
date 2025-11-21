@@ -27,6 +27,10 @@ const PAGE_CONFIG: Record<string, { title: string; subtitle: string }> = {
     title: "Gestión de Tickets",
     subtitle: "Administra tus casos asignados",
   },
+  "/cliente-360": {
+    title: "Vista 360° Cliente",
+    subtitle: "Consulta el perfil completo y las métricas del cliente",
+  },
 
   // Default
   default: {

@@ -1,6 +1,7 @@
 import { BrowserRouter, Routes, Route, Link } from "react-router-dom";
 import MainLayout from "./components/layout/MainLayout";
 import TicketingPage from "./pages/agente/TicketsPage";
+import Vista360Page from "./pages/agente/Vista360";
 import TicketPage from "./pages/supervisor/TicketPage";
 import TicketDetailPage from "./pages/supervisor/TicketDetailPage";
 import TicketAgentPage from "./pages/supervisor/TicketAgentPage";
@@ -50,6 +51,11 @@ export default function App() {
         <Route path="/agente" element={<MainLayout role="AGENT" />}>
           {/* Según tu carpeta, aquí vive la página de Tickets */}
           <Route path="tickets" element={<TicketingPage />} />
+        </Route>
+
+        {/* Vista 360 del cliente para agentes */}
+        <Route path="/cliente-360" element={<MainLayout role="AGENT" />}>
+          <Route index element={<Vista360Page />} />
         </Route>
 
         {/* ─── ZONA SUPERVISOR ─── */}
