@@ -3,6 +3,7 @@ import MainLayout from "./components/layout/MainLayout";
 
 import TicketsPage from "./pages/agente/TicketsPage";
 import DashboardPage from "./pages/supervisor/DashboardPage";
+import EncuestasPage from "./pages/supervisor/SurveyPage";
 
 // Un Home temporal para que puedas navegar
 const Home = () => (
@@ -51,6 +52,7 @@ export default function App() {
         <Route path="/supervisor" element={<MainLayout role="SUPERVISOR" />}>
           {/* El Dashboard suele ser la página principal (index) */}
           <Route index element={<DashboardPage />} />
+          <Route path="encuestas" element={<EncuestasPage />} />
         </Route>
       </Routes>
     </BrowserRouter>
