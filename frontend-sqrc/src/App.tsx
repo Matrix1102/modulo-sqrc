@@ -53,6 +53,7 @@ export default function App() {
           {/* El Dashboard suele ser la página principal (index) */}
           <Route index element={<DashboardPage />} />
           <Route path="encuestas" element={<EncuestasPage />} />
+          <Route path="tickets" element={<TicketsPage />} />
         </Route>
       </Routes>
     </BrowserRouter>

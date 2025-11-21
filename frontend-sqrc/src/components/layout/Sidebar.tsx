@@ -2,8 +2,6 @@ import React, { useState } from "react";
 import {
   LogOut,
   LayoutDashboard,
-  Users,
-  FileBarChart,
   ClipboardList,
   PlusCircle,
   Ticket,
@@ -40,7 +38,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ role = "AGENT" }) => {
       {
         icon: Ticket,
         label: "Tickets de Equipo",
-        path: "/supervisor/ticketing",
+        path: "/supervisor/tickets",
       },
       {
         icon: ClipboardList,
