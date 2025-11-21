@@ -54,11 +54,6 @@ export const Navbar: React.FC<NavbarProps> = ({
             </div>
             <ChevronDown size={16} className="text-dark-500" />
           </button>
-
-          {/* Botón Personalizado */}
-          <button className="bg-dark-800 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-dark-700 transition-colors">
-            Personalizado
-          </button>
         </div>
       </div>
     </header>

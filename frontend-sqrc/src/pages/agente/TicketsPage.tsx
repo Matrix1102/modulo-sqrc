@@ -2,6 +2,7 @@ import { AgentList } from "../../features/tickets/components/AgentList";
 import { TicketTable } from "../../features/tickets/components/TicketTable";
 
 const TicketingPage = () => {
+  const ticketsDummy = Array(10).fill({});
   return (
     <div className="flex flex-col h-full">
       {/* Header de la Página */}
@@ -21,7 +22,10 @@ const TicketingPage = () => {
 
         {/* Columna Derecha (2/3) */}
         <div className="lg:col-span-2 h-full">
-          <TicketTable />
+          <TicketTable
+            title="Tickets con interacción reciente"
+            tickets={ticketsDummy}
+          />
         </div>
       </div>
     </div>
