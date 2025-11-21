@@ -1,6 +1,6 @@
-import { MetricCard } from "../../features/encuestas/components/MetricCard";
-import { FrequentReasons } from "../../features/encuestas/components/FrequentReasons";
-import { TopAgents } from "../../features/encuestas/components/TopAgents";
+import { MetricCard } from "../../features/reportes/components/MetricCard";
+import { FrequentReasons } from "../../features/reportes/components/FrequentReasons";
+import { TopAgents } from "../../features/reportes/components/TopAgents";
 export default function DashboardPage() {
   return (
     <div className="space-y-6">

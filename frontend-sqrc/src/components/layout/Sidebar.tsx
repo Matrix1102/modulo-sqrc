@@ -4,7 +4,6 @@ import {
   LayoutDashboard,
   Users,
   FileBarChart,
-  Settings,
   ClipboardList,
   PlusCircle,
   Ticket,
@@ -39,17 +38,15 @@ export const Sidebar: React.FC<SidebarProps> = ({ role = "AGENT" }) => {
         path: "/supervisor",
       },
       {
-        icon: FileBarChart,
-        label: "Reportes & KPIs",
-        path: "/supervisor/reportes",
+        icon: Ticket,
+        label: "Tickets de Equipo",
+        path: "/supervisor/ticketing",
       },
-      { icon: Users, label: "Gestión de Agentes", path: "/supervisor/agentes" },
       {
         icon: ClipboardList,
         label: "Resultados Encuesta",
         path: "/supervisor/encuestas",
       },
-      { icon: Settings, label: "Configuración", path: "/config" },
     ],
     AGENT: [
       { icon: PlusCircle, label: "Nuevo Ticket", path: "/nuevo-ticket" },

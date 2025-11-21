@@ -1,4 +1,4 @@
-import { MetricCard } from "../../features/encuestas/components/MetricCard";
+import { MetricCard } from "../../features/reportes/components/MetricCard";
 import { SurveyTable } from "../../features/encuestas/components/SurveyTable";
 import { TemplatesSection } from "../../features/encuestas/components/TemplateSection";
 
