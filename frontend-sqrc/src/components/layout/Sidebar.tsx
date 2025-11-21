@@ -12,6 +12,7 @@ import {
   UserCircle,
   Search,
 } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 
 type RoleType = "AGENT" | "SUPERVISOR";
 
@@ -26,6 +27,7 @@ interface SidebarProps {
 }
 
 export const Sidebar: React.FC<SidebarProps> = ({ role = "AGENT" }) => {
+  const navigate = useNavigate();
   const [isCollapsed, setIsCollapsed] = useState<boolean>(false);
   const [activePath, setActivePath] = useState<string>("/dashboard");
 
@@ -34,14 +36,18 @@ export const Sidebar: React.FC<SidebarProps> = ({ role = "AGENT" }) => {
       {
         icon: LayoutDashboard,
         label: "Dashboard Principal",
-        path: "/dashboard",
+        path: "/supervisor",
       },
-      { icon: FileBarChart, label: "Reportes & KPIs", path: "/reportes" },
-      { icon: Users, label: "Gestión de Agentes", path: "/agentes" },
+      {
+        icon: FileBarChart,
+        label: "Reportes & KPIs",
+        path: "/supervisor/reportes",
+      },
+      { icon: Users, label: "Gestión de Agentes", path: "/supervisor/agentes" },
       {
         icon: ClipboardList,
-        label: "Plantillas Encuesta",
-        path: "/plantillas",
+        label: "Resultados Encuesta",
+        path: "/supervisor/encuestas",
       },
       { icon: Settings, label: "Configuración", path: "/config" },
     ],
@@ -95,7 +101,10 @@ export const Sidebar: React.FC<SidebarProps> = ({ role = "AGENT" }) => {
           return (
             <button
               key={index}
-              onClick={() => setActivePath(item.path)}
+              onClick={() => {
+                setActivePath(item.path);
+                navigate(item.path);
+              }}
               className={`
                             w-full flex items-center gap-3 p-3 rounded-lg transition-all duration-200
                             hover:bg-white/10 group relative
