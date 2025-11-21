@@ -67,22 +67,22 @@ const CustomerProfileForm: React.FC = () => {
           />
         </Labeled>
         <Labeled label="Fecha nacimiento">
-          <div className="relative flex max-w-xs items-center">
+          <div className="relative flex w-full items-center">
             <input
               ref={dateInputRef}
               type="date"
               value={birthdate}
               onChange={(event) => setBirthdate(event.target.value)}
-              className="w-full rounded-lg border border-gray-200 bg-gray-50 px-3 py-2"
+              className="w-full rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 pr-12"
             />
-            {/* <button
+            <button
               type="button"
               onClick={triggerDatePicker}
               className="absolute right-2 inline-flex h-8 w-8 items-center justify-center rounded-md border border-gray-200 bg-white text-gray-500 transition-colors hover:bg-gray-100"
               aria-label="Seleccionar fecha de nacimiento"
             >
               <Calendar size={16} />
-            </button> */}
+            </button>
           </div>
         </Labeled>
       </CollapsibleSection>

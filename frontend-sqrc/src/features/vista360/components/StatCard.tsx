@@ -10,19 +10,21 @@ interface Props {
 
 const StatCard: React.FC<Props> = ({ title, value, trendValue, trendDirection = "positive", icon }) => {
   return (
-    <div className="flex h-full flex-col rounded-lg border border-gray-200 bg-gray-50 p-4 shadow-sm">
-      <div className="flex items-start justify-between">
-        <div>
-          <div className="text-sm text-gray-600">{title}</div>
-          <div className="text-2xl font-bold mt-2">{value}</div>
+    <div className="relative flex h-full flex-col rounded-lg border border-gray-200 bg-gray-50 p-5 shadow-sm">
+      {icon && (
+        <div className="absolute right-5 top-5 rounded-md bg-white p-2 text-gray-500 shadow-inner">
+          {icon}
         </div>
+      )}
 
-        {icon && <div className="rounded-md bg-white p-2 text-gray-500 shadow-inner">{icon}</div>}
+      <div className="flex flex-1 flex-col items-center justify-center text-center">
+        <div className="text-sm font-medium text-gray-600">{title}</div>
+        <div className="mt-4 text-4xl font-bold text-gray-900">{value}</div>
       </div>
 
       {trendValue && (
         <div
-          className={`mt-4 text-sm font-medium ${
+          className={`mt-6 text-center text-sm font-semibold ${
             trendDirection === "positive" ? "text-emerald-600" : "text-red-600"
           }`}
         >

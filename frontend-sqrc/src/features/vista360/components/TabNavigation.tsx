@@ -24,7 +24,7 @@ const TabNavigation: React.FC<Props> = ({ activeTab = "basico", onChange }) => {
               <button
                 type="button"
                 onClick={() => onChange?.(t.key)}
-                className={`w-full flex items-center justify-center gap-2 whitespace-nowrap px-5 py-3 text-sm font-medium transition-colors sm:justify-start
+                className={`flex w-full items-center justify-center gap-2 whitespace-nowrap px-5 py-3 text-center text-sm font-medium transition-colors
                   ${
                     isActive
                       ? "border-b-2 border-blue-500 bg-blue-50 text-blue-600"

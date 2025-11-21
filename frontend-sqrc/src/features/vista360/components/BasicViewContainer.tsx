@@ -6,7 +6,7 @@ import ServiceStatsGrid from "./ServiceStatsGrid";
 const BasicViewContainer: React.FC = () => {
   return (
     <div className="grid gap-6 lg:grid-cols-[minmax(0,600px)_1fr]">
-      <div className="flex flex-col gap-6">
+      <div className="order-1 flex flex-col gap-6 lg:order-none">
         <div className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
           <CustomerSearch />
         </div>
@@ -15,7 +15,7 @@ const BasicViewContainer: React.FC = () => {
         </div>
       </div>
 
-      <section className="flex h-full flex-col rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
+      <section className="order-2 flex h-full flex-col rounded-xl border border-gray-200 bg-white p-5 shadow-sm lg:order-none">
         <div className="flex flex-wrap items-center justify-between gap-2">
           <h3 className="text-lg font-semibold text-gray-900">Estadísticas de atención</h3>
           <span className="text-sm text-gray-500">Últimos 30 días</span>
