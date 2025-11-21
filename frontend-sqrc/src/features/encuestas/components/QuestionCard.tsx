@@ -1,0 +1,32 @@
+import React from "react";
+
+interface QuestionCardProps {
+  index: number;
+  questionText: string;
+  children: React.ReactNode; // El contenido gris (Respuesta o Inputs)
+  headerAction?: React.ReactNode; // Opcional: Icono de borrar
+}
+
+export const QuestionCard: React.FC<QuestionCardProps> = ({
+  index,
+  questionText,
+  children,
+  headerAction,
+}) => {
+  return (
+    <div className="rounded-xl overflow-hidden border border-gray-100 shadow-sm mb-4 bg-white">
+      {/* Cabecera Azul */}
+      <div className="bg-blue-600 px-5 py-3 flex justify-between items-center text-white">
+        <h4 className="font-semibold text-sm flex gap-2 items-center flex-1 mr-4">
+          <span className="opacity-80 font-mono">{index}.</span>
+          <span className="leading-tight">{questionText}</span>
+        </h4>
+        {/* Espacio para botón de eliminar (si existe) */}
+        {headerAction && <div className="shrink-0 ml-2">{headerAction}</div>}
+      </div>
+
+      {/* Cuerpo Gris */}
+      <div className="bg-gray-100 p-5 border-t border-gray-200">{children}</div>
+    </div>
+  );
+};
