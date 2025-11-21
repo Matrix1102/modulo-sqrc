@@ -11,13 +11,12 @@ import {
   BookOpen,
   UserCircle,
   Search,
-  type LucideIcon,
 } from "lucide-react";
 
 type RoleType = "AGENT" | "SUPERVISOR";
 
 interface MenuItem {
-  icon: LucideIcon;
+  icon: React.ComponentType<{ size?: number; className?: string }>;
   label: string;
   path: string;
 }
@@ -60,7 +59,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ role = "AGENT" }) => {
   return (
     <aside
       className={`
-                h-screen bg-blue-600 text-white
+                h-screen bg-primary-600 text-white
                 transition-all duration-300 ease-in-out
                 flex flex-col shadow-xl relative
                 ${isCollapsed ? "w-20" : "w-64"}
@@ -83,7 +82,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ role = "AGENT" }) => {
           }`}
         >
           <h1 className="font-bold text-lg whitespace-nowrap">Sistema SQRC</h1>
-          <p className="text-xs text-blue-200 uppercase tracking-wider">
+          <p className="text-xs text-primary-200 uppercase tracking-wider">
             {role}
           </p>
         </div>
@@ -91,11 +90,13 @@ export const Sidebar: React.FC<SidebarProps> = ({ role = "AGENT" }) => {
 
       {/* Navegación */}
       <nav className="flex-1 px-3 space-y-1">
-        {menuItems.map((item, index) => (
-          <button
-            key={index}
-            onClick={() => setActivePath(item.path)}
-            className={`
+        {menuItems.map((item, index) => {
+          const IconComponent = item.icon;
+          return (
+            <button
+              key={index}
+              onClick={() => setActivePath(item.path)}
+              className={`
                             w-full flex items-center gap-3 p-3 rounded-lg transition-all duration-200
                             hover:bg-white/10 group relative
                             ${
@@ -105,16 +106,16 @@ export const Sidebar: React.FC<SidebarProps> = ({ role = "AGENT" }) => {
                             }
                             ${isCollapsed ? "justify-center" : "justify-start"}
                         `}
-          >
-            <item.icon
-              size={24}
-              className={
-                activePath === item.path ? "text-white" : "text-blue-100"
-              }
-            />
+            >
+              <IconComponent
+                size={24}
+                className={
+                  activePath === item.path ? "text-white" : "text-primary-200"
+                }
+              />
 
-            <span
-              className={`
+              <span
+                className={`
                             whitespace-nowrap font-medium text-sm transition-all duration-300
                             ${
                               isCollapsed
@@ -122,29 +123,30 @@ export const Sidebar: React.FC<SidebarProps> = ({ role = "AGENT" }) => {
                                 : "w-auto opacity-100"
                             }
                         `}
-            >
-              {item.label}
-            </span>
-
-            {isCollapsed && (
-              <div
-                className="
-                                absolute left-full ml-2 bg-gray-900 text-white text-sm px-3 py-2 rounded-lg shadow-xl
-                                opacity-0 group-hover:opacity-100 transition-opacity z-50 pointer-events-none whitespace-nowrap
-                            "
               >
                 {item.label}
-              </div>
-            )}
-          </button>
-        ))}
+              </span>
+
+              {isCollapsed && (
+                <div
+                  className="
+                                absolute left-full ml-2 bg-dark-800 text-white text-sm px-3 py-2 rounded-lg shadow-xl
+                                opacity-0 group-hover:opacity-100 transition-opacity z-50 pointer-events-none whitespace-nowrap
+                            "
+                >
+                  {item.label}
+                </div>
+              )}
+            </button>
+          );
+        })}
       </nav>
 
       {/* Footer */}
-      <div className="p-4 border-t border-blue-500">
+      <div className="p-4 border-t border-primary-700">
         <button
           className={`
-                    w-full flex items-center gap-3 p-3 rounded-lg hover:bg-red-500/20 hover:text-red-100 transition-colors
+                    w-full flex items-center gap-3 p-3 rounded-lg hover:bg-white/10 hover:text-red-100 transition-colors
                     ${isCollapsed ? "justify-center" : "justify-start"}
                 `}
         >

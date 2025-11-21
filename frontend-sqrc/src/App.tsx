@@ -6,22 +6,29 @@ import DashboardPage from "./pages/supervisor/DashboardPage";
 
 // Un Home temporal para que puedas navegar
 const Home = () => (
-  <div className="h-screen flex flex-col items-center justify-center bg-slate-900 text-white gap-6">
-    <h1 className="text-4xl font-bold">Sistema SQRC</h1>
-    <div className="flex gap-4">
+  <div className="h-screen flex flex-col items-center justify-center bg-sqrc-gray-900 text-sqrc-gray-100 gap-6">
+    <div className="text-center mb-8">
+      <h1 className="text-4xl font-bold mb-2 text-sqrc-gray-100">Sistema SQRC</h1>
+      <p className="text-sqrc-gray-400 text-lg">
+        Selecciona tu perfil para continuar
+      </p>
+    </div>
+    
+    <div className="flex gap-4 flex-wrap justify-center">
       {/* Enlace directo a la página de Tickets del Agente */}
       <Link
         to="/agente/tickets"
-        className="px-6 py-3 bg-blue-600 rounded-lg hover:bg-blue-500 transition"
+        className="px-8 py-4 bg-sqrc-primary-500 hover:bg-sqrc-primary-600 text-white rounded-lg transition-colors font-medium flex items-center gap-2 shadow-lg"
       >
-        Soy Agente (Ver Tickets)
+        🎧 Soy Agente
       </Link>
+      
       {/* Enlace directo al Dashboard del Supervisor */}
       <Link
         to="/supervisor"
-        className="px-6 py-3 bg-emerald-600 rounded-lg hover:bg-emerald-500 transition"
+        className="px-8 py-4 bg-sqrc-secondary-500 hover:bg-sqrc-secondary-600 text-white rounded-lg transition-colors font-medium flex items-center gap-2 shadow-lg"
       >
-        Soy Supervisor (Ver Dashboard)
+        👑 Soy Supervisor
       </Link>
     </div>
   </div>

@@ -8,7 +8,7 @@ interface MainLayoutProps {
 
 export default function MainLayout({ role }: Readonly<MainLayoutProps>) {
   return (
-    <div className="flex h-screen bg-sqrc-bg-main">
+    <div className="flex h-screen bg-light-200">
       {/* Sidebar fijo a la izquierda */}
       <Sidebar role={role} />
 
@@ -23,7 +23,7 @@ export default function MainLayout({ role }: Readonly<MainLayoutProps>) {
         />
 
         {/* Contenido dinámico - Aquí se renderizan las rutas hijas */}
-        <main className="flex-1 overflow-x-hidden overflow-y-auto p-sqrc-lg bg-sqrc-bg-main">
+        <main className="flex-1 overflow-x-hidden overflow-y-auto p-6 bg-light-200">
           <Outlet />
         </main>
       </div>
