@@ -67,15 +67,7 @@ export default function SurveyCategoryPage({
   return (
     <div className="flex flex-col space-y-8 pb-10">
       {/* --- HEADER --- */}
-      <div className="flex justify-between items-end">
-        <div>
-          <h1 className="text-3xl font-extrabold text-gray-900 mb-1">
-            {currentConfig.title}
-          </h1>
-          <p className="text-gray-500 font-medium">
-            {currentConfig.description}
-          </p>
-        </div>
+      <div className="flex justify-end items-end">
         <button
           onClick={() => navigate(-1)}
           className="text-gray-500 hover:text-gray-800 underline text-sm font-medium transition-colors"
