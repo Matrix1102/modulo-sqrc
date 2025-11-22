@@ -7,6 +7,7 @@ import TicketDetailPage from "./pages/supervisor/TicketDetailPage";
 import TicketAgentPage from "./pages/supervisor/TicketAgentPage";
 import DashboardPage from "./pages/supervisor/DashboardPage";
 import EncuestasPage from "./pages/supervisor/SurveyPage";
+import SurveyCategoryPage from "./pages/supervisor/SurveyCategoryPage";
 
 // Un Home temporal para que puedas navegar
 const Home = () => (
@@ -63,6 +64,14 @@ export default function App() {
           {/* El Dashboard suele ser la página principal (index) */}
           <Route index element={<DashboardPage />} />
           <Route path="encuestas" element={<EncuestasPage />} />
+          <Route
+            path="encuestas/agentes"
+            element={<SurveyCategoryPage category="AGENTE" />}
+          />
+          <Route
+            path="encuestas/servicios"
+            element={<SurveyCategoryPage category="SERVICIO" />}
+          />
           <Route path="tickets" element={<TicketPage />} />
           <Route
             path="tickets/agente/:agenteId"
