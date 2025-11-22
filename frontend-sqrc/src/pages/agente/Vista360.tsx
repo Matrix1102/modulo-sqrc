@@ -3,6 +3,7 @@ import Customer360Layout from "../../features/vista360/components/Customer360Lay
 import BasicViewContainer from "../../features/vista360/components/BasicViewContainer";
 import CustomerProductsView from "../../features/vista360/components/CustomerProductsView";
 import CustomerServicesView from "../../features/vista360/components/CustomerServicesView";
+import CustomerTicketsView from "../../features/vista360/components/CustomerTicketsView";
 
 const Vista360Page: React.FC = () => {
   const [activeTab, setActiveTab] = useState<string>("basico");
@@ -14,9 +15,7 @@ const Vista360Page: React.FC = () => {
       {activeTab === "servicios" && <CustomerServicesView />}
       {activeTab === "productos" && <CustomerProductsView />}
       {activeTab === "ticket" && (
-        <div className="rounded-lg border border-dashed border-gray-300 bg-gray-50 p-8 text-center text-sm text-gray-500">
-          Ticket (placeholder)
-        </div>
+        <CustomerTicketsView />
       )}
     </Customer360Layout>
   );
