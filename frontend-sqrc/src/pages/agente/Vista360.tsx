@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import Customer360Layout from "../../features/vista360/components/Customer360Layout";
 import BasicViewContainer from "../../features/vista360/components/BasicViewContainer";
+import CustomerProductsView from "../../features/vista360/components/CustomerProductsView";
 
 const Vista360Page: React.FC = () => {
   const [activeTab, setActiveTab] = useState<string>("basico");
@@ -14,11 +15,7 @@ const Vista360Page: React.FC = () => {
           Servicios (placeholder)
         </div>
       )}
-      {activeTab === "productos" && (
-        <div className="rounded-lg border border-dashed border-gray-300 bg-gray-50 p-8 text-center text-sm text-gray-500">
-          Productos (placeholder)
-        </div>
-      )}
+      {activeTab === "productos" && <CustomerProductsView />}
       {activeTab === "ticket" && (
         <div className="rounded-lg border border-dashed border-gray-300 bg-gray-50 p-8 text-center text-sm text-gray-500">
           Ticket (placeholder)
