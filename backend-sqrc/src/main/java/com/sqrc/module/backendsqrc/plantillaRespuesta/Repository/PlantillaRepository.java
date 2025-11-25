@@ -29,4 +29,6 @@ public interface PlantillaRepository extends JpaRepository<Plantilla, Long> {
 
     // Busca plantillas activas de un tipo específico (ej: Solo RECLAMOS)
     List<Plantilla> findByCasoAndActivoTrue(TipoCaso caso);
+
+    boolean existsByNombre(String nombre);
 }

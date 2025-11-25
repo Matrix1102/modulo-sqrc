@@ -48,7 +48,7 @@ public class Plantilla {
 
 
     @Column(name = "activo")
-    private Byte activo;
+    private boolean activo;
 
 
     @Column(name = "fecha_creacion")
