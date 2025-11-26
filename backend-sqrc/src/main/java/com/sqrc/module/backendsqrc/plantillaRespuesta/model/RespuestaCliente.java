@@ -18,7 +18,7 @@ public class RespuestaCliente {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "id_respuesta")
-    private Integer idRespuesta;
+    private Long idRespuesta;
 
 /*
     @ManyToOne(fetch = FetchType.LAZY)
