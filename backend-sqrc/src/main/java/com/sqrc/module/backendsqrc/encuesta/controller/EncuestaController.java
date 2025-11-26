@@ -2,7 +2,9 @@ package com.sqrc.module.backendsqrc.encuesta.controller;
 
 import com.sqrc.module.backendsqrc.encuesta.dto.*; // Importa PlantillaRequestDTO, EncuestaResultadoDTO, etc.
 import com.sqrc.module.backendsqrc.encuesta.service.EncuestaService;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.validation.annotation.Validated;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -12,6 +14,7 @@ import java.time.LocalDate;
 import java.util.List;
 
 @RestController
+@Validated
 @RequestMapping("/api/encuestas") // URL limpia (sin /v1)
 @RequiredArgsConstructor
 public class EncuestaController {
@@ -28,7 +31,7 @@ public class EncuestaController {
     }
 
     @PostMapping("/plantillas")
-    public ResponseEntity<PlantillaResponseDTO> crearPlantilla(@RequestBody PlantillaRequestDTO request) {
+    public ResponseEntity<PlantillaResponseDTO> crearPlantilla(@Valid @RequestBody PlantillaRequestDTO request) {
         PlantillaResponseDTO nueva = encuestaService.crearPlantilla(request);
         return ResponseEntity.status(HttpStatus.CREATED).body(nueva);
     }
@@ -41,8 +44,15 @@ public class EncuestaController {
     @PutMapping("/plantillas/{id}")
     public ResponseEntity<PlantillaResponseDTO> actualizarPlantilla(
             @PathVariable String id,
-            @RequestBody PlantillaRequestDTO request) {
+            @Valid @RequestBody PlantillaRequestDTO request) {
         return ResponseEntity.ok(encuestaService.actualizarPlantilla(id, request));
+    }
+
+    // Endpoint para que el cliente envíe las respuestas de una encuesta
+    @PostMapping("/respuestas")
+    public ResponseEntity<Void> guardarRespuestas(@Valid @RequestBody com.sqrc.module.backendsqrc.encuesta.dto.RespuestaClienteDTO request) {
+        encuestaService.guardarRespuesta(request);
+        return ResponseEntity.status(HttpStatus.CREATED).build();
     }
 
     // ==========================================

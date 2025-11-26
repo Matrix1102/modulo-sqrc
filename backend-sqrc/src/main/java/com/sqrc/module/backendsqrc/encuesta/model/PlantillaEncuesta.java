@@ -16,6 +16,9 @@ public class PlantillaEncuesta {
     private String nombre;
     private String descripcion;
     private Boolean vigente;
+    
+    @Enumerated(EnumType.STRING)
+    private AlcanceEvaluacion alcanceEvaluacion;
 
     // Esta es la otra cara de la moneda: Una plantilla tiene muchas preguntas
     // 'mappedBy = "plantilla"' le dice a JPA: "La dueña de la relación es el campo 'plantilla' en la clase Pregunta"

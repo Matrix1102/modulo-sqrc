@@ -5,6 +5,7 @@ import lombok.Data;
 import lombok.EqualsAndHashCode;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 
 @Data
 @EqualsAndHashCode(callSuper = true)
@@ -36,7 +37,7 @@ public class PreguntaRadio extends Pregunta {
         // (Asumiendo que el frontend envía el ID de la opción, no el texto)
         try {
             Long idBuscado = Long.parseLong(valorId);
-            return opciones.stream().anyMatch(op -> op.getIdOpcion().equals(idBuscado));
+            return opciones.stream().anyMatch(op -> Objects.equals(op.getIdOpcion(), idBuscado));
         } catch (NumberFormatException e) {
             return false;
         }

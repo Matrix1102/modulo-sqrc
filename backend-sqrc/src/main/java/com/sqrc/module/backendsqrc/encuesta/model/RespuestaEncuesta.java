@@ -27,6 +27,8 @@ public class RespuestaEncuesta {
 
     @PrePersist
     public void prePersist() {
-        this.fechaRespuesta = LocalDateTime.now();
+        if (this.fechaRespuesta == null) {
+            this.fechaRespuesta = LocalDateTime.now();
+        }
     }
 }
