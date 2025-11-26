@@ -1,14 +1,13 @@
 package com.sqrc.module.backendsqrc.encuesta.service;
 
-import com.sqrc.module.backendsqrc.encuesta.dto.*; // Importa tus DTOs
+import com.sqrc.module.backendsqrc.encuesta.dto.*;
+import com.sqrc.module.backendsqrc.encuesta.event.EncuestaRespondidaEvent;
 import com.sqrc.module.backendsqrc.encuesta.factory.PreguntaFactory;
 import com.sqrc.module.backendsqrc.encuesta.model.*;
-import com.sqrc.module.backendsqrc.encuesta.repository.EncuestaRepository;
-import com.sqrc.module.backendsqrc.encuesta.repository.PlantillaRepository;
-// import com.sqrc.module.backendsqrc.ticket.repository.TicketRepository; // TODO: Descomentar cuando exista
-import com.sqrc.module.backendsqrc.reporte.dto.SurveyDashboardDTO;
-
+import com.sqrc.module.backendsqrc.encuesta.repository.*;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.ApplicationEventPublisher;
+import org.springframework.data.jpa.domain.Specification; // Importante para el patrón Specification
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -22,25 +21,21 @@ import java.util.stream.Collectors;
 @Service
 public class EncuestaService {
 
-    @Autowired
-    private EncuestaRepository encuestaRepository;
-    @Autowired
-    private PlantillaRepository plantillaRepository;
-    @Autowired
-    private Map<String, PreguntaFactory> fabricasPreguntas;
-    // @Autowired private TicketRepository ticketRepository; // Descomenta si
-    // validas tickets reales
+    // Inyección de Dependencias (Patrón DI)
+    @Autowired private EncuestaRepository encuestaRepository;
+    @Autowired private PlantillaRepository plantillaRepository;
+    @Autowired private PreguntaRepository preguntaRepository;
+    @Autowired private RespuestaEncuestaRepository respuestaEncuestaRepository;
+    @Autowired private Map<String, PreguntaFactory> fabricasPreguntas; // Patrón Factory
+    @Autowired private ApplicationEventPublisher eventPublisher;       // Patrón Observer
 
     // ==========================================
-    // 1. GESTIÓN DE PLANTILLAS (CRUD)
+    // 1. GESTIÓN DE PLANTILLAS (DISEÑO)
     // ==========================================
 
     @Transactional(readOnly = true)
     public List<PlantillaResponseDTO> listarPlantillas() {
-        // Buscamos todas las entidades y las convertimos a DTOs
-        List<PlantillaEncuesta> entidades = plantillaRepository.findAll();
-
-        return entidades.stream()
+        return plantillaRepository.findAll().stream()
                 .map(this::convertirADTO)
                 .collect(Collectors.toList());
     }
@@ -53,22 +48,19 @@ public class EncuestaService {
         plantilla.setVigente(true);
         plantilla.setPreguntas(new ArrayList<>());
 
-        // Guardamos primero para tener ID
         plantilla = plantillaRepository.save(plantilla);
 
-        // Si el DTO viene con preguntas iniciales, las creamos usando el Factory
         if (dto.getPreguntas() != null) {
             for (PreguntaDTO pDto : dto.getPreguntas()) {
                 agregarPreguntaAPlantilla(plantilla.getIdPlantillaEncuesta(), pDto);
             }
         }
-
         return convertirADTO(plantilla);
     }
 
     @Transactional(readOnly = true)
     public PlantillaResponseDTO obtenerPlantillaPorId(String idStr) {
-        Long id = Long.parseLong(idStr); // Convertimos String a Long
+        Long id = Long.parseLong(idStr);
         PlantillaEncuesta plantilla = plantillaRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Plantilla no encontrada"));
         return convertirADTO(plantilla);
@@ -82,24 +74,21 @@ public class EncuestaService {
 
         plantilla.setNombre(dto.getNombre());
         plantilla.setDescripcion(dto.getDescripcion());
-        // Aquí podrías actualizar las preguntas, pero es complejo.
-        // Por ahora actualizamos solo cabecera.
-
-        PlantillaEncuesta actualizada = plantillaRepository.save(plantilla);
-        return convertirADTO(actualizada);
+        // Nota: Actualizar preguntas profundas requiere lógica de borrado/re-creación que omitimos por brevedad
+        
+        return convertirADTO(plantillaRepository.save(plantilla));
     }
 
     // ==========================================
-    // 2. LOGICA DE PREGUNTAS (FACTORY)
+    // 2. LÓGICA DE PREGUNTAS (FACTORY + NORMALIZACIÓN)
     // ==========================================
 
-    // Este método reutiliza tu lógica de Factory
     private void agregarPreguntaAPlantilla(Long plantillaId, PreguntaDTO dto) {
         PlantillaEncuesta plantilla = plantillaRepository.findById(plantillaId).orElseThrow();
 
+        // Uso de la Factory para crear la instancia correcta (Radio, Texto, etc.)
         PreguntaFactory factory = fabricasPreguntas.get(dto.getTipo());
-        if (factory == null)
-            throw new IllegalArgumentException("Tipo inválido: " + dto.getTipo());
+        if (factory == null) throw new IllegalArgumentException("Tipo inválido: " + dto.getTipo());
 
         Pregunta pregunta = factory.crearPregunta();
         pregunta.setTexto(dto.getTexto());
@@ -107,73 +96,166 @@ public class EncuestaService {
         pregunta.setOrden(dto.getOrden() != null ? dto.getOrden() : plantilla.getPreguntas().size() + 1);
         pregunta.setPlantilla(plantilla);
 
-        // Configuración específica
+        // Configuración específica según el tipo
         if (pregunta instanceof PreguntaTexto) {
             ((PreguntaTexto) pregunta).setLongitudMaxima(255);
         } else if (pregunta instanceof PreguntaRadio && dto.getOpciones() != null) {
-            String opcionesString = String.join(",", dto.getOpciones());
-            ((PreguntaRadio) pregunta).setOpciones(opcionesString);
+            PreguntaRadio radio = (PreguntaRadio) pregunta;
+            int orden = 1;
+            // Aquí convertimos los Strings del DTO a Entidades OpcionPregunta
+            for (String textoOpcion : dto.getOpciones()) {
+                radio.agregarOpcion(textoOpcion, orden++);
+            }
         }
 
         plantilla.getPreguntas().add(pregunta);
-        // No es necesario save explícito si la lista es gestionada, pero por seguridad:
         plantillaRepository.save(plantilla);
     }
 
     // ==========================================
-    // 3. DASHBOARD Y MÉTRICAS
-    // ==========================================
-
-    public SurveyDashboardDTO obtenerKpisEncuestas(LocalDate start, LocalDate end) {
-        // AQUÍ IRÍA LA LÓGICA REAL DE CÁLCULO CON REPOSITORIOS
-        // Por ahora devolvemos datos simulados para que el Controller funcione
-        return SurveyDashboardDTO.builder()
-                .csatPromedioAgente(4.5)
-                .csatPromedioServicio(4.1)
-                .totalRespuestas(85)
-                .tasaRespuestaPct(65.0)
-                .build();
-    }
-
-    // ==========================================
-    // 4. RESPUESTAS DE CLIENTES
+    // 3. GESTIÓN DE RESPUESTAS (EJECUCIÓN)
     // ==========================================
 
     @Transactional
     public void guardarRespuesta(RespuestaClienteDTO dto) {
-        // 1. Buscar la Encuesta Enviada (la instancia "viva")
-        // OJO: Necesitas tener el repositorio de Encuesta inyectado
         Encuesta encuesta = encuestaRepository.findById(dto.getIdEncuesta())
                 .orElseThrow(() -> new RuntimeException("Encuesta no existe o expiró"));
 
-        // 2. Crear el objeto respuesta
         RespuestaEncuesta respuestaGlobal = new RespuestaEncuesta();
         respuestaGlobal.setEncuesta(encuesta);
         respuestaGlobal.setFechaRespuesta(LocalDateTime.now());
         respuestaGlobal.setRespuestas(new ArrayList<>());
 
-        // 3. Mapear cada respuesta individual
-        // (Aquí requerirías lógica para buscar las preguntas por ID y asignarlas)
+        boolean esCritica = false; // Bandera para el patrón Observer
 
-        // 4. Guardar estado
+        if (dto.getRespuestas() != null) {
+            for (RespuestaClienteDTO.ItemRespuesta item : dto.getRespuestas()) {
+                Pregunta pregunta = preguntaRepository.findById(item.getIdPregunta())
+                        .orElseThrow(() -> new RuntimeException("Pregunta no encontrada ID: " + item.getIdPregunta()));
+
+                RespuestaPregunta resp = new RespuestaPregunta();
+                resp.setPregunta(pregunta);
+                // Guardamos el valor: Si es Radio, será el ID de la opción. Si es Texto, el texto.
+                resp.setValor(item.getValor());
+                resp.setRespuestaEncuesta(respuestaGlobal);
+                
+                respuestaGlobal.getRespuestas().add(resp);
+
+                // Ejemplo de lógica de negocio para detectar alertas
+                // Si es una pregunta Radio y el valor es "1" (ID de "Muy Malo"), activamos alerta
+                if (pregunta instanceof PreguntaRadio && "1".equals(item.getValor())) {
+                    esCritica = true;
+                }
+            }
+        }
+
         encuesta.setEstadoEncuesta(EstadoEncuesta.RESPONDIDA);
         encuesta.setRespuestaEncuesta(respuestaGlobal);
-
         encuestaRepository.save(encuesta);
+
+        // PATRÓN OBSERVER: Lanzamos el evento al sistema
+        eventPublisher.publishEvent(new EncuestaRespondidaEvent(
+                encuesta.getIdEncuesta(), 
+                encuesta.getPlantilla().getIdPlantillaEncuesta(), 
+                esCritica
+        ));
+    }
+
+    @Transactional(readOnly = true)
+    public List<EncuestaResultadoDTO> listarRespuestas(String alcance, String agenteId, LocalDate start, LocalDate end) {
+        
+        // PATRÓN SPECIFICATION: Construimos la consulta dinámica
+        // "RespuestaEncuestaSpec" es la clase de filtros que creamos anteriormente
+        Specification<RespuestaEncuesta> filtros = RespuestaEncuestaSpec.filtrarPorCriterios(alcance, agenteId, start, end);
+        
+        // El repositorio ejecuta la consulta optimizada en base de datos
+        List<RespuestaEncuesta> resultados = respuestaEncuestaRepository.findAll(filtros);
+
+        // Mapeamos los resultados a DTOs para la vista
+        return resultados.stream()
+            .map(r -> EncuestaResultadoDTO.builder()
+                    .responseId(r.getIdRespuestaEncuesta().toString())
+                    .ticketId("T-" + r.getEncuesta().getIdEncuesta()) // Simulación de ID Ticket
+                    .fechaRespuesta(r.getFechaRespuesta().toString())
+                    // Aquí podrías agregar lógica para calcular el puntaje promedio de esta respuesta
+                    .puntaje("N/A") 
+                    .comentario("Respuesta completada")
+                    .build())
+            .collect(Collectors.toList());
+    }
+
+    @Transactional(readOnly = true)
+    public EncuestaResultadoDTO obtenerRespuestaPorId(String idStr) {
+        Long id = Long.parseLong(idStr);
+        RespuestaEncuesta respuestaDB = respuestaEncuestaRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Respuesta no encontrada"));
+
+        // Transformamos las respuestas para el detalle
+        List<ResultadoPreguntaDTO> detalles = respuestaDB.getRespuestas().stream().map(resp -> {
+            String valorMostrar = resp.getValor();
+            Pregunta p = resp.getPregunta();
+
+            // Si es Radio, el valor guardado es un ID ("52"). Hay que buscar el texto ("Excelente").
+            if (p instanceof PreguntaRadio) {
+                try {
+                    Long idOpcion = Long.parseLong(valorMostrar);
+                    // Buscamos en la lista de opciones de la pregunta
+                    valorMostrar = ((PreguntaRadio) p).getOpciones().stream()
+                            .filter(op -> op.getIdOpcion().equals(idOpcion))
+                            .findFirst()
+                            .map(OpcionPregunta::getTexto)
+                            .orElse(valorMostrar + " (Opción no encontrada)");
+                } catch (NumberFormatException e) {
+                    // Si no era un número, lo mostramos tal cual
+                }
+            }
+
+            return ResultadoPreguntaDTO.builder()
+                    .pregunta(p.getTexto())
+                    .respuesta(valorMostrar)
+                    .build();
+        }).collect(Collectors.toList());
+
+        return EncuestaResultadoDTO.builder()
+                .responseId(respuestaDB.getIdRespuestaEncuesta().toString())
+                .ticketId("T-" + respuestaDB.getEncuesta().getIdEncuesta())
+                .fechaRespuesta(respuestaDB.getFechaRespuesta().toString())
+                .resultados(detalles)
+                .build();
+    }
+
+    @Transactional
+    public void reenviarEncuesta(String idStr) {
+        Long id = Long.parseLong(idStr);
+        Encuesta encuesta = encuestaRepository.findById(id).orElseThrow();
+        
+        if (encuesta.getEstadoEncuesta() == EstadoEncuesta.RESPONDIDA) {
+            throw new RuntimeException("La encuesta ya fue respondida, no se puede reenviar.");
+        }
+        
+        encuesta.setFechaEnvio(LocalDateTime.now());
+        encuesta.setEstadoEncuesta(EstadoEncuesta.ENVIADA);
+        encuestaRepository.save(encuesta);
+        
+        // Aquí se invocaría al EmailService real
+        System.out.println("Simulando reenvío de correo para encuesta " + id);
     }
 
     // ==========================================
-    // UTILITARIOS (Mappers)
+    // UTILITARIOS
     // ==========================================
 
     private PlantillaResponseDTO convertirADTO(PlantillaEncuesta entidad) {
         List<PreguntaDTO> preguntasDTO = entidad.getPreguntas().stream().map(p -> {
             List<String> opciones = null;
-            String tipo = "TEXTO"; // Default
+            String tipo = "TEXTO";
 
             if (p instanceof PreguntaRadio) {
                 tipo = "RADIO";
-                opciones = ((PreguntaRadio) p).getListaOpciones();
+                // Convertimos las entidades OpcionPregunta a una lista de Strings simple para el Frontend
+                opciones = ((PreguntaRadio) p).getOpciones().stream()
+                        .map(OpcionPregunta::getTexto)
+                        .collect(Collectors.toList());
             } else if (p instanceof PreguntaBooleana) {
                 tipo = "BOOLEANA";
             }
@@ -194,21 +276,5 @@ public class EncuestaService {
                 .estado(entidad.getVigente() ? "ACTIVA" : "INACTIVA")
                 .preguntas(preguntasDTO)
                 .build();
-    }
-
-    public List<EncuestaResultadoDTO> listarRespuestas(String alcance, String agenteId, LocalDate start,
-            LocalDate end) {
-        // TODO: Implementar lógica de búsqueda con filtros en Repositorio
-        return new ArrayList<>();
-    }
-
-    public EncuestaResultadoDTO obtenerRespuestaPorId(String id) {
-        // TODO: Buscar por ID y convertir a DTO
-        return EncuestaResultadoDTO.builder().build();
-    }
-
-    public void reenviarEncuesta(String id) {
-        // TODO: Lógica de reenvío de correo
-        System.out.println("Reenviando encuesta " + id);
     }
 }

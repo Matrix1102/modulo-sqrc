@@ -1,10 +1,9 @@
 package com.sqrc.module.backendsqrc.encuesta.model;
 
-import jakarta.persistence.DiscriminatorValue;
-import jakarta.persistence.Entity;
+import jakarta.persistence.*;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
-import java.util.Arrays;
+import java.util.ArrayList;
 import java.util.List;
 
 @Data
@@ -13,21 +12,33 @@ import java.util.List;
 @DiscriminatorValue("RADIO")
 public class PreguntaRadio extends Pregunta {
 
-    // Guardamos las opciones en un String simple para evitar tablas complejas por ahora
-    private String opciones; // Ej: "Rojo,Verde,Azul"
+    // ELIMINAMOS: private String opciones;
+
+    // AGREGAMOS: Relación One-to-Many real
+    @OneToMany(mappedBy = "pregunta", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<OpcionPregunta> opciones = new ArrayList<>();
+
+    // Método helper para agregar opciones fácilmente
+    public void agregarOpcion(String texto, int orden) {
+        OpcionPregunta opcion = new OpcionPregunta();
+        opcion.setTexto(texto);
+        opcion.setOrden(orden);
+        opcion.setPregunta(this); // Vinculación bidireccional
+        this.opciones.add(opcion);
+    }
 
     @Override
-    public boolean validar(String valor) {
-        if (valor == null) return !getObligatoria();
-        if (opciones == null || opciones.isEmpty()) return false;
-        
-        // Validamos que el valor enviado esté dentro de las opciones permitidas
-        List<String> listaOpciones = Arrays.asList(opciones.split(","));
-        return listaOpciones.contains(valor);
-    }
-    
-    // Helper para el frontend
-    public List<String> getListaOpciones() {
-        return opciones != null ? Arrays.asList(opciones.split(",")) : List.of();
+    public boolean validar(String valorId) {
+        if (valorId == null)
+            return !getObligatoria();
+
+        // Ahora validamos si el ID enviado existe en nuestra lista de opciones
+        // (Asumiendo que el frontend envía el ID de la opción, no el texto)
+        try {
+            Long idBuscado = Long.parseLong(valorId);
+            return opciones.stream().anyMatch(op -> op.getIdOpcion().equals(idBuscado));
+        } catch (NumberFormatException e) {
+            return false;
+        }
     }
 }
