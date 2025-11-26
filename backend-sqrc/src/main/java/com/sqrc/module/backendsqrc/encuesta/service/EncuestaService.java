@@ -7,6 +7,8 @@ import com.sqrc.module.backendsqrc.encuesta.model.*;
 import com.sqrc.module.backendsqrc.encuesta.repository.*;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ApplicationEventPublisher;
+import org.springframework.http.HttpStatus;
+import org.springframework.web.server.ResponseStatusException;
 import org.springframework.data.jpa.domain.Specification; // Importante para el patrón Specification
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -46,6 +48,14 @@ public class EncuestaService {
         plantilla.setNombre(dto.getNombre());
         plantilla.setDescripcion(dto.getDescripcion());
         plantilla.setVigente(true);
+        // Mapear alcance si viene en el DTO
+        if (dto.getAlcanceEvaluacion() != null && !dto.getAlcanceEvaluacion().isEmpty()) {
+            try {
+                plantilla.setAlcanceEvaluacion(com.sqrc.module.backendsqrc.encuesta.model.AlcanceEvaluacion.valueOf(dto.getAlcanceEvaluacion().trim().toUpperCase()));
+            } catch (IllegalArgumentException e) {
+                // ignore invalid value; could alternatively throw bad request
+            }
+        }
         plantilla.setPreguntas(new ArrayList<>());
 
         plantilla = plantillaRepository.save(plantilla);
@@ -62,7 +72,7 @@ public class EncuestaService {
     public PlantillaResponseDTO obtenerPlantillaPorId(String idStr) {
         Long id = Long.parseLong(idStr);
         PlantillaEncuesta plantilla = plantillaRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Plantilla no encontrada"));
+            .orElseThrow(() -> new org.springframework.web.server.ResponseStatusException(org.springframework.http.HttpStatus.NOT_FOUND, "Plantilla no encontrada"));
         return convertirADTO(plantilla);
     }
 
@@ -70,10 +80,18 @@ public class EncuestaService {
     public PlantillaResponseDTO actualizarPlantilla(String idStr, PlantillaRequestDTO dto) {
         Long id = Long.parseLong(idStr);
         PlantillaEncuesta plantilla = plantillaRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Plantilla no encontrada"));
+            .orElseThrow(() -> new org.springframework.web.server.ResponseStatusException(org.springframework.http.HttpStatus.NOT_FOUND, "Plantilla no encontrada"));
 
         plantilla.setNombre(dto.getNombre());
         plantilla.setDescripcion(dto.getDescripcion());
+        // Mapear alcance si viene en el DTO
+        if (dto.getAlcanceEvaluacion() != null && !dto.getAlcanceEvaluacion().isEmpty()) {
+            try {
+                plantilla.setAlcanceEvaluacion(com.sqrc.module.backendsqrc.encuesta.model.AlcanceEvaluacion.valueOf(dto.getAlcanceEvaluacion().trim().toUpperCase()));
+            } catch (IllegalArgumentException e) {
+                // ignore o podríamos lanzar bad request
+            }
+        }
         // Nota: Actualizar preguntas profundas requiere lógica de borrado/re-creación que omitimos por brevedad
         
         return convertirADTO(plantillaRepository.save(plantilla));
@@ -84,11 +102,27 @@ public class EncuestaService {
     // ==========================================
 
     private void agregarPreguntaAPlantilla(Long plantillaId, PreguntaDTO dto) {
-        PlantillaEncuesta plantilla = plantillaRepository.findById(plantillaId).orElseThrow();
+        PlantillaEncuesta plantilla = plantillaRepository.findById(plantillaId)
+            .orElseThrow(() -> new org.springframework.web.server.ResponseStatusException(org.springframework.http.HttpStatus.NOT_FOUND, "Plantilla no encontrada ID: " + plantillaId));
 
         // Uso de la Factory para crear la instancia correcta (Radio, Texto, etc.)
-        PreguntaFactory factory = fabricasPreguntas.get(dto.getTipo());
-        if (factory == null) throw new IllegalArgumentException("Tipo inválido: " + dto.getTipo());
+        String tipoKey = dto.getTipo() != null ? dto.getTipo().trim().toUpperCase() : "";
+        // Soporte de aliases comunes entre frontend/back
+        switch (tipoKey) {
+            case "BOOLEAN":
+            case "BOOLEANO":
+            case "BOOLEANA":
+                tipoKey = "BOOLEANA";
+                break;
+            case "TEXT":
+            case "STRING":
+                tipoKey = "TEXTO";
+                break;
+            // RADIO y otros quedan tal cual
+        }
+
+        PreguntaFactory factory = fabricasPreguntas.get(tipoKey);
+        if (factory == null) throw new IllegalArgumentException("Tipo inválido: " + dto.getTipo() + " (normalizado a '" + tipoKey + "')");
 
         Pregunta pregunta = factory.crearPregunta();
         pregunta.setTexto(dto.getTexto());
@@ -119,7 +153,7 @@ public class EncuestaService {
     @Transactional
     public void guardarRespuesta(RespuestaClienteDTO dto) {
         Encuesta encuesta = encuestaRepository.findById(dto.getIdEncuesta())
-                .orElseThrow(() -> new RuntimeException("Encuesta no existe o expiró"));
+            .orElseThrow(() -> new org.springframework.web.server.ResponseStatusException(org.springframework.http.HttpStatus.NOT_FOUND, "Encuesta no existe o expiró"));
 
         RespuestaEncuesta respuestaGlobal = new RespuestaEncuesta();
         respuestaGlobal.setEncuesta(encuesta);
@@ -131,7 +165,14 @@ public class EncuestaService {
         if (dto.getRespuestas() != null) {
             for (RespuestaClienteDTO.ItemRespuesta item : dto.getRespuestas()) {
                 Pregunta pregunta = preguntaRepository.findById(item.getIdPregunta())
-                        .orElseThrow(() -> new RuntimeException("Pregunta no encontrada ID: " + item.getIdPregunta()));
+                    .orElseThrow(() -> new org.springframework.web.server.ResponseStatusException(org.springframework.http.HttpStatus.NOT_FOUND, "Pregunta no encontrada ID: " + item.getIdPregunta()));
+
+                // VALIDACIÓN: Usar la lógica de cada tipo de pregunta
+                boolean esValida = pregunta.validar(item.getValor());
+                if (!esValida) {
+                    throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                            "Respuesta inválida para la pregunta ID: " + item.getIdPregunta());
+                }
 
                 RespuestaPregunta resp = new RespuestaPregunta();
                 resp.setPregunta(pregunta);
@@ -188,7 +229,7 @@ public class EncuestaService {
     public EncuestaResultadoDTO obtenerRespuestaPorId(String idStr) {
         Long id = Long.parseLong(idStr);
         RespuestaEncuesta respuestaDB = respuestaEncuestaRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Respuesta no encontrada"));
+            .orElseThrow(() -> new org.springframework.web.server.ResponseStatusException(org.springframework.http.HttpStatus.NOT_FOUND, "Respuesta no encontrada"));
 
         // Transformamos las respuestas para el detalle
         List<ResultadoPreguntaDTO> detalles = respuestaDB.getRespuestas().stream().map(resp -> {
@@ -227,16 +268,17 @@ public class EncuestaService {
     @Transactional
     public void reenviarEncuesta(String idStr) {
         Long id = Long.parseLong(idStr);
-        Encuesta encuesta = encuestaRepository.findById(id).orElseThrow();
-        
+        Encuesta encuesta = encuestaRepository.findById(id)
+                .orElseThrow(() -> new org.springframework.web.server.ResponseStatusException(org.springframework.http.HttpStatus.NOT_FOUND, "Encuesta no encontrada"));
+
         if (encuesta.getEstadoEncuesta() == EstadoEncuesta.RESPONDIDA) {
-            throw new RuntimeException("La encuesta ya fue respondida, no se puede reenviar.");
+            throw new org.springframework.web.server.ResponseStatusException(org.springframework.http.HttpStatus.CONFLICT, "La encuesta ya fue respondida, no se puede reenviar.");
         }
-        
+
         encuesta.setFechaEnvio(LocalDateTime.now());
         encuesta.setEstadoEncuesta(EstadoEncuesta.ENVIADA);
         encuestaRepository.save(encuesta);
-        
+
         // Aquí se invocaría al EmailService real
         System.out.println("Simulando reenvío de correo para encuesta " + id);
     }
@@ -273,7 +315,8 @@ public class EncuestaService {
                 .templateId(entidad.getIdPlantillaEncuesta().toString())
                 .nombre(entidad.getNombre())
                 .descripcion(entidad.getDescripcion())
-                .estado(entidad.getVigente() ? "ACTIVA" : "INACTIVA")
+            .estado(entidad.getVigente() ? "ACTIVA" : "INACTIVA")
+            .alcanceEvaluacion(entidad.getAlcanceEvaluacion() != null ? entidad.getAlcanceEvaluacion().name() : null)
                 .preguntas(preguntasDTO)
                 .build();
     }
