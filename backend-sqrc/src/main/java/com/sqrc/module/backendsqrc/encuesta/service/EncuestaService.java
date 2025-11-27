@@ -25,7 +25,7 @@ public class EncuestaService {
 
     // Inyección de Dependencias (Patrón DI)
     @Autowired private EncuestaRepository encuestaRepository;
-    @Autowired private PlantillaRepository plantillaRepository;
+    @Autowired private PlantillaEncuestaRepository plantillaRepository;
     @Autowired private PreguntaRepository preguntaRepository;
     @Autowired private RespuestaEncuestaRepository respuestaEncuestaRepository;
     @Autowired private Map<String, PreguntaFactory> fabricasPreguntas; // Patrón Factory
