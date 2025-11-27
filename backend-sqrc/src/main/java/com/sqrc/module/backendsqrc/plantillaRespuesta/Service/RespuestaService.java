@@ -2,8 +2,6 @@ package com.sqrc.module.backendsqrc.plantillaRespuesta.Service;
 
 import com.sqrc.module.backendsqrc.plantillaRespuesta.DTO.EnviarRespuestaRequestDTO;
 import com.sqrc.module.backendsqrc.plantillaRespuesta.Repository.RespuestaRepository;
-import com.sqrc.module.backendsqrc.plantillaRespuesta.Strategy.GeneradorDocumentoStrategy;
-import com.sqrc.module.backendsqrc.plantillaRespuesta.Strategy.PdfGeneradorStrategy;
 import com.sqrc.module.backendsqrc.plantillaRespuesta.chain.*;
 import com.sqrc.module.backendsqrc.plantillaRespuesta.event.RespuestaEnviadaEvent;
 import com.sqrc.module.backendsqrc.plantillaRespuesta.model.Plantilla;
@@ -28,13 +26,11 @@ public class RespuestaService {
     // private final AsignacionRepository asignacionRepository; // Asumo que tienes esto
     private final PlantillaService plantillaService;
     private final RenderService renderService;
-    private final PdfGeneradorStrategy pdfGeneradorStrategy;
+    private final PdfService pdfService;
     private final EmailService emailService;
     private final ApplicationEventPublisher eventPublisher;
 
     private List<IRespuestaObserver> observadores = new ArrayList<>();
-
-    private final GeneradorDocumentoStrategy generadorDocumento;
 
     //validadores de la cadena
     private final ValidarEstadoTicket validarEstado;
@@ -46,18 +42,17 @@ public class RespuestaService {
 
 
     public RespuestaService(RespuestaRepository respuestaRepository, PlantillaService plantillaService,
-                            RenderService renderService, PdfGeneradorStrategy pdfGeneradorStrategy,
+                            RenderService renderService, PdfService pdfService,
                             EmailService emailService, ApplicationEventPublisher eventPublisher,
-                            @Qualifier("pdfStrategy")GeneradorDocumentoStrategy generadorDocumento, ValidarEstadoTicket validarEstado,
-                            ValidarDestinatario validarDestino, ValidarCoherenciaTipo validarCoherencia,
+                            ValidarEstadoTicket validarEstado, ValidarDestinatario validarDestino,
+                            ValidarCoherenciaTipo validarCoherencia,
                             ValidarPlantillaActiva validarVigencia) {
         this.respuestaRepository = respuestaRepository;
         this.plantillaService = plantillaService;
         this.renderService = renderService;
-        this.pdfGeneradorStrategy = pdfGeneradorStrategy;
+        this.pdfService = pdfService;
         this.emailService = emailService;
         this.eventPublisher = eventPublisher;
-        this.generadorDocumento = generadorDocumento;
         this.validarEstado = validarEstado;
         this.validarDestino = validarDestino;
         this.validarCoherencia = validarCoherencia;
@@ -129,7 +124,7 @@ public class RespuestaService {
         String htmlFinal = renderService.renderizar(plantilla.getHtmlModel(), request.variables());
 
         // PASO 3: Generar el PDF (En memoria)
-        byte[] pdfBytes = pdfGeneradorStrategy.generarArchivo(htmlFinal);
+        byte[] pdfBytes = pdfService.generarPdfDesdeHtml(htmlFinal);
 
         // Generamos un nombre de archivo bonito: "Respuesta_Ticket_999.pdf"
         String nombreArchivo = "Respuesta_Caso_" + request.idAsignacion() + ".pdf";
