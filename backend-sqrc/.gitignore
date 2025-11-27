@@ -1,0 +1,13 @@
+# Archivos sensibles
+.env
+application-local.properties
+
+# Maven
+target/
+!.mvn/wrapper/maven-wrapper.jar
+
+# IDEs
+.idea/
+*.iml
+.vscode/
+*.class
