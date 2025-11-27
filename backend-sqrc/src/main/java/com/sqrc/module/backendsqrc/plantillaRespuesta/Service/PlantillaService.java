@@ -35,7 +35,7 @@ public class PlantillaService {
             return plantillaRepository.findByActivoTrueOrderByNombreAsc();
         }
         // Si especifican caso (ej: RECLAMO), filtramos
-        return plantillaRepository.findByCasoAndActivoTrue(caso);
+        return plantillaRepository.findByTipoCasoAndActivoTrue(caso);
     }
 
     @Transactional(readOnly = true)

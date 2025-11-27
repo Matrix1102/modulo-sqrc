@@ -1,13 +1,16 @@
-package com.sqrc.module.backendsqrc.plantillaRespuesta.Service;
+package com.sqrc.module.backendsqrc.plantillaRespuesta.Strategy;
 
+import org.springframework.stereotype.Component;
 import org.springframework.stereotype.Service;
 import java.io.ByteArrayOutputStream;
 import com.openhtmltopdf.pdfboxout.PdfRendererBuilder;
 @Service
-public class PdfService {
+@Component("pdfStrategy")
+public class PdfGeneradorStrategy implements GeneradorDocumentoStrategy{
 
     //Recibe un String con HTML y devuelve el archivo PDF crudo (bytes).
-    public byte[] generarPdfDesdeHtml(String htmlContenido) {
+    @Override
+    public byte[] generarArchivo(String htmlContenido) {
 
         //ByteArrayOutputStream es como un "archivo en memoria RAM".
         try (ByteArrayOutputStream os = new ByteArrayOutputStream()) {

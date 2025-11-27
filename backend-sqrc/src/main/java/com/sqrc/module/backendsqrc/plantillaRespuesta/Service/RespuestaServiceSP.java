@@ -4,61 +4,68 @@ import com.sqrc.module.backendsqrc.plantillaRespuesta.DTO.EnviarRespuestaRequest
 import com.sqrc.module.backendsqrc.plantillaRespuesta.Repository.RespuestaRepository;
 import com.sqrc.module.backendsqrc.plantillaRespuesta.Strategy.GeneradorDocumentoStrategy;
 import com.sqrc.module.backendsqrc.plantillaRespuesta.Strategy.PdfGeneradorStrategy;
-import com.sqrc.module.backendsqrc.plantillaRespuesta.event.RespuestaEnviadaEvent;
+import com.sqrc.module.backendsqrc.plantillaRespuesta.chain.ValidadorRespuesta;
+import com.sqrc.module.backendsqrc.plantillaRespuesta.chain.ValidarDestinatario;
+import com.sqrc.module.backendsqrc.plantillaRespuesta.chain.ValidarEstadoTicket;
+import com.sqrc.module.backendsqrc.plantillaRespuesta.event.RespuestaEnviadaEventSP;
 import com.sqrc.module.backendsqrc.plantillaRespuesta.model.Plantilla;
 import com.sqrc.module.backendsqrc.plantillaRespuesta.model.RespuestaCliente;
-import com.sqrc.module.backendsqrc.plantillaRespuesta.observer.IRespuestaObserver;
+import jakarta.annotation.PostConstruct;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
-import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 
 @Service
-public class RespuestaService {
+public class RespuestaServiceSP {
     // 1. Inyectamos TODOS nuestros "trabajadores"
     private final RespuestaRepository respuestaRepository;
     // private final AsignacionRepository asignacionRepository; // Asumo que tienes esto
     private final PlantillaService plantillaService;
     private final RenderService renderService;
-    private final PdfGeneradorStrategy pdfGeneradorStrategy;
+    private final GeneradorDocumentoStrategy generadorDocumentoStrategy;
     private final EmailService emailService;
     private final ApplicationEventPublisher eventPublisher;
 
-    private List<IRespuestaObserver> observadores = new ArrayList<>();
 
-    private final GeneradorDocumentoStrategy generadorDocumento;
+    //validadores de la cadena
+    private final ValidarEstadoTicket validarEstado;
+    private final ValidarDestinatario validarDestino;
+    // Variable para guardar la cabeza de la cadena
+    private ValidadorRespuesta cadenaValidacion;
 
-    public RespuestaService(RespuestaRepository respuestaRepository, PlantillaService plantillaService, RenderService renderService, PdfGeneradorStrategy pdfGeneradorStrategy, EmailService emailService, ApplicationEventPublisher eventPublisher, GeneradorDocumentoStrategy generadorDocumento) {
+    public RespuestaServiceSP(RespuestaRepository respuestaRepository, PlantillaService plantillaService, RenderService renderService, @Qualifier("pdfStrategy")GeneradorDocumentoStrategy generadorDocumentoStrategy, EmailService emailService, ApplicationEventPublisher eventPublisher, ValidarEstadoTicket validarEstado, ValidarDestinatario validarDestino) {
         this.respuestaRepository = respuestaRepository;
         this.plantillaService = plantillaService;
         this.renderService = renderService;
-        this.pdfGeneradorStrategy = pdfGeneradorStrategy;
+        this.generadorDocumentoStrategy = generadorDocumentoStrategy;
         this.emailService = emailService;
         this.eventPublisher = eventPublisher;
-        this.generadorDocumento = generadorDocumento;
+        this.validarEstado = validarEstado;
+        this.validarDestino = validarDestino;
     }
 
-    public void agregarObservador(IRespuestaObserver observador) {
-        this.observadores.add(observador);
+    //configuracion de la cadena
+    @PostConstruct
+    public void configurarCadena() {
+        //definimos el orden: Primero Estado -> Luego Destino
+        validarEstado.setSiguiente(validarDestino);
+
+        // Guardamos la referencia al primero para usarlo luego
+        this.cadenaValidacion = validarEstado;
     }
 
-    public void eliminarObservador(IRespuestaObserver observador) {
-        this.observadores.remove(observador);
-    }
-
-    private void notificarObservadores(RespuestaEnviadaEvent evento) {
-        for (IRespuestaObserver observador : observadores) {
-            observador.actualizar(evento);
-        }
-    }
 
     @Transactional
     public void procesarYEnviarRespuesta(EnviarRespuestaRequestDTO request) {
+
+        System.out.println("inicia validaciones de cadena");
+        // Si algo falla aquí, lanza excepción y se detiene todo el proceso.
+        cadenaValidacion.validar(request);
 
         //paso1: Obtener datos base
         // Asignacion asignacion = asignacionRepository.findById(request.idAsignacion())
@@ -91,7 +98,7 @@ public class RespuestaService {
         String htmlFinal = renderService.renderizar(plantilla.getHtmlModel(), request.variables());
 
         // PASO 3: Generar el PDF (En memoria)
-        byte[] pdfBytes = pdfGeneradorStrategy.generarArchivo(htmlFinal);
+        byte[] pdfBytes = generadorDocumentoStrategy.generarArchivo(htmlFinal);
 
         // Generamos un nombre de archivo bonito: "Respuesta_Ticket_999.pdf"
         String nombreArchivo = "Respuesta_Caso_" + request.idAsignacion() + ".pdf";
@@ -123,15 +130,14 @@ public class RespuestaService {
 
         respuestaRepository.save(respuesta);
 
-        //dispara las notificaciones manualmente
-        System.out.println("notificando a " + observadores.size() + " observadores");
+        System.out.println("📢 [SUBJECT] Correo enviado. Publicando evento...");
 
-        RespuestaEnviadaEvent evento = new RespuestaEnviadaEvent(
+        //dispara el eventi
+        eventPublisher.publishEvent(new RespuestaEnviadaEventSP(
+                this,
                 request.idAsignacion(),
-                request.cerrarTicket()
-        );
-
-        notificarObservadores(evento);
+                request.cerrarTicket() // Pasamos la decisión del front
+        ));
     }
     @Transactional(readOnly = true) // Solo lee, no guarda nada
     public String generarVistaPrevia(EnviarRespuestaRequestDTO request) {
