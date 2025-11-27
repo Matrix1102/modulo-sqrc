@@ -2,8 +2,7 @@ package com.sqrc.module.backendsqrc.plantillaRespuesta.Service;
 
 import com.sqrc.module.backendsqrc.plantillaRespuesta.DTO.EnviarRespuestaRequestDTO;
 import com.sqrc.module.backendsqrc.plantillaRespuesta.Repository.RespuestaRepository;
-import com.sqrc.module.backendsqrc.plantillaRespuesta.Strategy.GeneradorDocumentoStrategy;
-import com.sqrc.module.backendsqrc.plantillaRespuesta.Strategy.PdfGeneradorStrategy;
+// Se usa el servicio `PdfService` para generación de PDF
 import com.sqrc.module.backendsqrc.plantillaRespuesta.chain.ValidadorRespuesta;
 import com.sqrc.module.backendsqrc.plantillaRespuesta.chain.ValidarDestinatario;
 import com.sqrc.module.backendsqrc.plantillaRespuesta.chain.ValidarEstadoTicket;
@@ -11,7 +10,7 @@ import com.sqrc.module.backendsqrc.plantillaRespuesta.event.RespuestaEnviadaEven
 import com.sqrc.module.backendsqrc.plantillaRespuesta.model.Plantilla;
 import com.sqrc.module.backendsqrc.plantillaRespuesta.model.RespuestaCliente;
 import jakarta.annotation.PostConstruct;
-import org.springframework.beans.factory.annotation.Qualifier;
+// Qualifier no es necesario aquí
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -27,7 +26,7 @@ public class RespuestaServiceSP {
     // private final AsignacionRepository asignacionRepository; // Asumo que tienes esto
     private final PlantillaService plantillaService;
     private final RenderService renderService;
-    private final GeneradorDocumentoStrategy generadorDocumentoStrategy;
+    private final PdfService pdfService;
     private final EmailService emailService;
     private final ApplicationEventPublisher eventPublisher;
 
@@ -38,11 +37,11 @@ public class RespuestaServiceSP {
     // Variable para guardar la cabeza de la cadena
     private ValidadorRespuesta cadenaValidacion;
 
-    public RespuestaServiceSP(RespuestaRepository respuestaRepository, PlantillaService plantillaService, RenderService renderService, @Qualifier("pdfStrategy")GeneradorDocumentoStrategy generadorDocumentoStrategy, EmailService emailService, ApplicationEventPublisher eventPublisher, ValidarEstadoTicket validarEstado, ValidarDestinatario validarDestino) {
+    public RespuestaServiceSP(RespuestaRepository respuestaRepository, PlantillaService plantillaService, RenderService renderService, PdfService pdfService, EmailService emailService, ApplicationEventPublisher eventPublisher, ValidarEstadoTicket validarEstado, ValidarDestinatario validarDestino) {
         this.respuestaRepository = respuestaRepository;
         this.plantillaService = plantillaService;
         this.renderService = renderService;
-        this.generadorDocumentoStrategy = generadorDocumentoStrategy;
+        this.pdfService = pdfService;
         this.emailService = emailService;
         this.eventPublisher = eventPublisher;
         this.validarEstado = validarEstado;
@@ -98,7 +97,7 @@ public class RespuestaServiceSP {
         String htmlFinal = renderService.renderizar(plantilla.getHtmlModel(), request.variables());
 
         // PASO 3: Generar el PDF (En memoria)
-        byte[] pdfBytes = generadorDocumentoStrategy.generarArchivo(htmlFinal);
+        byte[] pdfBytes = pdfService.generarPdfDesdeHtml(htmlFinal);
 
         // Generamos un nombre de archivo bonito: "Respuesta_Ticket_999.pdf"
         String nombreArchivo = "Respuesta_Caso_" + request.idAsignacion() + ".pdf";
