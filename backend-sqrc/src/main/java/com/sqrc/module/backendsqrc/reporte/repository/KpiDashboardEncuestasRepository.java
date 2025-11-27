@@ -1,0 +1,15 @@
+package com.sqrc.module.backendsqrc.reporte.repository;
+
+import com.sqrc.module.backendsqrc.reporte.model.KpiDashboardEncuestas;
+import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.stereotype.Repository;
+
+import java.time.LocalDate;
+import java.util.List;
+
+@Repository
+public interface KpiDashboardEncuestasRepository extends JpaRepository<KpiDashboardEncuestas, Long> {
+
+    // Trae la evolución de la satisfacción del cliente
+    List<KpiDashboardEncuestas> findByFechaBetween(LocalDate inicio, LocalDate fin);
+}

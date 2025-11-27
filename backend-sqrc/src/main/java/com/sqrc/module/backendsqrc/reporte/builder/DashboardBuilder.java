@@ -1,19 +1,23 @@
 package com.sqrc.module.backendsqrc.reporte.builder;
 
 import com.sqrc.module.backendsqrc.reporte.dto.DashboardKpisDTO;
-import com.sqrc.module.backendsqrc.encuesta.model.RespuestaEncuesta;
+import com.sqrc.module.backendsqrc.reporte.model.*; // Tus nuevas entidades
 import java.util.List;
 
 public interface DashboardBuilder {
     void reset();
 
-    void calcularKpisGlobales(List<RespuestaEncuesta> datos);
+    // Ahora recibe el resumen diario, no las encuestas crudas
+    void construirKpisGlobales(List<KpiResumenDiario> resumenes);
 
-    void generarResumenOperativo(List<RespuestaEncuesta> datos);
+    // Recibe los tiempos pre-calculados
+    void construirResumenOperativo(List<KpiResumenDiario> resumenes, List<KpiTiemposResolucion> tiempos);
 
-    void analizarMotivosFrecuentes(List<RespuestaEncuesta> datos);
+    // Recibe el top de motivos
+    void construirMotivosFrecuentes(List<KpiMotivosFrecuentes> motivos);
 
-    void generarRankingAgentes(List<RespuestaEncuesta> datos);
+    // Recibe el ranking de agentes
+    void construirRankingAgentes(List<KpiRendimientoAgenteDiario> ranking);
 
     DashboardKpisDTO getResultado();
 }
