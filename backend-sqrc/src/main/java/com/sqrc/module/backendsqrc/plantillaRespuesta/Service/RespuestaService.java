@@ -4,10 +4,13 @@ import com.sqrc.module.backendsqrc.plantillaRespuesta.DTO.EnviarRespuestaRequest
 import com.sqrc.module.backendsqrc.plantillaRespuesta.Repository.RespuestaRepository;
 import com.sqrc.module.backendsqrc.plantillaRespuesta.Strategy.GeneradorDocumentoStrategy;
 import com.sqrc.module.backendsqrc.plantillaRespuesta.Strategy.PdfGeneradorStrategy;
+import com.sqrc.module.backendsqrc.plantillaRespuesta.chain.*;
 import com.sqrc.module.backendsqrc.plantillaRespuesta.event.RespuestaEnviadaEvent;
 import com.sqrc.module.backendsqrc.plantillaRespuesta.model.Plantilla;
 import com.sqrc.module.backendsqrc.plantillaRespuesta.model.RespuestaCliente;
 import com.sqrc.module.backendsqrc.plantillaRespuesta.observer.IRespuestaObserver;
+import jakarta.annotation.PostConstruct;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -33,7 +36,21 @@ public class RespuestaService {
 
     private final GeneradorDocumentoStrategy generadorDocumento;
 
-    public RespuestaService(RespuestaRepository respuestaRepository, PlantillaService plantillaService, RenderService renderService, PdfGeneradorStrategy pdfGeneradorStrategy, EmailService emailService, ApplicationEventPublisher eventPublisher, GeneradorDocumentoStrategy generadorDocumento) {
+    //validadores de la cadena
+    private final ValidarEstadoTicket validarEstado;
+    private final ValidarDestinatario validarDestino;
+    private final ValidarCoherenciaTipo validarCoherencia;
+    private final ValidarPlantillaActiva validarVigencia;
+    // Variable para guardar la cabeza de la cadena
+    private ValidadorRespuesta cadenaValidacion;
+
+
+    public RespuestaService(RespuestaRepository respuestaRepository, PlantillaService plantillaService,
+                            RenderService renderService, PdfGeneradorStrategy pdfGeneradorStrategy,
+                            EmailService emailService, ApplicationEventPublisher eventPublisher,
+                            @Qualifier("pdfStrategy")GeneradorDocumentoStrategy generadorDocumento, ValidarEstadoTicket validarEstado,
+                            ValidarDestinatario validarDestino, ValidarCoherenciaTipo validarCoherencia,
+                            ValidarPlantillaActiva validarVigencia) {
         this.respuestaRepository = respuestaRepository;
         this.plantillaService = plantillaService;
         this.renderService = renderService;
@@ -41,6 +58,10 @@ public class RespuestaService {
         this.emailService = emailService;
         this.eventPublisher = eventPublisher;
         this.generadorDocumento = generadorDocumento;
+        this.validarEstado = validarEstado;
+        this.validarDestino = validarDestino;
+        this.validarCoherencia = validarCoherencia;
+        this.validarVigencia = validarVigencia;
     }
 
     public void agregarObservador(IRespuestaObserver observador) {
@@ -57,8 +78,25 @@ public class RespuestaService {
         }
     }
 
+    //configuracion de la cadena
+    @PostConstruct
+    public void configurarCadena() {
+        validarEstado.setSiguiente(validarDestino)
+                .setSiguiente(validarVigencia)
+                .setSiguiente(validarCoherencia); //el ultimo no tiene siguiente
+
+        this.cadenaValidacion = validarEstado; //la cabeza
+    }
+
+
+
     @Transactional
     public void procesarYEnviarRespuesta(EnviarRespuestaRequestDTO request) {
+
+
+        System.out.println("inicia validaciones de cadena");
+        // Si algo falla aquí, lanza excepción y se detiene todo el proceso.
+        cadenaValidacion.validar(request);
 
         //paso1: Obtener datos base
         // Asignacion asignacion = asignacionRepository.findById(request.idAsignacion())

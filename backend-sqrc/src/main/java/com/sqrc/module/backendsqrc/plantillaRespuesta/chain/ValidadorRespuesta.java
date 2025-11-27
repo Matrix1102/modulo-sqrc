@@ -6,18 +6,19 @@ public abstract class ValidadorRespuesta {
 
     protected ValidadorRespuesta siguiente;
 
-    // Método para conectar el siguiente eslabón de la cadena
-    public void setSiguiente(ValidadorRespuesta siguiente) {
+    //metodo para conectar el siguiente eslabón de la cadena
+    public ValidadorRespuesta setSiguiente(ValidadorRespuesta siguiente) {
         this.siguiente = siguiente;
+        return siguiente;
     }
 
-    // Método principal: Si paso la validación, llamo al siguiente.
+    //si paso la validación, llamo al siguiente.
     protected void siguiente(EnviarRespuestaRequestDTO request) {
         if (siguiente != null) {
             siguiente.validar(request);
         }
     }
 
-    // Método abstracto que cada filtro debe implementar con su lógica
+    //mtodo abstracto que cada filtro debe implementar con su logica
     public abstract void validar(EnviarRespuestaRequestDTO request);
 }
