@@ -9,3 +9,4 @@ public class RespuestaEnviadaEvent {
     private final Long idAsignacion;
     private final boolean debeCerrarTicket;
 }
+

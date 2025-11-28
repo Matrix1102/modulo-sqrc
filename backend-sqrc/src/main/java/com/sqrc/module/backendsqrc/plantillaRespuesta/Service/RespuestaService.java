@@ -8,8 +8,6 @@ import com.sqrc.module.backendsqrc.plantillaRespuesta.model.Plantilla;
 import com.sqrc.module.backendsqrc.plantillaRespuesta.model.RespuestaCliente;
 import com.sqrc.module.backendsqrc.plantillaRespuesta.observer.IRespuestaObserver;
 import jakarta.annotation.PostConstruct;
-import org.springframework.beans.factory.annotation.Qualifier;
-import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -28,22 +26,22 @@ public class RespuestaService {
     private final RenderService renderService;
     private final PdfService pdfService;
     private final EmailService emailService;
-    private final ApplicationEventPublisher eventPublisher;
 
-    private List<IRespuestaObserver> observadores = new ArrayList<>();
+    //lista de clases que reaccionaran al enviar la respuesta
+    private final List<IRespuestaObserver> observadores = new ArrayList<>();
 
-    //validadores de la cadena
+    // validadores de la cadena
     private final ValidarEstadoTicket validarEstado;
     private final ValidarDestinatario validarDestino;
     private final ValidarCoherenciaTipo validarCoherencia;
     private final ValidarPlantillaActiva validarVigencia;
-    // Variable para guardar la cabeza de la cadena
+    // guarda la cabeza de la cadena
     private ValidadorRespuesta cadenaValidacion;
 
 
     public RespuestaService(RespuestaRepository respuestaRepository, PlantillaService plantillaService,
                             RenderService renderService, PdfService pdfService,
-                            EmailService emailService, ApplicationEventPublisher eventPublisher,
+                            EmailService emailService,
                             ValidarEstadoTicket validarEstado, ValidarDestinatario validarDestino,
                             ValidarCoherenciaTipo validarCoherencia,
                             ValidarPlantillaActiva validarVigencia) {
@@ -52,7 +50,6 @@ public class RespuestaService {
         this.renderService = renderService;
         this.pdfService = pdfService;
         this.emailService = emailService;
-        this.eventPublisher = eventPublisher;
         this.validarEstado = validarEstado;
         this.validarDestino = validarDestino;
         this.validarCoherencia = validarCoherencia;
@@ -88,9 +85,7 @@ public class RespuestaService {
     @Transactional
     public void procesarYEnviarRespuesta(EnviarRespuestaRequestDTO request) {
 
-
-        System.out.println("inicia validaciones de cadena");
-        // Si algo falla aquí, lanza excepción y se detiene todo el proceso.
+        //inicia validacion de la cadena
         cadenaValidacion.validar(request);
 
         //paso1: Obtener datos base

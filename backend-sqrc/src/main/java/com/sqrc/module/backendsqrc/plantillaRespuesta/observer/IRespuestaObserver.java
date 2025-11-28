@@ -6,3 +6,4 @@ public interface IRespuestaObserver {
 
     void actualizar(RespuestaEnviadaEvent evento);
 }
+

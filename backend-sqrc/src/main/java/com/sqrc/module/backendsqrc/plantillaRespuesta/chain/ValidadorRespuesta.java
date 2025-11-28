@@ -12,7 +12,7 @@ public abstract class ValidadorRespuesta {
         return siguiente;
     }
 
-    //si paso la validación, llamo al siguiente.
+    //si paso la validación llama al siguiente.
     protected void siguiente(EnviarRespuestaRequestDTO request) {
         if (siguiente != null) {
             siguiente.validar(request);
