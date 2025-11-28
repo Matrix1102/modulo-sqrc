@@ -225,6 +225,18 @@ public class EncuestaService {
             .collect(Collectors.toList());
     }
 
+            @Transactional(readOnly = true)
+            public java.util.List<com.sqrc.module.backendsqrc.encuesta.dto.EncuestaSummaryDTO> listarEncuestas() {
+            return encuestaRepository.findAll().stream()
+                .map(e -> com.sqrc.module.backendsqrc.encuesta.dto.EncuestaSummaryDTO.builder()
+                    .idEncuesta(e.getIdEncuesta())
+                    .plantillaId(e.getPlantilla() != null ? e.getPlantilla().getIdPlantillaEncuesta() : null)
+                    .estado(e.getEstadoEncuesta() != null ? e.getEstadoEncuesta().name() : null)
+                    .fechaEnvio(e.getFechaEnvio() != null ? e.getFechaEnvio().toString() : null)
+                    .build())
+                .collect(Collectors.toList());
+            }
+
     @Transactional(readOnly = true)
     public EncuestaResultadoDTO obtenerRespuestaPorId(String idStr) {
         Long id = Long.parseLong(idStr);

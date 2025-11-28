@@ -1,4 +1,4 @@
-package com.sqrc.module.backendsqrc.plantillaRespuesta.observer;
+/*package com.sqrc.module.backendsqrc.plantillaRespuesta.observer;
 
 
 import com.sqrc.module.backendsqrc.plantillaRespuesta.Service.RespuestaService;
@@ -39,7 +39,7 @@ public class TicketEstadoListener implements IRespuestaObserver {
          ticketRepository.save(ticket);
 
     }
-}
+}*/
 
 
 

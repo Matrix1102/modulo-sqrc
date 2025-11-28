@@ -84,4 +84,10 @@ public class EncuestaController {
         encuestaService.reenviarEncuesta(responseId);
         return ResponseEntity.accepted().build();
     }
+
+    // Root: listar encuestas (resumen)
+    @GetMapping
+    public ResponseEntity<java.util.List<com.sqrc.module.backendsqrc.encuesta.dto.EncuestaSummaryDTO>> listarEncuestas() {
+        return ResponseEntity.ok(encuestaService.listarEncuestas());
+    }
 }
