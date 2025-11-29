@@ -26,6 +26,16 @@ export interface AgenteRanking {
   tickets?: number;
 }
 
+export interface AgenteDetail {
+  agenteId: string;
+  nombre: string;
+  volumenTotalAtendido?: number;
+  tiempoPromedioResolucion?: string;
+  tiempoPromedioPrimeraRespuesta?: string | null;
+  cumplimientoSlaPct?: number | null;
+  csatPromedio?: number | null;
+}
+
 export interface DashboardKpis {
   kpisGlobales: KpisGlobales;
   kpisResumen: {
@@ -35,4 +45,18 @@ export interface DashboardKpis {
   };
   motivosFrecuentes: MotivoFrecuente[];
   agentesMejorEvaluados: AgenteRanking[];
+}
+
+export interface TicketReporte {
+  id: string;
+  client: string;
+  motive: string;
+  date: string;
+  status: string;
+}
+
+export interface AgentTickets {
+  agenteId: string;
+  agenteNombre: string;
+  tickets: TicketReporte[];
 }

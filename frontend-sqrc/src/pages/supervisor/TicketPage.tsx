@@ -1,5 +1,7 @@
 import { AgentList } from "../../features/tickets/components/AgentList";
 import { TicketTable } from "../../features/tickets/components/TicketTable";
+import useAgentes from "../../features/reportes/hooksAgentes";
+import { useNavigate } from "react-router-dom";
 
 // Datos Dummy para la vista general (Tickets recientes de todo el equipo)
 const recentTickets = Array(7).fill({
@@ -11,6 +13,14 @@ const recentTickets = Array(7).fill({
 });
 
 const TicketPage = () => {
+  const { data: agentes, loading } = useAgentes();
+  const navigate = useNavigate();
+
+  const handleViewTickets = (agenteId?: string) => {
+    if (!agenteId) return;
+    navigate(`/supervisor/tickets/agente/${agenteId}`);
+  };
+
   return (
     <div className="flex flex-col h-full space-y-6">
       {/* 1. HEADER DE LA PÁGINA */}
@@ -28,7 +38,7 @@ const TicketPage = () => {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 flex-1 min-h-0">
         {/* COLUMNA IZQUIERDA (1/3): Lista de Agentes */}
         <div className="lg:col-span-1 h-full overflow-hidden">
-          <AgentList />
+          <AgentList agents={agentes} loading={loading} onViewTickets={handleViewTickets} />
         </div>
 
         {/* COLUMNA DERECHA (2/3): Tabla de Tickets Recientes */}

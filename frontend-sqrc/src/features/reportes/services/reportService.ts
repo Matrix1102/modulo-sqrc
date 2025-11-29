@@ -1,6 +1,7 @@
 import http from "../../../services/http";
 
 import type { DashboardKpis } from "../types/reporte";
+import type { AgenteDetail, AgentTickets } from "../types/reporte";
 
 export const fetchDashboard = async (params?: {
   startDate?: string;
@@ -16,4 +17,22 @@ export const fetchDashboard = async (params?: {
   return resp.data;
 };
 
-export default { fetchDashboard };
+export const fetchAgentes = async (params?: { startDate?: string; endDate?: string }) => {
+  const query: Record<string, string> = {};
+  if (params?.startDate) query.startDate = params.startDate;
+  if (params?.endDate) query.endDate = params.endDate;
+
+  const resp = await http.get<AgenteDetail[]>('/api/reportes/agentes', { params: query });
+  return resp.data;
+};
+
+export const fetchTicketsByAgent = async (agenteId: string, params?: { startDate?: string; endDate?: string }) => {
+  const query: Record<string, string> = {};
+  if (params?.startDate) query.startDate = params.startDate;
+  if (params?.endDate) query.endDate = params.endDate;
+
+  const resp = await http.get<AgentTickets>(`/api/reportes/tickets/agente/${encodeURIComponent(agenteId)}`, { params: query });
+  return resp.data;
+};
+
+export default { fetchDashboard, fetchAgentes, fetchTicketsByAgent };

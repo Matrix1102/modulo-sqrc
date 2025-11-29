@@ -1,14 +1,15 @@
 // src/features/tickets/components/AgentList.tsx
 import { Search } from "lucide-react";
+import type { AgenteDetail } from "../../reportes/types/reporte";
 
-// Datos dummy para probar
-const agents = Array(6).fill({
-  name: "Andre Melendez",
-  tickets: 45,
-  image: null, // Aquí iría la URL
-});
+interface AgentListProps {
+  agents?: AgenteDetail[] | null;
+  loading?: boolean;
+  onViewTickets?: (agenteId: string) => void;
+}
 
-export const AgentList = () => {
+export const AgentList: React.FC<AgentListProps> = ({ agents, loading, onViewTickets }) => {
+
   return (
     <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100 h-full flex flex-col">
       <h3 className="font-bold text-gray-800 text-lg mb-4">Lista de Agentes</h3>
@@ -28,24 +29,28 @@ export const AgentList = () => {
 
       {/* Lista Scrolleable */}
       <div className="flex-1 overflow-y-auto space-y-4 pr-2">
-        {agents.map((agent, idx) => (
-          <div key={idx} className="flex items-center justify-between group">
-            <div className="flex items-center gap-3">
-              {/* Avatar */}
-              <div className="w-10 h-10 rounded-full bg-gray-900 text-white flex items-center justify-center text-sm font-bold">
-                {agent.name.charAt(0)}
+        {loading ? (
+          <p className="text-sm text-gray-500">Cargando agentes...</p>
+        ) : (
+          (agents || []).map((agent, idx) => (
+            <div key={agent.agenteId ?? idx} className="flex items-center justify-between group">
+              <div className="flex items-center gap-3">
+                {/* Avatar */}
+                <div className="w-10 h-10 rounded-full bg-gray-900 text-white flex items-center justify-center text-sm font-bold">
+                  {agent.nombre ? agent.nombre.charAt(0) : "A"}
+                </div>
+                <div>
+                  <p className="text-sm font-bold text-gray-800">{agent.nombre}</p>
+                  <p className="text-xs text-gray-500">{agent.volumenTotalAtendido ?? 0} tickets</p>
+                </div>
               </div>
-              <div>
-                <p className="text-sm font-bold text-gray-800">{agent.name}</p>
-                <p className="text-xs text-gray-500">{agent.tickets} tickets</p>
-              </div>
-            </div>
 
-            <button className="bg-blue-500 text-white text-xs px-3 py-1.5 rounded-md opacity-0 group-hover:opacity-100 transition-opacity hover:bg-blue-600">
-              Ver tickets
-            </button>
-          </div>
-        ))}
+              <button onClick={() => onViewTickets?.(agent.agenteId)} className="bg-blue-500 text-white text-xs px-3 py-1.5 rounded-md opacity-0 group-hover:opacity-100 transition-opacity hover:bg-blue-600">
+                Ver tickets
+              </button>
+            </div>
+          ))
+        )}
       </div>
     </div>
   );

@@ -3,6 +3,8 @@ import { useParams, useNavigate } from "react-router-dom";
 import { Search, Filter, Plus, AlertCircle, Loader2 } from "lucide-react";
 // 1. Importamos la Tabla Reutilizable
 import { TicketTable } from "../../features/tickets/components/TicketTable";
+import reportService from "../../features/reportes/services/reportService";
+import type { AgentTickets } from "../../features/reportes/types/reporte";
 
 interface TicketData {
   id: string;
@@ -13,7 +15,7 @@ interface TicketData {
 }
 
 export default function TicketAgentPage() {
-  const { agentId } = useParams();
+  const { agenteId } = useParams();
   const navigate = useNavigate();
 
   // --- ESTADOS ---
@@ -24,30 +26,37 @@ export default function TicketAgentPage() {
 
   // --- FETCH DATA ---
   useEffect(() => {
+    let mounted = true;
     setIsLoading(true);
     setError(null);
 
-    const timer = setTimeout(() => {
+    (async () => {
       try {
+        if (!agenteId) throw new Error("Agente no especificado");
+        const data: AgentTickets = await reportService.fetchTicketsByAgent(agenteId);
+        if (!mounted) return;
+        setAgentName(data.agenteNombre ?? "");
+        // map to local TicketData shape if necessary
         setTickets(
-          Array(8).fill({
-            id: "100236",
-            client: "Andre Melendez",
-            motive: "Cobro doble",
-            date: "31/10/2025",
-            status: "ABIERTO",
-          })
+          (data.tickets || []).map((t) => ({
+            id: t.id,
+            client: t.client,
+            motive: t.motive,
+            date: t.date,
+            status: t.status,
+          }))
         );
-        setAgentName("Andre Melendez");
-        setIsLoading(false);
-      } catch (err) {
-        setError("Error al cargar la información.");
+      } catch (err: any) {
+        if (!mounted) return;
+        setError(err?.message ?? "Error al cargar la información.");
+      } finally {
+        if (!mounted) return;
         setIsLoading(false);
       }
-    }, 800);
+    })();
 
-    return () => clearTimeout(timer);
-  }, [agentId]);
+    return () => { mounted = false; };
+  }, [agenteId]);
 
   // --- LOADING / ERROR ---
   if (isLoading) {
