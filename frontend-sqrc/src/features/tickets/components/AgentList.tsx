@@ -1,6 +1,7 @@
 // src/features/tickets/components/AgentList.tsx
-import { Search } from "lucide-react";
+import { useMemo, useState } from "react";
 import type { AgenteDetail } from "../../reportes/types/reporte";
+import SearchBar from "../../../components/ui/SearchBar";
 
 interface AgentListProps {
   agents?: AgenteDetail[] | null;
@@ -9,6 +10,19 @@ interface AgentListProps {
 }
 
 export const AgentList: React.FC<AgentListProps> = ({ agents, loading, onViewTickets }) => {
+  const [query, setQuery] = useState("");
+
+  const filtered = useMemo(() => {
+    if (!agents) return [];
+    const q = query.trim().toLowerCase();
+    if (!q) return agents;
+    return agents.filter((a) => {
+      return (
+        (a.nombre || "").toLowerCase().includes(q) ||
+        String(a.agenteId || "").toLowerCase().includes(q)
+      );
+    });
+  }, [agents, query]);
 
   return (
     <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100 h-full flex flex-col">
@@ -16,15 +30,7 @@ export const AgentList: React.FC<AgentListProps> = ({ agents, loading, onViewTic
 
       {/* Buscador */}
       <div className="relative mb-6">
-        <Search
-          className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"
-          size={18}
-        />
-        <input
-          type="text"
-          placeholder="Buscar agente..."
-          className="w-full pl-10 pr-4 py-2 bg-gray-50 border-none rounded-lg text-sm focus:ring-2 focus:ring-blue-500 outline-none"
-        />
+        <SearchBar value={query} onChange={(q) => setQuery(q)} placeholder="Buscar agente..." />
       </div>
 
       {/* Lista Scrolleable */}
@@ -44,10 +50,10 @@ export const AgentList: React.FC<AgentListProps> = ({ agents, loading, onViewTic
               </div>
             ))}
           </div>
-        ) : !agents || agents.length === 0 ? (
+        ) : !filtered || filtered.length === 0 ? (
           <div className="py-8 text-center text-sm text-dark-500">No hay listado de agentes</div>
         ) : (
-          (agents || []).map((agent, idx) => (
+          filtered.map((agent, idx) => (
             <div key={agent.agenteId ?? idx} className="flex items-center justify-between group">
               <div className="flex items-center gap-3">
                 {/* Avatar */}
@@ -60,7 +66,7 @@ export const AgentList: React.FC<AgentListProps> = ({ agents, loading, onViewTic
                 </div>
               </div>
 
-              <button onClick={() => onViewTickets?.(agent.agenteId)} className="bg-blue-500 text-white text-xs px-3 py-1.5 rounded-md opacity-0 group-hover:opacity-100 transition-opacity hover:bg-blue-600">
+              <button onClick={() => onViewTickets?.(agent.agenteId)} className="bg-blue-500 text-white text-xs px-3 py-1.5 rounded-md hover:bg-blue-600">
                 Ver tickets
               </button>
             </div>

@@ -1,7 +1,8 @@
-import React from "react";
-import { Search, Filter, Plus, FileQuestion } from "lucide-react";
+import React, { useMemo, useState } from "react";
+import { Filter, Plus, FileQuestion } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { Badge } from "../../../components/ui/Badge";
+import SearchBar from "../../../components/ui/SearchBar";
 
 interface TicketTableProps {
   tickets: any[];
@@ -37,6 +38,21 @@ export const TicketTable: React.FC<TicketTableProps> = ({
   emptyVariant = "simple",
 }) => {
   const navigate = useNavigate();
+  const [query, setQuery] = useState("");
+
+  const filtered = useMemo(() => {
+    const q = (query || "").trim().toLowerCase();
+    if (!q) return tickets;
+    return tickets.filter((t) => {
+      return (
+        String(t.id || "").toLowerCase().includes(q) ||
+        String(t.client || "").toLowerCase().includes(q) ||
+        String(t.motive || "").toLowerCase().includes(q) ||
+        String(t.status || "").toLowerCase().includes(q) ||
+        String(t.date || "").toLowerCase().includes(q)
+      );
+    });
+  }, [tickets, query]);
 
   const handleRowClick = (id: string) => {
     if (onRowClick) onRowClick(id);
@@ -56,14 +72,11 @@ export const TicketTable: React.FC<TicketTableProps> = ({
       {showToolbar && (
         <div className="flex gap-3 mb-6">
           <div className="relative flex-1">
-            <Search
-              className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"
-              size={18}
-            />
-            <input
-              type="text"
+            {/* Reusable SearchBar */}
+            <SearchBar
+              value={query}
+              onChange={(q) => setQuery(q)}
               placeholder="Buscar tickets..."
-              className="w-full pl-10 pr-4 py-2 bg-gray-50 border-none rounded-lg text-sm outline-none focus:ring-2 focus:ring-blue-100 transition-all placeholder-gray-400"
             />
           </div>
 
@@ -96,7 +109,7 @@ export const TicketTable: React.FC<TicketTableProps> = ({
               </div>
             ))}
           </div>
-        ) : tickets.length === 0 ? (
+        ) : filtered.length === 0 ? (
           emptyVariant === "simple" ? (
             <div className="flex-1 flex items-center justify-center text-center min-h-[200px] text-gray-500 m-2">
               No hay tickets disponibles
@@ -148,7 +161,7 @@ export const TicketTable: React.FC<TicketTableProps> = ({
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-50">
-                {tickets.map((t, idx) => (
+                {filtered.map((t, idx) => (
                   <tr
                     key={idx}
                     onClick={() => handleRowClick(t.id)}
