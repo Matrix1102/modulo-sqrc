@@ -38,6 +38,8 @@ export default function SurveyCategoryPage({
 
   const currentConfig = config[category];
 
+  const [mode, setMode] = useState<'recent' | 'all' | 'pending'>('recent');
+
   // --- MANEJADORES ---
 
   // 1. Abrir modal de detalle al hacer clic en una fila
@@ -77,14 +79,44 @@ export default function SurveyCategoryPage({
       </div>
 
       {/* --- SECCIÓN 1: TABLA DE RESULTADOS --- */}
-      <div className="h-[500px]">
-        {" "}
-        {/* Altura fija o min-h para que se vea grande */}
-        <SurveyTable
-          type={currentConfig.tableType}
-          onViewDetail={handleViewDetail}
-          showViewAll={false} // Ocultamos el botón "Ver todos"
-        />
+      <div className="bg-white p-4 rounded-xl shadow-sm border border-gray-100">
+        <div className="flex items-center justify-between mb-4">
+          <div>
+            <h3 className="text-lg font-bold text-gray-900">{currentConfig.title}</h3>
+            <p className="text-sm text-gray-500">{currentConfig.description}</p>
+          </div>
+
+          {/* Tabs: Recientes / Todas / Pendientes */}
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => setMode('recent')}
+              className={`px-3 py-1 rounded text-sm font-medium ${mode === 'recent' ? 'bg-blue-600 text-white' : 'bg-white text-gray-700 border border-gray-200'}`}
+            >
+              Recientes
+            </button>
+            <button
+              onClick={() => setMode('all')}
+              className={`px-3 py-1 rounded text-sm font-medium ${mode === 'all' ? 'bg-blue-600 text-white' : 'bg-white text-gray-700 border border-gray-200'}`}
+            >
+              Todas
+            </button>
+            <button
+              onClick={() => setMode('pending')}
+              className={`px-3 py-1 rounded text-sm font-medium ${mode === 'pending' ? 'bg-blue-600 text-white' : 'bg-white text-gray-700 border border-gray-200'}`}
+            >
+              Pendientes
+            </button>
+          </div>
+        </div>
+
+        <div className="h-[520px]">
+          <SurveyTable
+            type={currentConfig.tableType}
+            onViewDetail={handleViewDetail}
+            showViewAll={false}
+            mode={mode}
+          />
+        </div>
       </div>
 
       {/* --- SECCIÓN 2: PLANTILLA ESPECÍFICA --- */}

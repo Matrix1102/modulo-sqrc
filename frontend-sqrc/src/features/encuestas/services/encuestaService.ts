@@ -25,6 +25,13 @@ export const encuestaService = {
   plantillaUpdate: (id: number, payload: any): Promise<any> => http.put(`${PLANTILLAS_BASE}/${id}`, payload).then((r) => r.data),
   plantillaDelete: (id: number): Promise<void> => http.delete(`${PLANTILLAS_BASE}/${id}`).then(() => undefined),
   plantillaReactivate: (id: number): Promise<any> => http.post(`${PLANTILLAS_BASE}/${id}/reactivar`).then((r) => r.data),
+  reenviarRespuesta: (responseId: string | number): Promise<void> =>
+    http.post(`${BASE}/respuestas/${responseId}/resend`).then(() => undefined),
+  // List encuestas (summary) with optional filtering by estado, pagination or limit
+  listarEncuestas: (params?: { estado?: string; limit?: number; page?: number; size?: number }) =>
+    http.get(`${BASE}`, { params }).then((r) => r.data),
+  reenviarEncuesta: (encuestaId: string | number): Promise<void> =>
+    http.post(`${BASE}/${encuestaId}/resend`).then(() => undefined),
 };
 
 export default encuestaService;

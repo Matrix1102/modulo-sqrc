@@ -100,7 +100,19 @@ public class EncuestaController {
 
     // Root: listar encuestas (resumen)
     @GetMapping
-    public ResponseEntity<java.util.List<com.sqrc.module.backendsqrc.encuesta.dto.EncuestaSummaryDTO>> listarEncuestas() {
-        return ResponseEntity.ok(encuestaService.listarEncuestas());
+    public ResponseEntity<java.util.List<com.sqrc.module.backendsqrc.encuesta.dto.EncuestaSummaryDTO>> listarEncuestas(
+            @RequestParam(required = false) String estado,
+            @RequestParam(required = false) Integer limit,
+            @RequestParam(required = false) Integer page,
+            @RequestParam(required = false) Integer size
+    ) {
+        return ResponseEntity.ok(encuestaService.listarEncuestas(estado, limit, page, size));
+    }
+
+    // Reenviar encuesta by encuesta id (correct place for reenviar pending surveys)
+    @PostMapping("/{encuestaId}/resend")
+    public ResponseEntity<Void> reenviarEncuestaByEncuestaId(@PathVariable String encuestaId) {
+        encuestaService.reenviarEncuesta(encuestaId);
+        return ResponseEntity.accepted().build();
     }
 }

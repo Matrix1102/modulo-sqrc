@@ -10,4 +10,6 @@ public class EncuestaSummaryDTO {
     private Long plantillaId;
     private String estado;
     private String fechaEnvio;
+    private Integer resendCount;
+    private String lastSentAt;
 }

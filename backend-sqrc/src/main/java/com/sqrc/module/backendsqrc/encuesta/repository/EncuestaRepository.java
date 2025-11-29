@@ -11,4 +11,5 @@ import java.util.List;
 @Repository
 public interface EncuestaRepository extends JpaRepository<Encuesta, Long>, JpaSpecificationExecutor<Encuesta> {
     List<Encuesta> findByFechaEnvioBetween(LocalDateTime inicio, LocalDateTime fin);
+    org.springframework.data.domain.Page<Encuesta> findByEstadoEncuesta(com.sqrc.module.backendsqrc.encuesta.model.EstadoEncuesta estado, org.springframework.data.domain.Pageable pageable);
 }

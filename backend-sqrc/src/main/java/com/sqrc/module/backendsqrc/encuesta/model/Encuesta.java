@@ -8,7 +8,7 @@ import java.time.LocalDateTime;
 
 @Data
 @Entity
-@Table(name = "encuestas")
+@Table(name = "encuestas_ejecucion")
 public class Encuesta {
 
     @Id
@@ -36,6 +36,16 @@ public class Encuesta {
     private LocalDateTime fechaEnvio;
     private LocalDateTime fechaExpiracion;
 
+    // Reenvíos tracking
+    @Column(name = "resend_count")
+    private Integer resendCount;
+
+    @Column(name = "last_sent_at")
+    private LocalDateTime lastSentAt;
+
+    @Column(name = "last_sent_by")
+    private Long lastSentBy;
+
     // 4. Relación con la Respuesta (Inicialmente null, se llena cuando el cliente responde)
     @OneToOne(mappedBy = "encuesta", cascade = CascadeType.ALL)
     private RespuestaEncuesta respuestaEncuesta;
@@ -45,5 +55,6 @@ public class Encuesta {
     public void prePersist() {
         if (this.fechaEnvio == null) this.fechaEnvio = LocalDateTime.now();
         if (this.estadoEncuesta == null) this.estadoEncuesta = EstadoEncuesta.ENVIADA;
+        if (this.resendCount == null) this.resendCount = 0;
     }
 }

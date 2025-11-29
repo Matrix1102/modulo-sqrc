@@ -123,6 +123,7 @@ export const SurveyDetailModal: React.FC<SurveyDetailModalProps> = ({
         >
           <X size={20} className="text-gray-500" />
         </button>
+        {/* No mostrar botón Reenviar en el detalle de respuestas (son respuestas ya contestadas) */}
 
         {/* --- CONTENIDO SCROLLEABLE --- */}
         <div className="overflow-y-auto p-8">

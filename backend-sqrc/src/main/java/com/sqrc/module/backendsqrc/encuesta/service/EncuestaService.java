@@ -18,6 +18,8 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import org.springframework.beans.factory.annotation.Value;
+import com.sqrc.module.backendsqrc.plantillaRespuesta.Service.EmailService;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -33,6 +35,9 @@ public class EncuestaService {
     @Autowired private RespuestaEncuestaRepository respuestaEncuestaRepository;
     @Autowired private Map<String, PreguntaFactory> fabricasPreguntas; // Patrón Factory
     @Autowired private ApplicationEventPublisher eventPublisher;       // Patrón Observer
+    @Autowired private EmailService emailService;
+    @Value("${app.test.recipient:}")
+    private String testRecipient;
 
     // ==========================================
     // 1. GESTIÓN DE PLANTILLAS (DISEÑO)
@@ -270,6 +275,51 @@ public class EncuestaService {
                 .collect(Collectors.toList());
             }
 
+            @Transactional(readOnly = true)
+            public java.util.List<com.sqrc.module.backendsqrc.encuesta.dto.EncuestaSummaryDTO> listarEncuestas(String estado, Integer limit, Integer page, Integer size) {
+                // If estado is provided, filter by it; otherwise return all
+                java.util.List<Encuesta> entidades;
+
+                if (estado != null && !estado.isEmpty()) {
+                    try {
+                        EstadoEncuesta st = EstadoEncuesta.valueOf(estado.trim().toUpperCase());
+                        if (page != null || size != null) {
+                            int p = page != null ? page : 0;
+                            int s = size != null ? size : 20;
+                            entidades = encuestaRepository.findByEstadoEncuesta(st, PageRequest.of(p, s, Sort.by(Sort.Direction.DESC, "fechaEnvio"))).getContent();
+                        } else if (limit != null && limit > 0) {
+                            Page<Encuesta> pg = encuestaRepository.findAll(PageRequest.of(0, limit, Sort.by(Sort.Direction.DESC, "fechaEnvio")));
+                            entidades = pg.getContent().stream().filter(e -> e.getEstadoEncuesta() == st).collect(Collectors.toList());
+                        } else {
+                            entidades = encuestaRepository.findAll(Sort.by(Sort.Direction.DESC, "fechaEnvio")).stream().filter(e -> e.getEstadoEncuesta() == st).collect(Collectors.toList());
+                        }
+                    } catch (IllegalArgumentException ex) {
+                        throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Estado inválido: " + estado);
+                    }
+                } else {
+                    if (page != null || size != null) {
+                        int p = page != null ? page : 0;
+                        int s = size != null ? size : 20;
+                        entidades = encuestaRepository.findAll(PageRequest.of(p, s, Sort.by(Sort.Direction.DESC, "fechaEnvio"))).getContent();
+                    } else if (limit != null && limit > 0) {
+                        entidades = encuestaRepository.findAll(PageRequest.of(0, limit, Sort.by(Sort.Direction.DESC, "fechaEnvio"))).getContent();
+                    } else {
+                        entidades = encuestaRepository.findAll(Sort.by(Sort.Direction.DESC, "fechaEnvio"));
+                    }
+                }
+
+                return entidades.stream()
+                    .map(e -> com.sqrc.module.backendsqrc.encuesta.dto.EncuestaSummaryDTO.builder()
+                        .idEncuesta(e.getIdEncuesta())
+                        .plantillaId(e.getPlantilla() != null ? e.getPlantilla().getIdPlantillaEncuesta() : null)
+                        .estado(e.getEstadoEncuesta() != null ? e.getEstadoEncuesta().name() : null)
+                        .fechaEnvio(e.getFechaEnvio() != null ? e.getFechaEnvio().toString() : null)
+                        .resendCount(e.getResendCount() != null ? e.getResendCount() : 0)
+                        .lastSentAt(e.getLastSentAt() != null ? e.getLastSentAt().toString() : null)
+                        .build())
+                    .collect(Collectors.toList());
+            }
+
     @Transactional(readOnly = true)
     public EncuestaResultadoDTO obtenerRespuestaPorId(String idStr) {
         Long id = Long.parseLong(idStr);
@@ -320,12 +370,30 @@ public class EncuestaService {
             throw new org.springframework.web.server.ResponseStatusException(org.springframework.http.HttpStatus.CONFLICT, "La encuesta ya fue respondida, no se puede reenviar.");
         }
 
+        // Actualizar metadata de reenvío
         encuesta.setFechaEnvio(LocalDateTime.now());
         encuesta.setEstadoEncuesta(EstadoEncuesta.ENVIADA);
+        Integer count = encuesta.getResendCount();
+        if (count == null) count = 0;
+        encuesta.setResendCount(count + 1);
+        encuesta.setLastSentAt(LocalDateTime.now());
+        // lastSentBy could be filled from security context when available
+        encuesta.setLastSentBy(null);
+
         encuestaRepository.save(encuesta);
 
-        // Aquí se invocaría al EmailService real
-        System.out.println("Simulando reenvío de correo para encuesta " + id);
+        // Intentar enviar correo de forma asíncrona si hay un destinatario configurado
+        if (testRecipient != null && !testRecipient.isBlank()) {
+            String subject = "Reenvío encuesta #" + encuesta.getIdEncuesta();
+            String body = "Estimado/a, por favor complete la encuesta en el siguiente enlace: [ENLACE DE ENCUESTA]";
+            try {
+                emailService.enviarCorreoHtmlAsync(testRecipient, subject, body);
+            } catch (Exception ex) {
+                System.err.println("Error al encolar envío de correo: " + ex.getMessage());
+            }
+        } else {
+            System.out.println("No hay destinatario configurado (app.test.recipient) — registro de reenvío guardado, sin envío de correo.");
+        }
     }
 
     // ==========================================

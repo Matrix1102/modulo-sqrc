@@ -3,6 +3,10 @@ import React from "react";
 import { useNavigate } from "react-router-dom";
 import { Badge } from "../../../components/ui/Badge"; // ✅ Importación correcta del Badge
 import useEncuestaRespuestas from "../hooks/useEncuestaRespuestas";
+import useEncuestas from "../hooks/useEncuestas";
+import encuestaService from "../services/encuestaService";
+import showToast from '../../../services/notification';
+import showConfirm from '../../../services/confirm';
 
 // Definición exportada para que otros componentes (como el Modal) la usen
 export interface SurveyResponse {
@@ -14,6 +18,8 @@ export interface SurveyResponse {
   tiempo: string;
   clientEmail: string;
   responseDate: string;
+  encuestaId?: number | string;
+  resendCount?: number;
   answers: {
     id: number;
     type: string;
@@ -24,12 +30,14 @@ export interface SurveyResponse {
 
 interface SurveyTableProps {
   type: "agents" | "services";
+  mode?: "recent" | "all" | "pending"; // recent = default responses recent, all = full responses, pending = encuestas ENVIADA
   onViewDetail?: (data: SurveyResponse) => void;
   showViewAll?: boolean;
 }
 
 export const SurveyTable: React.FC<SurveyTableProps> = ({
   type,
+  mode = 'recent',
   onViewDetail,
   showViewAll = true,
 }) => {
@@ -47,24 +55,43 @@ export const SurveyTable: React.FC<SurveyTableProps> = ({
     return "danger"; // Rojo (Malo)
   };
 
-  // Fetch recent responses from backend (limit N)
-  const { data: responses, loading } = useEncuestaRespuestas({
+  // Fetch data depending on mode
+  const { data: responses, loading: loadingResponses } = useEncuestaRespuestas({
     alcanceEvaluacion: type === "agents" ? "AGENTE" : "SERVICIO",
-    limit: 6,
+    limit: mode === 'recent' ? 6 : undefined,
   });
 
+  const { data: encuestas, loading: loadingEncuestas, refetch: refetchEncuestas } = useEncuestas(mode === 'pending' ? { estado: 'ENVIADA' } : undefined);
+
+  const loading = mode === 'pending' ? loadingEncuestas : loadingResponses;
+
   // Map backend response shape to SurveyResponse-friendly fields
-  const rows: SurveyResponse[] = (responses || []).map((r: any, idx: number) => ({
-    id: idx + 1,
-    ticketId: r.ticketId || `T-${r.responseId || idx}`,
-    puntaje: typeof r.puntaje === "number" ? r.puntaje : (parseFloat(r.puntaje) || 0),
-    comentario: r.comentario || "",
-    agenteName: r.agenteName || (type === "agents" ? undefined : undefined),
-    tiempo: r.tiempo || "",
-    clientEmail: r.clientEmail || "",
-    responseDate: r.fechaRespuesta || "",
-    answers: r.resultados || [],
-  }));
+  const rows: SurveyResponse[] = (mode === 'pending'
+    ? (encuestas || []).map((e: any, idx: number) => ({
+        id: idx + 1,
+        // keep encuesta id available in ticketId as well as a separate metadata field when needed
+        ticketId: e.ticketId || `T-${e.idEncuesta || idx}`,
+        puntaje: 0,
+        comentario: e.descripcion || '',
+        agenteName: e.agenteName || undefined,
+        tiempo: e.fechaEnvio || '',
+        clientEmail: e.clientEmail || '',
+        responseDate: e.fechaEnvio || '',
+        answers: [],
+        encuestaId: e.idEncuesta,
+        resendCount: e.resendCount,
+      }))
+    : (responses || []).map((r: any, idx: number) => ({
+        id: idx + 1,
+        ticketId: r.ticketId || `T-${r.responseId || idx}`,
+        puntaje: typeof r.puntaje === "number" ? r.puntaje : (parseFloat(r.puntaje) || 0),
+        comentario: r.comentario || "",
+        agenteName: r.agenteName || (type === "agents" ? undefined : undefined),
+        tiempo: r.tiempo || "",
+        clientEmail: r.clientEmail || "",
+        responseDate: r.fechaRespuesta || "",
+        answers: r.resultados || [],
+      })));
 
   const handleViewAll = () => {
     const path =
@@ -86,21 +113,27 @@ export const SurveyTable: React.FC<SurveyTableProps> = ({
         <table className="w-full text-left">
           <thead>
             <tr className="border-b border-gray-100">
-              <th className="text-xs font-semibold text-gray-500 pb-3 pl-2">
+              <th className="text-xs font-semibold text-gray-500 pb-3 pl-2 w-36">
                 Ticket
               </th>
-              <th className="text-xs font-semibold text-gray-500 pb-3">
+              <th className="text-xs font-semibold text-gray-500 pb-3 w-24">
                 Puntuac.
               </th>
-              <th className="text-xs font-semibold text-gray-500 pb-3 w-1/3">
+              <th className="text-xs font-semibold text-gray-500 pb-3 w-1/2">
                 Comentario
               </th>
               {type === "agents" && (
-                <th className="text-xs font-semibold text-gray-500 pb-3">
+                <th className="text-xs font-semibold text-gray-500 pb-3 w-36">
                   Agente
                 </th>
               )}
-              <th className="text-right text-xs font-semibold text-gray-500 pb-3 pr-2">
+              {mode === 'pending' && (
+                <>
+                  <th className="text-xs font-semibold text-gray-500 pb-3 w-24 text-center">Reenvíos</th>
+                  <th className="text-xs font-semibold text-gray-500 pb-3 w-24 text-center">Acciones</th>
+                </>
+              )}
+              <th className="text-right text-xs font-semibold text-gray-500 pb-3 pr-2 w-40">
                 Tiempo
               </th>
             </tr>
@@ -108,11 +141,11 @@ export const SurveyTable: React.FC<SurveyTableProps> = ({
 
           <tbody className="divide-y divide-gray-50">
             {loading ? (
-              // Skeleton rows while loading
+              // Skeleton rows while loading — match column structure
               Array.from({ length: 5 }).map((_, i) => (
                 <tr key={`skeleton-${i}`} className="animate-pulse">
                   <td className="py-4 pl-2 align-top">
-                    <div className="h-5 w-24 bg-gray-200 rounded" />
+                    <div className="h-5 w-28 bg-gray-200 rounded" />
                   </td>
 
                   <td className="py-4 align-top">
@@ -120,23 +153,34 @@ export const SurveyTable: React.FC<SurveyTableProps> = ({
                   </td>
 
                   <td className="py-4 text-sm text-gray-600 pr-4">
-                    <div className="h-8 bg-gray-100 rounded w-full" />
+                    <div className="h-8 bg-gray-100 rounded w-full max-w-[560px]" />
                   </td>
 
                   {type === "agents" && (
                     <td className="py-4 text-sm font-semibold text-gray-700 align-top whitespace-nowrap">
-                      <div className="h-5 w-20 bg-gray-100 rounded" />
+                      <div className="h-5 w-32 bg-gray-100 rounded" />
                     </td>
                   )}
 
+                  {mode === 'pending' && (
+                    <>
+                      <td className="py-4 text-sm text-gray-700 align-top text-center">
+                        <div className="h-5 w-10 bg-gray-100 rounded mx-auto" />
+                      </td>
+                      <td className="py-4 text-sm text-gray-700 align-top text-center">
+                        <div className="h-8 w-20 bg-gray-100 rounded mx-auto" />
+                      </td>
+                    </>
+                  )}
+
                   <td className="py-4 text-xs text-gray-400 align-top text-right whitespace-nowrap pr-2 font-medium">
-                    <div className="h-4 w-12 bg-gray-100 rounded ml-auto" />
+                    <div className="h-4 w-28 bg-gray-100 rounded ml-auto" />
                   </td>
                 </tr>
               ))
             ) : rows.length === 0 ? (
               <tr>
-                <td colSpan={type === "agents" ? 5 : 4} className="p-8 text-center text-gray-400">
+                <td colSpan={type === "agents" ? (mode === 'pending' ? 7 : 5) : (mode === 'pending' ? 6 : 4)} className="p-8 text-center text-gray-400">
                   No hay respuestas recientes.
                 </td>
               </tr>
@@ -172,6 +216,33 @@ export const SurveyTable: React.FC<SurveyTableProps> = ({
                   <td className="py-4 text-sm font-semibold text-gray-700 align-top whitespace-nowrap">
                     {item.agenteName ?? "-"}
                   </td>
+                )}
+
+                {mode === 'pending' && (
+                  <>
+                    <td className="py-4 text-sm text-gray-700 align-top text-center">{(item as any).resendCount ?? 0}</td>
+                    <td className="py-4 text-xs text-gray-400 align-top text-center whitespace-nowrap pr-2 font-medium">
+                      <div className="flex items-center justify-center gap-2">
+                        <button
+                          onClick={async (e) => {
+                            e.stopPropagation();
+                            const ok = await showConfirm('¿Deseas reenviar esta encuesta?', 'Reenviar');
+                            if (!ok) return;
+                            try {
+                              await encuestaService.reenviarEncuesta((item as any).encuestaId);
+                              showToast('Reenvío solicitado', 'success');
+                              refetchEncuestas();
+                            } catch (err) {
+                              showToast('Error al solicitar reenvío', 'error');
+                            }
+                          }}
+                          className="text-xs px-2 py-1 bg-white border border-gray-200 rounded hover:bg-gray-50"
+                        >
+                          Reenviar
+                        </button>
+                      </div>
+                    </td>
+                  </>
                 )}
 
                 {/* Columna Tiempo */}

@@ -8,6 +8,8 @@ import org.springframework.core.io.ByteArrayResource;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.mail.javamail.MimeMessageHelper;
 import org.springframework.stereotype.Service;
+import org.springframework.scheduling.annotation.Async;
+import org.springframework.beans.factory.annotation.Value;
 
 @Service
 @RequiredArgsConstructor
@@ -49,5 +51,24 @@ public class EmailService {
             throw new RuntimeException("Error al enviar el correo: " + e.getMessage(), e);
         }
     }
+
+    @Async
+    public void enviarCorreoHtmlAsync(String destinatario, String asunto, String cuerpoHtml) {
+        try {
+            MimeMessage message = mailSender.createMimeMessage();
+            MimeMessageHelper helper = new MimeMessageHelper(message, "UTF-8");
+            helper.setFrom(fromAddress);
+            helper.setTo(destinatario);
+            helper.setSubject(asunto);
+            helper.setText(cuerpoHtml, true);
+            mailSender.send(message);
+            System.out.println("Correo HTML enviado a: " + destinatario);
+        } catch (MessagingException e) {
+            System.err.println("Fallo al enviar correo HTML: " + e.getMessage());
+        }
+    }
+
+    @Value("${spring.mail.username:}")
+    private String fromAddress;
 
 }
