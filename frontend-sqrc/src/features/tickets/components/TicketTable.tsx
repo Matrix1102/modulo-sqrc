@@ -8,6 +8,8 @@ interface TicketTableProps {
   title?: string;
   showToolbar?: boolean;
   onRowClick?: (id: string) => void;
+  loading?: boolean;
+  emptyVariant?: "simple" | "rich";
 }
 
 // Lógica de colores para los estados
@@ -31,6 +33,8 @@ export const TicketTable: React.FC<TicketTableProps> = ({
   title,
   showToolbar = true,
   onRowClick,
+  loading = false,
+  emptyVariant = "simple",
 }) => {
   const navigate = useNavigate();
 
@@ -77,38 +81,59 @@ export const TicketTable: React.FC<TicketTableProps> = ({
 
       {/* CONTENIDO PRINCIPAL */}
       <div className="flex-1 relative flex flex-col">
-        {tickets.length === 0 ? (
-          /* --- EMPTY STATE MEJORADO --- */
-          <div className="flex-1 flex flex-col items-center justify-center text-center min-h-[300px] border-2 border-dashed border-gray-100 rounded-xl bg-gray-50/30 m-2">
-            {/* Icono con efecto de anillo */}
-            <div className="relative mb-6 group">
-              <div className="absolute inset-0 bg-blue-100 rounded-full blur-md opacity-50 group-hover:opacity-80 transition-opacity"></div>
-              <div className="relative bg-white p-5 rounded-full shadow-sm ring-8 ring-blue-50">
-                <FileQuestion
-                  size={40}
-                  className="text-blue-500"
-                  strokeWidth={1.5}
-                />
+        {loading ? (
+          <div className="space-y-3 p-2">
+            {Array.from({ length: 6 }).map((_, idx) => (
+              <div key={idx} className="flex items-center justify-between py-3 px-2">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-full bg-gray-100 animate-pulse" />
+                  <div>
+                    <div className="h-4 bg-gray-100 rounded w-36 mb-1 animate-pulse"></div>
+                    <div className="h-3 bg-gray-100 rounded w-24 animate-pulse"></div>
+                  </div>
+                </div>
+                <div className="h-6 w-20 bg-gray-100 rounded animate-pulse" />
               </div>
-            </div>
-
-            {/* Textos */}
-            <h4 className="text-gray-900 font-bold text-lg mb-2">
-              No hay tickets disponibles
-            </h4>
-            <p className="text-sm text-gray-500 max-w-xs mx-auto leading-relaxed">
-              Actualmente no hay tickets que coincidan con tu búsqueda o la
-              lista está vacía.
-            </p>
-
-            {/* Botón de acción secundaria */}
-            <button
-              onClick={() => window.location.reload()}
-              className="mt-6 px-5 py-2 bg-white border border-gray-200 text-gray-700 text-sm font-medium rounded-lg hover:bg-gray-50 hover:border-gray-300 transition-all shadow-sm"
-            >
-              Actualizar lista
-            </button>
+            ))}
           </div>
+        ) : tickets.length === 0 ? (
+          emptyVariant === "simple" ? (
+            <div className="flex-1 flex items-center justify-center text-center min-h-[200px] text-gray-500 m-2">
+              No hay tickets disponibles
+            </div>
+          ) : (
+            /* --- EMPTY STATE MEJORADO --- */
+            <div className="flex-1 flex flex-col items-center justify-center text-center min-h-[300px] border-2 border-dashed border-gray-100 rounded-xl bg-gray-50/30 m-2">
+              {/* Icono con efecto de anillo */}
+              <div className="relative mb-6 group">
+                <div className="absolute inset-0 bg-blue-100 rounded-full blur-md opacity-50 group-hover:opacity-80 transition-opacity"></div>
+                <div className="relative bg-white p-5 rounded-full shadow-sm ring-8 ring-blue-50">
+                  <FileQuestion
+                    size={40}
+                    className="text-blue-500"
+                    strokeWidth={1.5}
+                  />
+                </div>
+              </div>
+
+              {/* Textos */}
+              <h4 className="text-gray-900 font-bold text-lg mb-2">
+                No hay tickets disponibles
+              </h4>
+              <p className="text-sm text-gray-500 max-w-xs mx-auto leading-relaxed">
+                Actualmente no hay tickets que coincidan con tu búsqueda o la
+                lista está vacía.
+              </p>
+
+              {/* Botón de acción secundaria */}
+              <button
+                onClick={() => window.location.reload()}
+                className="mt-6 px-5 py-2 bg-white border border-gray-200 text-gray-700 text-sm font-medium rounded-lg hover:bg-gray-50 hover:border-gray-300 transition-all shadow-sm"
+              >
+                Actualizar lista
+              </button>
+            </div>
+          )
         ) : (
           /* --- TABLA DE DATOS --- */
           <div className="overflow-x-auto flex-1">

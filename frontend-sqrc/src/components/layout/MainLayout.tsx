@@ -17,6 +17,10 @@ const PAGE_CONFIG: Record<string, { title: string; subtitle: string }> = {
     title: "Tickets de Equipo",
     subtitle: "Gestión de los tickets asignados al equipo",
   },
+  "/supervisor/tickets": {
+    title: "Tickets de Equipo",
+    subtitle: "Gestión de los tickets asignados al equipo",
+  },
   "/supervisor/encuestas": {
     title: "Resultados de Encuesta",
     subtitle: "Feedback recibido de los clientes",
