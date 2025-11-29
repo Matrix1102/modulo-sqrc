@@ -48,6 +48,18 @@ public class EncuestaController {
         return ResponseEntity.ok(encuestaService.actualizarPlantilla(id, request));
     }
 
+    @DeleteMapping("/plantillas/{id}")
+    public ResponseEntity<Void> desactivarPlantilla(@PathVariable String id) {
+        encuestaService.desactivarPlantilla(id);
+        return ResponseEntity.noContent().build();
+    }
+
+    @PostMapping("/plantillas/{id}/reactivar")
+    public ResponseEntity<PlantillaResponseDTO> reactivarPlantilla(@PathVariable String id) {
+        PlantillaResponseDTO dto = encuestaService.reactivarPlantilla(id);
+        return ResponseEntity.ok(dto);
+    }
+
     // Endpoint para que el cliente envíe las respuestas de una encuesta
     @PostMapping("/respuestas")
     public ResponseEntity<Void> guardarRespuestas(@Valid @RequestBody com.sqrc.module.backendsqrc.encuesta.dto.RespuestaClienteDTO request) {

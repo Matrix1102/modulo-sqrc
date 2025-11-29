@@ -1,22 +1,27 @@
 import React, { useState, useEffect } from "react";
 import { X, Trash2, Plus, Save } from "lucide-react";
 import { QuestionCard } from "./QuestionCard";
+import showToast from "../../../services/notification";
 
 interface TemplateEditModalProps {
   isOpen: boolean;
   onClose: () => void;
   template: any; // Puede ser null (Crear) o un objeto (Editar)
+  onSaved?: (createdOrUpdated?: any) => void;
 }
 
 export const TemplateEditModal: React.FC<TemplateEditModalProps> = ({
   isOpen,
   onClose,
   template,
+  onSaved,
 }) => {
   // --- ESTADOS DEL FORMULARIO ---
   const [nombre, setNombre] = useState("");
   const [descripcion, setDescripcion] = useState("");
   const [preguntas, setPreguntas] = useState<any[]>([]);
+  const [saving, setSaving] = useState(false);
+  const [alcance, setAlcance] = useState<string>("AGENTE");
 
   // --- EFECTO DE CARGA / RESETEO ---
   // Cada vez que se abre el modal, decidimos si cargar datos o limpiar
@@ -27,6 +32,7 @@ export const TemplateEditModal: React.FC<TemplateEditModalProps> = ({
         setNombre(template.nombre || "");
         setDescripcion(template.descripcion || "");
         setPreguntas(template.preguntas || []);
+        setAlcance(template.alcanceEvaluacion || template.alcance || "AGENTE");
       } else {
         // MODO CREACIÓN: Limpiar todo para empezar de cero
         setNombre("");
@@ -65,10 +71,30 @@ export const TemplateEditModal: React.FC<TemplateEditModalProps> = ({
   };
 
   const handleSave = () => {
-    // Aquí iría tu lógica para llamar a la API (POST o PUT)
-    const payload = { nombre, descripcion, preguntas };
-    console.log("Guardando plantilla:", payload);
-    onClose();
+    (async () => {
+      setSaving(true);
+      try {
+        const payload = { nombre, descripcion, preguntas, alcanceEvaluacion: alcance };
+        if (isCreating) {
+          const created = await (await import("../services/encuestaService")).encuestaService.plantillaCreate(payload);
+          showToast('Plantilla creada', 'success');
+          onClose();
+          onSaved && onSaved(created);
+        } else {
+          const id = template?.id || template?.templateId || template?.templateId;
+          if (!id) throw new Error("ID de plantilla no encontrado");
+          const updated = await (await import("../services/encuestaService")).encuestaService.plantillaUpdate(Number(id), payload);
+          showToast('Plantilla actualizada', 'success');
+          onClose();
+          onSaved && onSaved(updated);
+        }
+      } catch (err) {
+        console.error("Error guardando plantilla", err);
+        showToast('Error al guardar la plantilla: ' + ((err as any)?.message || ''), 'error');
+      } finally {
+        setSaving(false);
+      }
+    })();
   };
 
   return (
@@ -110,6 +136,13 @@ export const TemplateEditModal: React.FC<TemplateEditModalProps> = ({
                 placeholder="Ej: Encuesta de Satisfacción Mensual"
                 className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none transition font-medium"
               />
+            </div>
+            <div>
+              <label className="block text-sm font-bold text-gray-700 mb-1">Alcance</label>
+              <select value={alcance} onChange={(e) => setAlcance(e.target.value)} className="w-full p-3 border border-gray-300 rounded-lg">
+                <option value="AGENTE">Agente</option>
+                <option value="SERVICIO">Servicio</option>
+              </select>
             </div>
             <div>
               <label className="block text-sm font-bold text-gray-700 mb-1">
@@ -226,7 +259,8 @@ export const TemplateEditModal: React.FC<TemplateEditModalProps> = ({
           </button>
           <button
             onClick={handleSave}
-            className="px-6 py-2.5 bg-blue-600 text-white font-bold rounded-lg hover:bg-blue-700 shadow-md transition flex items-center gap-2 active:scale-95"
+            disabled={saving}
+            className="px-6 py-2.5 bg-blue-600 disabled:opacity-60 text-white font-bold rounded-lg hover:bg-blue-700 shadow-md transition flex items-center gap-2 active:scale-95"
           >
             <Save size={18} />
             {isCreating ? "Crear Plantilla" : "Guardar Cambios"}

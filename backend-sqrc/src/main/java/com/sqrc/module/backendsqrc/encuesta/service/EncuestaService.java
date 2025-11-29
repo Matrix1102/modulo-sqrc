@@ -84,6 +84,10 @@ public class EncuestaService {
         Long id = Long.parseLong(idStr);
         PlantillaEncuesta plantilla = plantillaRepository.findById(id)
             .orElseThrow(() -> new org.springframework.web.server.ResponseStatusException(org.springframework.http.HttpStatus.NOT_FOUND, "Plantilla no encontrada"));
+        // No permitimos actualizar una plantilla que no esté vigente
+        if (plantilla.getVigente() != null && !plantilla.getVigente()) {
+            throw new org.springframework.web.server.ResponseStatusException(org.springframework.http.HttpStatus.CONFLICT, "No se puede modificar una plantilla no vigente");
+        }
 
         plantilla.setNombre(dto.getNombre());
         plantilla.setDescripcion(dto.getDescripcion());
@@ -98,6 +102,25 @@ public class EncuestaService {
         // Nota: Actualizar preguntas profundas requiere lógica de borrado/re-creación que omitimos por brevedad
         
         return convertirADTO(plantillaRepository.save(plantilla));
+    }
+
+    @Transactional
+    public void desactivarPlantilla(String idStr) {
+        Long id = Long.parseLong(idStr);
+        PlantillaEncuesta plantilla = plantillaRepository.findById(id)
+            .orElseThrow(() -> new org.springframework.web.server.ResponseStatusException(org.springframework.http.HttpStatus.NOT_FOUND, "Plantilla no encontrada"));
+        plantilla.setVigente(false);
+        plantillaRepository.save(plantilla);
+    }
+
+    @Transactional
+    public PlantillaResponseDTO reactivarPlantilla(String idStr) {
+        Long id = Long.parseLong(idStr);
+        PlantillaEncuesta plantilla = plantillaRepository.findById(id)
+            .orElseThrow(() -> new org.springframework.web.server.ResponseStatusException(org.springframework.http.HttpStatus.NOT_FOUND, "Plantilla no encontrada"));
+        plantilla.setVigente(true);
+        PlantillaEncuesta saved = plantillaRepository.save(plantilla);
+        return convertirADTO(saved);
     }
 
     // ==========================================

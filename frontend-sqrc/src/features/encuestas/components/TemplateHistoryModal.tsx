@@ -1,16 +1,8 @@
-import React, { useState } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { X, Search, FileClock, Eye, RotateCcw } from "lucide-react";
 import { Badge } from "../../../components/ui/Badge"; // Reutilizamos tu Badge existente
+import showToast from "../../../services/notification";
 
-interface HistoryItem {
-  id: number;
-  nombre: string;
-  tipo: "AGENTE" | "SERVICIO";
-  version: string;
-  fechaCreacion: string;
-  estado: "ACTIVA" | "INACTIVA";
-  autor: string;
-}
 
 interface TemplateHistoryModalProps {
   isOpen: boolean;
@@ -22,49 +14,80 @@ export const TemplateHistoryModal: React.FC<TemplateHistoryModalProps> = ({
   onClose,
 }) => {
   const [searchTerm, setSearchTerm] = useState("");
+  const [items, setItems] = useState<any[] | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [reactivatingId, setReactivatingId] = useState<string | number | null>(null);
 
-  // --- MOCK DATA ---
-  const historyData: HistoryItem[] = [
-    {
-      id: 1,
-      nombre: "Encuesta Satisfacción Agente",
-      tipo: "AGENTE",
-      version: "v3.0",
-      fechaCreacion: "20/10/2025",
-      estado: "ACTIVA",
-      autor: "Juan Pérez",
-    },
-    {
-      id: 2,
-      nombre: "Encuesta Calidad Servicio",
-      tipo: "SERVICIO",
-      version: "v2.1",
-      fechaCreacion: "15/10/2025",
-      estado: "ACTIVA",
-      autor: "Maria Lopez",
-    },
-    {
-      id: 3,
-      nombre: "Encuesta Agente (Versión Corta)",
-      tipo: "AGENTE",
-      version: "v2.0",
-      fechaCreacion: "01/05/2025",
-      estado: "INACTIVA",
-      autor: "Juan Pérez",
-    },
-    {
-      id: 4,
-      nombre: "Encuesta Navidad 2024",
-      tipo: "SERVICIO",
-      version: "v1.0",
-      fechaCreacion: "01/12/2024",
-      estado: "INACTIVA",
-      autor: "Admin",
-    },
-  ];
+  // (removed local mock data — modal now loads templates from the backend)
 
-  const filteredData = historyData.filter((item) =>
-    item.nombre.toLowerCase().includes(searchTerm.toLowerCase())
+  const load = useCallback(async () => {
+    setLoading(true);
+    try {
+      const svc = (await import("../services/encuestaService")).encuestaService;
+      const data = await svc.plantillasList();
+      setItems(data || []);
+    } catch (err) {
+      setItems([]);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    let mounted = true;
+    if (!isOpen) return;
+    // guard: only load when modal opens
+    (async () => {
+      if (!mounted) return;
+      await load();
+    })();
+    return () => {
+      mounted = false;
+    };
+  }, [isOpen, load]);
+
+  const handleReactivate = async (item: any) => {
+    const id = item.templateId || item.id;
+    setReactivatingId(id);
+    try {
+      const svc = (await import("../services/encuestaService")).encuestaService;
+      await svc.plantillaReactivate(id);
+      // refresh list after successful reactivation
+      await load();
+      showToast('Plantilla reactivada', 'success');
+    } catch (err) {
+      console.error("Error reactivating plantilla:", err);
+      showToast('Error al reactivar la plantilla', 'error');
+    } finally {
+      setReactivatingId(null);
+    }
+  };
+
+  const [previewOpen, setPreviewOpen] = useState(false);
+  const [previewItem, setPreviewItem] = useState<any | null>(null);
+  const [previewLoading, setPreviewLoading] = useState(false);
+
+  const handleViewDesign = async (item: any) => {
+    const id = item.templateId || item.id;
+    setPreviewLoading(true);
+    try {
+      const svc = (await import('../services/encuestaService')).encuestaService;
+      // try to fetch full plantilla detail; fallback to item if endpoint missing
+      const detail = await svc.plantillaGet(id).catch(() => item);
+      setPreviewItem(detail || item);
+      setPreviewOpen(true);
+    } catch (err) {
+      console.error('Error loading plantilla detail', err);
+      showToast('Error cargando vista previa', 'error');
+    } finally {
+      setPreviewLoading(false);
+    }
+  };
+
+  const filteredData = (items || []).filter((item) =>
+    ((item.nombre || item.nombrePlantilla || "") as string)
+      .toLowerCase()
+      .includes(searchTerm.toLowerCase())
   );
 
   if (!isOpen) return null;
@@ -114,8 +137,45 @@ export const TemplateHistoryModal: React.FC<TemplateHistoryModalProps> = ({
           </div>
         </div>
 
+        {/* --- PREVIEW MODAL --- */}
+        {previewOpen && previewItem && (
+          <div
+            className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 p-4"
+            onClick={() => setPreviewOpen(false)}
+          >
+            <div className="bg-white w-full max-w-3xl rounded-xl shadow-lg p-6" onClick={(e) => e.stopPropagation()}>
+              <div className="flex justify-between items-start mb-4">
+                <div>
+                  <h3 className="text-xl font-bold">{previewItem.nombre || previewItem.nombrePlantilla || 'Vista previa'}</h3>
+                  <p className="text-sm text-gray-500">{previewItem.descripcion || ''}</p>
+                </div>
+                <button className="p-1 text-gray-500" onClick={() => setPreviewOpen(false)}><X size={20} /></button>
+              </div>
+
+              <div className="space-y-4">
+                <div className="text-sm text-gray-600">Alcance: <strong>{previewItem.alcanceEvaluacion || previewItem.tipo || '-'}</strong></div>
+
+                <div>
+                  <h4 className="font-semibold mb-2">Preguntas</h4>
+                  <ol className="list-decimal pl-5 space-y-2">
+                    {(previewItem.preguntas || previewItem.preguntaList || []).map((q: any, i: number) => (
+                      <li key={q.id || i} className="text-sm text-gray-700">
+                        <div className="font-medium">{q.texto || q.enunciado || q.label || 'Pregunta'}</div>
+                        <div className="text-xs text-gray-500">Tipo: {q.tipo || q.type || '-'}</div>
+                      </li>
+                    ))}
+                  </ol>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* --- CUERPO SCROLLEABLE (TABLA) --- */}
         <div className="overflow-y-auto p-6 bg-gray-50 flex-1">
+          {loading && (
+            <div className="p-4 text-sm text-gray-600">Cargando plantillas...</div>
+          )}
           <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
             <table className="w-full text-left text-sm">
               <thead className="bg-gray-50 border-b border-gray-200 text-gray-500 uppercase text-xs font-bold tracking-wider">
@@ -131,55 +191,54 @@ export const TemplateHistoryModal: React.FC<TemplateHistoryModalProps> = ({
               <tbody className="divide-y divide-gray-100">
                 {filteredData.map((item) => (
                   <tr
-                    key={item.id}
+                    key={item.templateId || item.id}
                     className="hover:bg-blue-50/30 transition-colors group"
                   >
                     <td className="p-4">
                       <div className="font-bold text-gray-800">
-                        {item.nombre}
+                        {item.nombre || item.nombrePlantilla || "-"}
                       </div>
                       <span className="text-xs text-blue-600 font-mono bg-blue-50 px-1.5 py-0.5 rounded mt-1 inline-block border border-blue-100">
-                        {item.version}
+                        {item.version || item.templateId || "-"}
                       </span>
                     </td>
                     <td className="p-4">
                       <span className="text-xs font-semibold text-gray-600 bg-gray-100 px-2 py-1 rounded-md border border-gray-200">
-                        {item.tipo}
+                        {item.alcanceEvaluacion || item.tipo || "-"}
                       </span>
                     </td>
-                    <td className="p-4 text-gray-500">{item.fechaCreacion}</td>
-                    <td className="p-4 text-gray-500">{item.autor}</td>
+                    <td className="p-4 text-gray-500">{item.fechaCreacion || item.fechaModificacion || "-"}</td>
+                    <td className="p-4 text-gray-500">{item.autor || item.creadoPor || "-"}</td>
                     <td className="p-4">
                       <Badge
                         variant={
-                          item.estado === "ACTIVA" ? "success" : "neutral"
+                          (item.estado || "").toUpperCase() === "ACTIVA" ? "success" : "neutral"
                         }
                       >
-                        {item.estado}
+                        {item.estado || "-"}
                       </Badge>
                     </td>
                     <td className="p-4 text-right">
                       <div className="flex justify-end gap-2">
                         <button
                           title="Ver diseño"
+                          onClick={() => void handleViewDesign(item)}
                           className="p-2 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors border border-transparent hover:border-blue-100"
                         >
                           <Eye size={18} />
                         </button>
 
-                        {item.estado === "INACTIVA" && (
+                        {((item.estado || "").toUpperCase() === "INACTIVA") && (
                           <button
                             title="Restaurar esta versión"
-                            className="p-2 text-gray-400 hover:text-green-600 hover:bg-green-50 rounded-lg transition-colors border border-transparent hover:border-green-100"
-                            onClick={() => {
-                              if (
-                                confirm(
-                                  `¿Deseas restaurar la versión ${item.version}?`
-                                )
-                              ) {
-                                console.log("Restaurando...", item.id);
+                            className="p-2 text-gray-400 hover:text-green-600 hover:bg-green-50 rounded-lg transition-colors border border-transparent hover:border-green-100 disabled:opacity-60"
+                            onClick={async () => {
+                              const ok = await import('../../../services/confirm').then(m => m.default ? m.default(`¿Deseas restaurar la versión ${item.version || item.templateId || "?"}?`, 'Confirmar') : m.showConfirm(`¿Deseas restaurar la versión ${item.version || item.templateId || "?"}?`, 'Confirmar'));
+                              if (ok) {
+                                void handleReactivate(item);
                               }
                             }}
+                            disabled={reactivatingId === (item.templateId || item.id)}
                           >
                             <RotateCcw size={18} />
                           </button>

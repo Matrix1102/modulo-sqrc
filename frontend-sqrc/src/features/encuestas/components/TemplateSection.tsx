@@ -3,6 +3,9 @@ import { History } from "lucide-react"; // Icono para el historial
 import { TemplateCard } from "./TemplateCard";
 import { TemplateEditModal } from "./TemplateEditModal";
 import { TemplateHistoryModal } from "./TemplateHistoryModal";
+import usePlantillas from "../hooks/usePlantillas";
+import showToast from "../../../services/notification";
+import showConfirm from "../../../services/confirm";
 
 export const TemplatesSection = () => {
   // Estados para controlar qué modal se muestra
@@ -10,28 +13,40 @@ export const TemplatesSection = () => {
   const [isHistoryOpen, setIsHistoryOpen] = useState(false); // <--- NUEVO
 
   const [activeTemplate, setActiveTemplate] = useState<any>(null);
+  const { items: plantillas, loading: plantillasLoading, reload, getActive, addLocal, updateLocal } = usePlantillas();
 
   // Manejador de acciones de las tarjetas
-  const handleCardAction = (action: string, type: string) => {
+  const handleCardAction = async (action: string, type: string) => {
+    const active = getActive(type);
     if (action === "EDIT") {
-      // Simulación: Cargar la plantilla vigente de ese tipo
-      setActiveTemplate({
-        id: 1,
-        nombre: `Encuesta sobre ${
-          type === "AGENTE" ? "Agente" : "Servicio"
-        } (Vigente)`,
-        descripcion: "Versión actual visible para los clientes",
-        preguntas: [
-          { id: 1, texto: "¿Cómo calificarías la atención?", tipo: "RATING" },
-        ],
-      });
+      if (!active) {
+        showToast('No hay plantilla vigente para editar', 'warning');
+        return;
+      }
+      setActiveTemplate(active);
       setIsEditModalOpen(true);
     } else if (action === "CREATE") {
-      // Abrir modal vacío para crear nueva versión
-      setActiveTemplate({ nombre: "", descripcion: "", preguntas: [] });
+      // Crear nueva versión (si quieres bloquear creación cuando ya existe, ajusta canCreate)
+      setActiveTemplate({ nombre: "", descripcion: "", preguntas: [], alcanceEvaluacion: type === "AGENTE" ? "AGENTE" : "SERVICIO" });
       setIsEditModalOpen(true);
+    } else if (action === "DELETE") {
+      if (!active) {
+        showToast('No hay plantilla vigente para desactivar', 'warning');
+        return;
+      }
+      // use non-blocking confirm modal
+      const ok = await showConfirm('¿Deseas desactivar la plantilla vigente?', 'Confirmar');
+      if (!ok) return;
+      try {
+        const svc = (await import('../services/encuestaService')).encuestaService;
+        await svc.plantillaDelete(active.templateId || active.id);
+        showToast('Plantilla desactivada', 'success');
+        await reload();
+      } catch (err) {
+        console.error(err);
+        showToast('Error al desactivar plantilla', 'error');
+      }
     }
-    // DELETE logic...
   };
 
   return (
@@ -64,12 +79,18 @@ export const TemplatesSection = () => {
           type="AGENTE"
           description="Evalúa el desempeño personal"
           onAction={handleCardAction}
+          canEdit={!!getActive('AGENTE')}
+          canDelete={!!getActive('AGENTE')}
+          canCreate={true}
         />
         <TemplateCard
           title="Encuesta sobre Servicio"
           type="SERVICIO"
           description="Evalúa la satisfacción general"
           onAction={handleCardAction}
+          canEdit={!!getActive('SERVICIO')}
+          canDelete={!!getActive('SERVICIO')}
+          canCreate={true}
         />
       </div>
 
@@ -80,6 +101,19 @@ export const TemplatesSection = () => {
         isOpen={isEditModalOpen}
         onClose={() => setIsEditModalOpen(false)}
         template={activeTemplate}
+        onSaved={(createdOrUpdated) => {
+          // If we created a new plantilla, add it optimistically to the list
+          if (createdOrUpdated && (!activeTemplate || !activeTemplate.id)) {
+            addLocal(createdOrUpdated);
+            return;
+          }
+          // Otherwise update the local item if present, or reload as fallback
+          if (createdOrUpdated) {
+            updateLocal(createdOrUpdated);
+          } else {
+            void reload();
+          }
+        }}
       />
 
       {/* 2. Modal de Historial (Ver antiguas) */}
