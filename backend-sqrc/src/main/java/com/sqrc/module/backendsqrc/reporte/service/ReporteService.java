@@ -4,6 +4,7 @@ import com.sqrc.module.backendsqrc.reporte.builder.DashboardBuilder;
 import com.sqrc.module.backendsqrc.reporte.dto.AgenteDetailDTO;
 import com.sqrc.module.backendsqrc.reporte.dto.DashboardKpisDTO;
 import com.sqrc.module.backendsqrc.reporte.model.*;
+import com.sqrc.module.backendsqrc.reporte.dto.SurveyDashboardDTO;
 import com.sqrc.module.backendsqrc.reporte.repository.*;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.ObjectFactory;
@@ -25,8 +26,8 @@ public class ReporteService {
     private final KpiTiemposResolucionRepository tiemposRepo;
     private final KpiMotivosFrecuentesRepository motivosRepo;
     private final KpiRendimientoAgenteDiarioRepository agentesRepo;
-    // Si usas el dashboard de encuestas superior, inyecta también:
-    // private final KpiDashboardEncuestasRepository encuestasRepo; 
+    // KPI encuestas
+    private final com.sqrc.module.backendsqrc.reporte.repository.KpiDashboardEncuestasRepository encuestasRepo;
 
     // --- 2. Inyección de la Fábrica del Builder (Patrón Prototype) ---
     private final ObjectFactory<DashboardBuilder> dashboardBuilderFactory;
@@ -105,6 +106,51 @@ public class ReporteService {
 
         return resultado;
     }
+
+        /**
+         * Obtiene métricas globales de encuestas (CSAT, total respuestas, tasa)
+         * usando la tabla `kpi_dashboard_encuestas` precalculada.
+         */
+        @Transactional(readOnly = true)
+        public SurveyDashboardDTO obtenerMetricasEncuestas(LocalDate start, LocalDate end) {
+        if (start == null) start = LocalDate.now().minusDays(30);
+        if (end == null) end = LocalDate.now();
+
+        List<com.sqrc.module.backendsqrc.reporte.model.KpiDashboardEncuestas> datos = encuestasRepo.findByFechaBetween(start, end);
+
+        if (datos.isEmpty()) {
+            return SurveyDashboardDTO.builder()
+                .csatPromedioAgente(0.0)
+                .csatPromedioServicio(0.0)
+                .totalRespuestas(0)
+                .tasaRespuestaPct(0.0)
+                .build();
+        }
+
+        double csatAgenteAvg = datos.stream()
+            .mapToDouble(d -> d.getCsatPromedioAgenteGlobal() != null ? d.getCsatPromedioAgenteGlobal() : 0.0)
+            .average().orElse(0.0);
+
+        double csatServicioAvg = datos.stream()
+            .mapToDouble(d -> d.getCsatPromedioServicioGlobal() != null ? d.getCsatPromedioServicioGlobal() : 0.0)
+            .average().orElse(0.0);
+
+        int totalRespuestas = datos.stream()
+            .mapToInt(d -> d.getTotalRespuestasGlobal() != null ? d.getTotalRespuestasGlobal() : 0)
+            .sum();
+
+        // tasaRespuestaGlobal stored as fraction (e.g., 0.15). Compute average and convert to percentage.
+        double tasaAvg = datos.stream()
+            .mapToDouble(d -> d.getTasaRespuestaGlobal() != null ? d.getTasaRespuestaGlobal() : 0.0)
+            .average().orElse(0.0) * 100.0;
+
+        return SurveyDashboardDTO.builder()
+            .csatPromedioAgente(Math.round(csatAgenteAvg * 10.0) / 10.0)
+            .csatPromedioServicio(Math.round(csatServicioAvg * 10.0) / 10.0)
+            .totalRespuestas(totalRespuestas)
+            .tasaRespuestaPct(Math.round(tasaAvg * 10.0) / 10.0)
+            .build();
+        }
 
     // Método utilitario simple
     private String formatMinutosAHoras(double minutos) {

@@ -37,5 +37,14 @@ public class ReporteController {
         return ResponseEntity.ok(reporteService.obtenerMetricasAgentes(startDate, endDate));
     }
     
+    // KPIs de Encuestas
+    @GetMapping("/encuestas")
+    public ResponseEntity<com.sqrc.module.backendsqrc.reporte.dto.SurveyDashboardDTO> obtenerMetricasEncuestas(
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate
+    ) {
+        return ResponseEntity.ok(reporteService.obtenerMetricasEncuestas(startDate, endDate));
+    }
+    
     // ¡ADIÓS al endpoint /exportar!
 }

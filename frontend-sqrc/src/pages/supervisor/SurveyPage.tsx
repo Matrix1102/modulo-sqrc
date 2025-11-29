@@ -3,6 +3,7 @@ import { MetricCard } from "../../features/reportes/components/MetricCard";
 import { SurveyTable } from "../../features/encuestas/components/SurveyTable";
 import { TemplatesSection } from "../../features/encuestas/components/TemplateSection";
 import { SurveyDetailModal } from "../../features/encuestas/components/SurveyDetailModal";
+import useSurveyKpis from "../../features/reportes/hooks/useDashboardSurvey";
 
 export default function EncuestasPage() {
   // 1. Estados para controlar el modal
@@ -15,6 +16,14 @@ export default function EncuestasPage() {
     setIsModalOpen(true);
   };
 
+  // 3. Hook: KPIs de encuestas (usa /api/reportes/encuestas)
+  const { data: kpis, loading: kpisLoading } = useSurveyKpis();
+
+  const csatAgente = kpis?.csatPromedioAgente ?? 4.3;
+  const csatServicio = kpis?.csatPromedioServicio ?? 4.1;
+  const totalResponses = kpis?.totalRespuestas ?? 21;
+  const tasaPct = kpis?.tasaRespuestaPct ?? 18;
+
   return (
     <div className="space-y-6 relative">
       {/* --- SECCIÓN 1: GRID DE MÉTRICAS SUPERIOR --- */}
@@ -22,44 +31,52 @@ export default function EncuestasPage() {
         <MetricCard
           title="CSAT Promedio (Agente)"
           subtitle="Calificación promedio de la atención del agente"
-          value="4.3/5"
+          value={`${csatAgente}/5`}
           progress={{
-            value: 86, // (4.3 / 5) * 100
-            color: "bg-green-500",
-            label: "+0.5 vs semana anterior",
+            value: Math.round(csatAgente * 20),
+            valueText: "",
+            color: "text-green-600",
+            barColor: "bg-green-500",
+            label: kpisLoading ? "Cargando..." : "+0.5 vs semana anterior",
           }}
         />
 
         <MetricCard
           title="CSAT Promedio (Servicio)"
           subtitle="Calificación promedio de la atención del servicio"
-          value="4.1/5"
+          value={`${csatServicio}/5`}
           progress={{
-            value: 82, // (4.1 / 5) * 100
-            color: "bg-green-500",
-            label: "+0.5 vs semana anterior",
+            value: Math.round(csatServicio * 20),
+            valueText: "",
+            color: "text-green-600",
+            barColor: "bg-green-500",
+            label: kpisLoading ? "Cargando..." : "+0.5 vs semana anterior",
           }}
         />
 
         <MetricCard
           title="Total Respuestas"
           subtitle="Nro. de encuestas completadas por clientes."
-          value={21}
+          value={totalResponses}
           progress={{
-            value: 42, // Valor arbitrario para la barra visual
-            color: "bg-green-500",
-            label: "+2 vs semana anterior",
+            value: Math.min(100, Math.round((totalResponses / 50) * 100)),
+            valueText: "",
+            color: "text-green-600",
+            barColor: "bg-green-500",
+            label: kpisLoading ? "Cargando..." : "+2 vs semana anterior",
           }}
         />
 
         <MetricCard
           title="Tasa de Respuestas"
           subtitle="Porcentaje de encuestas respondidas"
-          value="18%"
+          value={`${tasaPct}%`}
           progress={{
-            value: 18,
-            color: "bg-green-500",
-            label: "+2.5 vs semana anterior",
+            value: Math.round(tasaPct),
+            valueText: "",
+            color: "text-green-600",
+            barColor: "bg-green-500",
+            label: kpisLoading ? "Cargando..." : "+2.5 vs semana anterior",
           }}
         />
       </div>

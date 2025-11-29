@@ -1,7 +1,7 @@
 import http from "../../../services/http";
 
 import type { DashboardKpis } from "../types/reporte";
-import type { AgenteDetail, AgentTickets } from "../types/reporte";
+import type { AgenteDetail, AgentTickets, SurveyDashboard } from "../types/reporte";
 
 export const fetchDashboard = async (params?: {
   startDate?: string;
@@ -35,4 +35,13 @@ export const fetchTicketsByAgent = async (agenteId: string, params?: { startDate
   return resp.data;
 };
 
-export default { fetchDashboard, fetchAgentes, fetchTicketsByAgent };
+export const fetchSurveyKpis = async (params?: { startDate?: string; endDate?: string }) => {
+  const query: Record<string, string> = {};
+  if (params?.startDate) query.startDate = params.startDate;
+  if (params?.endDate) query.endDate = params.endDate;
+
+  const resp = await http.get<SurveyDashboard>("/api/reportes/encuestas", { params: query });
+  return resp.data;
+};
+
+export default { fetchDashboard, fetchAgentes, fetchTicketsByAgent, fetchSurveyKpis };

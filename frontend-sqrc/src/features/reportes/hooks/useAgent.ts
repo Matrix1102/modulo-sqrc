@@ -1,6 +1,6 @@
 import { useEffect, useState, useCallback } from 'react';
-import reportService from './services/reportService';
-import type { AgenteDetail } from './types/reporte';
+import reportService from '../services/reportService';
+import type { AgenteDetail } from '../types/reporte';
 
 export function useAgentes(params?: { startDate?: string; endDate?: string }) {
   const [data, setData] = useState<AgenteDetail[] | null>(null);

@@ -1,6 +1,6 @@
 import { AgentList } from "../../features/tickets/components/AgentList";
 import { TicketTable } from "../../features/tickets/components/TicketTable";
-import useAgentes from "../../features/reportes/hooksAgentes";
+import useAgentes from "../../features/reportes/hooks/useAgent";
 import { useNavigate } from "react-router-dom";
 
 // Datos Dummy para la vista general (Tickets recientes de todo el equipo)

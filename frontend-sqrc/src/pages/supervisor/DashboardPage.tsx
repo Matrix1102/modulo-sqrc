@@ -3,7 +3,7 @@ import DatePicker from "react-datepicker";
 import { MetricCard } from "../../features/reportes/components/MetricCard";
 import { FrequentReasons } from "../../features/reportes/components/FrequentReasons";
 import { TopAgents } from "../../features/reportes/components/TopAgents";
-import useDashboard from "../../features/reportes/hooks";
+import useDashboard from "../../features/reportes/hooks/useDashboard";
 
 export default function DashboardPage() {
   const [rangeType, setRangeType] = useState<"today" | "week" | "month" | "custom">("week");

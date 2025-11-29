@@ -115,6 +115,43 @@ public class MockReporteController {
         }
     }
 
+        @GetMapping("/encuestas")
+        public ResponseEntity<com.sqrc.module.backendsqrc.reporte.dto.SurveyDashboardDTO> obtenerEncuestasKpisMock(
+                        @RequestParam(name = "startDate", required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
+                        @RequestParam(name = "endDate", required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate
+        ) {
+                try {
+                        long days = 30;
+                        if (startDate != null && endDate != null) {
+                                days = ChronoUnit.DAYS.between(startDate, endDate) + 1;
+                                if (days <= 0) days = 1;
+                        }
+                        double factor = (double) days / 30.0;
+
+                        double baseCsatA = 4.3;
+                        double baseCsatS = 4.1;
+                        int baseResponses = 21;
+                        double baseRate = 0.18; // 18%
+
+                        double csatA = Math.round((baseCsatA + (Math.random() - 0.5) * 0.4) * 10.0) / 10.0;
+                        double csatS = Math.round((baseCsatS + (Math.random() - 0.5) * 0.4) * 10.0) / 10.0;
+                        int totalResponses = Math.max(0, (int) Math.round(baseResponses * factor));
+                        double tasaPct = Math.round((baseRate * factor) * 1000.0) / 10.0; // percentage with 1 decimal
+
+                        com.sqrc.module.backendsqrc.reporte.dto.SurveyDashboardDTO dto = com.sqrc.module.backendsqrc.reporte.dto.SurveyDashboardDTO.builder()
+                                        .csatPromedioAgente(csatA)
+                                        .csatPromedioServicio(csatS)
+                                        .totalRespuestas(totalResponses)
+                                        .tasaRespuestaPct(tasaPct)
+                                        .build();
+
+                        return ResponseEntity.ok(dto);
+                } catch (Exception e) {
+                        logger.error("Error generating mock survey kpis", e);
+                        return ResponseEntity.status(500).body(null);
+                }
+        }
+
         @GetMapping("/tickets/agente/{agenteId}")
         public ResponseEntity<AgentTicketsDTO> obtenerTicketsPorAgenteMock(
                         @PathVariable("agenteId") String agenteId,

@@ -60,3 +60,10 @@ export interface AgentTickets {
   agenteNombre: string;
   tickets: TicketReporte[];
 }
+
+export interface SurveyDashboard {
+  csatPromedioAgente: number;
+  csatPromedioServicio: number;
+  totalRespuestas: number;
+  tasaRespuestaPct: number; // percentage, e.g. 18.0
+}

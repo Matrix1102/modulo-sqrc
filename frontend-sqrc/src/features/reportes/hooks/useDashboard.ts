@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
-import reportService from './services/reportService';
-import type { DashboardKpis } from './types/reporte';
+import reportService from '../services/reportService';
+import type { DashboardKpis } from '../types/reporte';
 
 export function useDashboard(params?: { startDate?: string; endDate?: string }) {
   const [data, setData] = useState<DashboardKpis | null>(null);
