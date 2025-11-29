@@ -65,9 +65,10 @@ public class EncuestaController {
             @RequestParam(required = false) String alcanceEvaluacion, // "AGENTE" o "SERVICIO"
             @RequestParam(required = false) String agenteId,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
-            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate) {
-        // Nota: Debes implementar este método en EncuestaService
-        return ResponseEntity.ok(encuestaService.listarRespuestas(alcanceEvaluacion, agenteId, startDate, endDate));
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate,
+            @RequestParam(required = false) Integer limit) {
+        // Nota: Soportamos un parámetro opcional `limit` para pedir los N registros más recientes.
+        return ResponseEntity.ok(encuestaService.listarRespuestas(alcanceEvaluacion, agenteId, startDate, endDate, limit));
     }
 
     // Ver el detalle de una respuesta específica

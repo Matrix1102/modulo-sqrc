@@ -2,6 +2,7 @@
 import React from "react";
 import { useNavigate } from "react-router-dom";
 import { Badge } from "../../../components/ui/Badge"; // ✅ Importación correcta del Badge
+import useEncuestaRespuestas from "../hooks/useEncuestaRespuestas";
 
 // Definición exportada para que otros componentes (como el Modal) la usen
 export interface SurveyResponse {
@@ -46,63 +47,24 @@ export const SurveyTable: React.FC<SurveyTableProps> = ({
     return "danger"; // Rojo (Malo)
   };
 
-  // --- MOCK DATA (Datos de prueba) ---
-  const mockData: SurveyResponse[] = [
-    {
-      id: 1,
-      ticketId: "SQR-136",
-      puntaje: 3.2, // Nota baja -> Amarillo
-      comentario: "El agente fue muy amable y resolvió mi problema...",
-      agenteName: type === "agents" ? "Andre Melendez" : undefined,
-      tiempo: "Hace 5 min",
-      clientEmail: "ivan.cava@gmail.com",
-      responseDate: "25/12/2025, 1:34 pm",
-      answers: [
-        {
-          id: 1,
-          type: "RATING",
-          question: "¿Cómo calificarías la atención?",
-          answer: 3,
-        },
-        {
-          id: 2,
-          type: "BOOLEAN",
-          question: "¿Se resolvió tu duda?",
-          answer: "Sí",
-        },
-        {
-          id: 3,
-          type: "TEXT",
-          question: "Comentarios adicionales",
-          answer: "El tiempo de espera fue largo.",
-        },
-      ],
-    },
-    {
-      id: 2,
-      ticketId: "SQR-138",
-      puntaje: 5.0, // Nota alta -> Verde
-      comentario: "Excelente servicio.",
-      agenteName: type === "agents" ? "Maria Garcia" : undefined,
-      tiempo: "Hace 20 min",
-      clientEmail: "juan.perez@gmail.com",
-      responseDate: "25/12/2025, 1:15 pm",
-      answers: [
-        {
-          id: 1,
-          type: "RATING",
-          question: "¿Cómo calificarías la atención?",
-          answer: 5,
-        },
-        {
-          id: 2,
-          type: "BOOLEAN",
-          question: "¿Se resolvió tu duda?",
-          answer: "Sí",
-        },
-      ],
-    },
-  ];
+  // Fetch recent responses from backend (limit N)
+  const { data: responses, loading } = useEncuestaRespuestas({
+    alcanceEvaluacion: type === "agents" ? "AGENTE" : "SERVICIO",
+    limit: 6,
+  });
+
+  // Map backend response shape to SurveyResponse-friendly fields
+  const rows: SurveyResponse[] = (responses || []).map((r: any, idx: number) => ({
+    id: idx + 1,
+    ticketId: r.ticketId || `T-${r.responseId || idx}`,
+    puntaje: typeof r.puntaje === "number" ? r.puntaje : (parseFloat(r.puntaje) || 0),
+    comentario: r.comentario || "",
+    agenteName: r.agenteName || (type === "agents" ? undefined : undefined),
+    tiempo: r.tiempo || "",
+    clientEmail: r.clientEmail || "",
+    responseDate: r.fechaRespuesta || "",
+    answers: r.resultados || [],
+  }));
 
   const handleViewAll = () => {
     const path =
@@ -145,7 +107,19 @@ export const SurveyTable: React.FC<SurveyTableProps> = ({
           </thead>
 
           <tbody className="divide-y divide-gray-50">
-            {mockData.map((item) => (
+            {loading ? (
+              <tr>
+                <td colSpan={type === "agents" ? 5 : 4} className="p-8 text-center text-gray-400">
+                  Cargando respuestas...
+                </td>
+              </tr>
+            ) : rows.length === 0 ? (
+              <tr>
+                <td colSpan={type === "agents" ? 5 : 4} className="p-8 text-center text-gray-400">
+                  No hay respuestas recientes.
+                </td>
+              </tr>
+            ) : rows.map((item) => (
               <tr
                 key={item.id}
                 onClick={() => onViewDetail && onViewDetail(item)}
@@ -175,7 +149,7 @@ export const SurveyTable: React.FC<SurveyTableProps> = ({
                 {/* Columna Agente (Condicional) */}
                 {type === "agents" && (
                   <td className="py-4 text-sm font-semibold text-gray-700 align-top whitespace-nowrap">
-                    {item.agenteName}
+                    {item.agenteName ?? "-"}
                   </td>
                 )}
 

@@ -10,6 +10,9 @@ import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.server.ResponseStatusException;
 import org.springframework.data.jpa.domain.Specification; // Importante para el patrón Specification
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -203,14 +206,21 @@ public class EncuestaService {
     }
 
     @Transactional(readOnly = true)
-    public List<EncuestaResultadoDTO> listarRespuestas(String alcance, String agenteId, LocalDate start, LocalDate end) {
-        
+    public List<EncuestaResultadoDTO> listarRespuestas(String alcance, String agenteId, LocalDate start, LocalDate end, Integer limit) {
         // PATRÓN SPECIFICATION: Construimos la consulta dinámica
         // "RespuestaEncuestaSpec" es la clase de filtros que creamos anteriormente
         Specification<RespuestaEncuesta> filtros = RespuestaEncuestaSpec.filtrarPorCriterios(alcance, agenteId, start, end);
-        
-        // El repositorio ejecuta la consulta optimizada en base de datos
-        List<RespuestaEncuesta> resultados = respuestaEncuestaRepository.findAll(filtros);
+
+        List<RespuestaEncuesta> resultados;
+
+        // Si nos pasan un limit, usamos PageRequest para obtener los N más recientes (ordenados por fechaRespuesta desc)
+        if (limit != null && limit > 0) {
+            Page<RespuestaEncuesta> page = respuestaEncuestaRepository.findAll(filtros, PageRequest.of(0, limit, Sort.by(Sort.Direction.DESC, "fechaRespuesta")));
+            resultados = page.getContent();
+        } else {
+            // Sin limit: devolver todos ordenados por fechaRespuesta desc para consistencia
+            resultados = respuestaEncuestaRepository.findAll(filtros, Sort.by(Sort.Direction.DESC, "fechaRespuesta"));
+        }
 
         // Mapeamos los resultados a DTOs para la vista
         return resultados.stream()

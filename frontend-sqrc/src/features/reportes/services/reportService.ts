@@ -44,4 +44,26 @@ export const fetchSurveyKpis = async (params?: { startDate?: string; endDate?: s
   return resp.data;
 };
 
-export default { fetchDashboard, fetchAgentes, fetchTicketsByAgent, fetchSurveyKpis };
+export const fetchEncuestaRespuestas = async (params?: {
+  alcanceEvaluacion?: string;
+  agenteId?: string;
+  startDate?: string;
+  endDate?: string;
+  limit?: number;
+  page?: number;
+  size?: number;
+}) => {
+  const query: Record<string, any> = {};
+  if (params?.alcanceEvaluacion) query.alcanceEvaluacion = params.alcanceEvaluacion;
+  if (params?.agenteId) query.agenteId = params.agenteId;
+  if (params?.startDate) query.startDate = params.startDate;
+  if (params?.endDate) query.endDate = params.endDate;
+  if (params?.limit) query.limit = params.limit;
+  if (params?.page !== undefined) query.page = params.page;
+  if (params?.size !== undefined) query.size = params.size;
+
+  const resp = await http.get<any[]>('/api/encuestas/respuestas', { params: query });
+  return resp.data;
+};
+
+export default { fetchDashboard, fetchAgentes, fetchTicketsByAgent, fetchSurveyKpis, fetchEncuestaRespuestas };
