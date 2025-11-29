@@ -29,6 +29,9 @@ public class ReporteService {
     // KPI encuestas
     private final com.sqrc.module.backendsqrc.reporte.repository.KpiDashboardEncuestasRepository encuestasRepo;
 
+    // SLA service
+    private final com.sqrc.module.backendsqrc.reporte.service.SlaService slaService;
+
     // --- 2. Inyección de la Fábrica del Builder (Patrón Prototype) ---
     private final ObjectFactory<DashboardBuilder> dashboardBuilderFactory;
 
@@ -94,13 +97,15 @@ public class ReporteService {
                     .average().orElse(0.0);
 
             // Construir el DTO
-            resultado.add(AgenteDetailDTO.builder()
+                double slaPct = slaService.computeCumplimientoFromDailyKpis(registros, null);
+
+                resultado.add(AgenteDetailDTO.builder()
                     .agenteId(agenteId.toString())
                     .nombre("Agente " + agenteId) // TODO: Podrías llamar a un UsuarioService.obtenerNombre(id) si quieres el nombre real
                     .volumenTotalAtendido(totalTickets)
                     .csatPromedio(Math.round(csatPromedio * 10.0) / 10.0) // Redondear a 1 decimal
                     .tiempoPromedioResolucion(formatMinutosAHoras(tiempoPromedioMin))
-                    .cumplimientoSlaPct(95.0) // Dato dummy o calcular si tienes la columna de SLA
+                    .cumplimientoSlaPct(slaPct)
                     .build());
         });
 

@@ -4,6 +4,7 @@ import { SurveyTable } from "../../features/encuestas/components/SurveyTable";
 import { TemplatesSection } from "../../features/encuestas/components/TemplateSection";
 import { SurveyDetailModal } from "../../features/encuestas/components/SurveyDetailModal";
 import useSurveyKpis from "../../features/reportes/hooks/useDashboardSurvey";
+import DateRangeFilter from "../../components/DateRangeFilter";
 
 export default function EncuestasPage() {
   // 1. Estados para controlar el modal
@@ -17,7 +18,8 @@ export default function EncuestasPage() {
   };
 
   // 3. Hook: KPIs de encuestas (usa /api/reportes/encuestas)
-  const { data: kpis, loading: kpisLoading } = useSurveyKpis();
+  const [params, setParams] = useState<{ startDate?: string; endDate?: string } | undefined>(undefined);
+  const { data: kpis, loading: kpisLoading } = useSurveyKpis(params);
 
   const csatAgente = kpis?.csatPromedioAgente ?? 4.3;
   const csatServicio = kpis?.csatPromedioServicio ?? 4.1;
@@ -26,6 +28,8 @@ export default function EncuestasPage() {
 
   return (
     <div className="space-y-6 relative">
+      <DateRangeFilter onChange={(p) => setParams(p)} initialRange="week" />
+      <div className="h-3" />
       {/* --- SECCIÓN 1: GRID DE MÉTRICAS SUPERIOR --- */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         <MetricCard

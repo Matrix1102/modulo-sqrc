@@ -30,7 +30,22 @@ export const AgentList: React.FC<AgentListProps> = ({ agents, loading, onViewTic
       {/* Lista Scrolleable */}
       <div className="flex-1 overflow-y-auto space-y-4 pr-2">
         {loading ? (
-          <p className="text-sm text-gray-500">Cargando agentes...</p>
+          <div role="status" aria-busy="true" className="space-y-3">
+            {Array.from({ length: 6 }).map((_, idx) => (
+              <div key={idx} className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-full bg-gray-100 animate-pulse" />
+                  <div>
+                    <div className="h-4 bg-gray-100 rounded w-36 mb-1 animate-pulse"></div>
+                    <div className="h-3 bg-gray-100 rounded w-24 animate-pulse"></div>
+                  </div>
+                </div>
+                <div className="h-8 w-20 bg-gray-100 rounded animate-pulse" />
+              </div>
+            ))}
+          </div>
+        ) : !agents || agents.length === 0 ? (
+          <div className="py-8 text-center text-sm text-dark-500">No hay listado de agentes</div>
         ) : (
           (agents || []).map((agent, idx) => (
             <div key={agent.agenteId ?? idx} className="flex items-center justify-between group">
