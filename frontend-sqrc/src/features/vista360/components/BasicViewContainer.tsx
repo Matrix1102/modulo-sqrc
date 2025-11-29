@@ -1,17 +1,76 @@
-import React from "react";
+import React, { useState } from "react";
 import CustomerSearch from "./CustomerSearch";
 import CustomerProfileForm from "./CustomerProfileForm";
 import ServiceStatsGrid from "./ServiceStatsGrid";
+import { buscarClientePorDni, obtenerClientePorId, obtenerMetricasCliente, type ClienteBasicoDTO, type MetricaKPI } from "../../../services/vista360Api";
 
 const BasicViewContainer: React.FC = () => {
+  const [cliente, setCliente] = useState<ClienteBasicoDTO | null>(null);
+  const [metricas, setMetricas] = useState<MetricaKPI[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string>("");
+
+  const handleSearch = async (searchValue: string) => {
+    if (!searchValue) {
+      setError("Por favor ingrese un DNI o ID");
+      return;
+    }
+
+    setLoading(true);
+    setError("");
+
+    try {
+      let clienteData: ClienteBasicoDTO;
+
+      // Detectar si es DNI (8 dígitos) o ID (número)
+      if (/^\d{8}$/.test(searchValue)) {
+        // Buscar por DNI
+        clienteData = await buscarClientePorDni(searchValue);
+      } else if (/^\d+$/.test(searchValue)) {
+        // Buscar por ID
+        clienteData = await obtenerClientePorId(Number(searchValue));
+      } else {
+        setError("Formato inválido. Ingrese un DNI de 8 dígitos o un ID numérico");
+        setLoading(false);
+        return;
+      }
+
+      setCliente(clienteData);
+
+      // Obtener métricas del cliente
+      const metricasData = await obtenerMetricasCliente(clienteData.idCliente);
+      setMetricas(metricasData);
+    } catch (err: any) {
+      setError(err.message || "Error al buscar el cliente");
+      setCliente(null);
+      setMetricas([]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <div className="grid gap-6 lg:grid-cols-[minmax(0,600px)_1fr]">
       <div className="order-1 flex flex-col gap-6 lg:order-none">
         <div className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
-          <CustomerSearch />
+          <CustomerSearch onSearch={handleSearch} />
+          {error && (
+            <div className="mt-3 rounded-lg bg-red-50 border border-red-200 px-4 py-3 text-sm text-red-700">
+              {error}
+            </div>
+          )}
+          {loading && (
+            <div className="mt-3 rounded-lg bg-blue-50 border border-blue-200 px-4 py-3 text-sm text-blue-700">
+              Buscando cliente...
+            </div>
+          )}
         </div>
         <div className="flex-1">
-          <CustomerProfileForm />
+          <CustomerProfileForm 
+            cliente={cliente} 
+            loading={loading}
+            onClienteUpdated={(clienteActualizado) => setCliente(clienteActualizado)}
+          />
         </div>
       </div>
 
@@ -21,7 +80,7 @@ const BasicViewContainer: React.FC = () => {
           <span className="text-sm text-gray-500">Últimos 30 días</span>
         </div>
         <div className="mt-4 flex-1">
-          <ServiceStatsGrid />
+          <ServiceStatsGrid metricas={metricas} loading={loading} />
         </div>
       </section>
     </div>

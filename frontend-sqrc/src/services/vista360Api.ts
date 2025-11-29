@@ -11,8 +11,8 @@ const VISTA360_ENDPOINT = `${API_BASE_URL}/api/v1/vista360/cliente`;
 export interface ClienteBasicoDTO {
   idCliente: number;
   dni: string;
-  nombres: string;
-  apellidos: string;
+  nombre: string;
+  apellido: string;
   fechaNacimiento: string; // ISO format: "YYYY-MM-DD"
   correo: string;
   telefono: string;
