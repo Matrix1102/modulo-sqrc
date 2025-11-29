@@ -31,16 +31,16 @@ public class ClienteBasicoDTO {
     private String dni;
 
     /**
-     * Nombres del cliente
+     * Nombre del cliente
      */
-    @NotBlank(message = "Los nombres son obligatorios")
-    private String nombres;
+    @NotBlank(message = "El nombre es obligatorio")
+    private String nombre;
 
     /**
-     * Apellidos del cliente
+     * Apellido del cliente
      */
-    @NotBlank(message = "Los apellidos son obligatorios")
-    private String apellidos;
+    @NotBlank(message = "El apellido es obligatorio")
+    private String apellido;
 
     /**
      * Fecha de nacimiento del cliente
