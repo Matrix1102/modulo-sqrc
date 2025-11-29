@@ -13,7 +13,7 @@ import java.time.LocalDate;
 import java.util.Arrays;
 
 @RestController
-@Profile({"dev","local"})
+@Profile("dev") // Solo activo en perfil 'dev', no en 'local' para evitar conflictos con ReporteController
 @RequestMapping("/api/reportes")
 public class MockReporteController {
 

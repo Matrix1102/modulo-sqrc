@@ -21,7 +21,6 @@ import java.util.List;
 @RequestMapping("/api/v1/vista360/cliente")
 @RequiredArgsConstructor
 @Slf4j
-@CrossOrigin(origins = "*") // Ajustar en producción
 public class Vista360ClienteController {
 
     private final Vista360Service vista360Service;
