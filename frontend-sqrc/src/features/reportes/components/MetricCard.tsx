@@ -12,7 +12,9 @@ interface MetricCardProps {
   }[];
   progress?: {
     value: number;
+    valueText: string;
     color: string;
+    barColor: string;
     label: string;
   };
   trend?: {
@@ -30,34 +32,35 @@ export const MetricCard: React.FC<MetricCardProps> = ({
   trend,
 }) => {
   return (
-    <div className="bg-white rounded-lg shadow-sm border border-neutral-200 p-6 relative flex flex-col items-center">
+    <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 relative flex flex-col items-center">
       {/* Menú de 3 puntos */}
-      <button className="absolute top-4 right-4 p-1 hover:bg-light-200 rounded transition-colors">
-        <MoreVertical size={18} className="text-neutral-400" />
+      <button className="absolute top-4 right-4 p-1 hover:bg-gray-100 rounded transition-colors">
+        <MoreVertical size={18} className="text-gray-400" />
       </button>
 
       {/* Header */}
       <div className="mb-3 text-center w-full">
-        <h3 className="text-sm font-bold text-dark-900 mb-1">{title}</h3>
-        <p className="text-xs text-dark-500">{subtitle}</p>
+        <h3 className="text-sm font-bold text-gray-900 mb-1">{title}</h3>
+        <p className="text-xs text-gray-500">{subtitle}</p>
       </div>
 
       {/* Valor principal */}
       <div className="mb-4">
-        <p className="text-5xl font-bold text-dark-900">{value}</p>
+        <p className="text-5xl font-bold text-gray-900">{value}</p>
       </div>
 
       {/* Stats (para Total Casos) */}
       {stats && (
         <div className="grid grid-cols-2 gap-x-8 gap-y-3 w-full">
           {stats.map((stat, index) => (
-            <div key={index} className="text-left">
-              <p className="text-xs text-dark-600 mb-1">
-                {stat.label}:{" "}
-                <span className={`text-base font-bold ${stat.color}`}>
-                  {stat.value}
-                </span>
-              </p>
+            <div key={index} className="flex items-center justify-between">
+              <span className="text-xs text-gray-600">{stat.label}:</span>
+              <span
+                className="text-base font-bold"
+                style={{ color: stat.color }}
+              >
+                {stat.value}
+              </span>
             </div>
           ))}
         </div>
@@ -67,13 +70,13 @@ export const MetricCard: React.FC<MetricCardProps> = ({
       {progress && (
         <div className="w-full">
           <div className="flex items-center justify-center mb-2">
-            <span className="text-xs font-semibold text-success-600">
-              {progress.label}
+            <span className={`text-xs font-semibold ${progress.color}`}>
+              {progress.label} {progress.valueText}
             </span>
           </div>
-          <div className="w-full bg-light-300 rounded-full h-2.5">
+          <div className="w-full bg-gray-200 rounded-full h-2.5">
             <div
-              className={`h-2.5 rounded-full ${progress.color}`}
+              className={`h-2.5 rounded-full ${progress.barColor}`}
               style={{ width: `${progress.value}%` }}
             ></div>
           </div>
@@ -84,20 +87,22 @@ export const MetricCard: React.FC<MetricCardProps> = ({
       {trend && (
         <div className="flex items-center gap-1 mt-3">
           {trend.isPositive ? (
-            <TrendingUp size={16} className="text-success-600" />
+            <TrendingUp size={16} className="text-green-600" />
           ) : (
             <TrendingDown size={16} className="text-red-600" />
           )}
           <span
             className={`text-xs font-bold ${
-              trend.isPositive ? "text-success-600" : "text-red-600"
+              trend.isPositive ? "text-green-600" : "text-red-600"
             }`}
           >
             {trend.value}
           </span>
-          <span className="text-xs text-dark-500">de semana anterior</span>
+          <span className="text-xs text-gray-500">de semana anterior</span>
         </div>
       )}
     </div>
   );
 };
+
+export default MetricCard;
