@@ -134,27 +134,27 @@ export const SurveyDetailModal: React.FC<SurveyDetailModalProps> = ({
 
           {/* Sección de Metadatos (Caja Gris) */}
           <div className="bg-gray-50 rounded-xl p-6 mb-8 border border-gray-100">
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-y-4 gap-x-8 text-sm">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-y-4 gap-x-8 text-sm">
               {loading ? (
                 <>
-                  <div>
-                    <div className="h-3 bg-gray-100 rounded w-24 mb-2 animate-pulse" />
-                    <div className="h-6 bg-gray-200 rounded w-40 animate-pulse" />
+                  <div aria-hidden>
+                    <div className="h-3 bg-gray-100 rounded w-24 mb-2" />
+                    <div className="h-6 bg-gray-200 rounded w-40" />
                   </div>
 
-                  <div className="sm:text-right">
-                    <div className="h-3 bg-gray-100 rounded w-20 mb-2 animate-pulse ml-auto" />
-                    <div className="h-5 bg-gray-200 rounded w-48 ml-auto animate-pulse" />
+                  <div className="sm:text-right" aria-hidden>
+                    <div className="h-3 bg-gray-100 rounded w-20 mb-2 ml-auto" />
+                    <div className="h-5 bg-gray-200 rounded w-48 ml-auto" />
                   </div>
 
-                  <div>
-                    <div className="h-3 bg-gray-100 rounded w-16 mb-2 animate-pulse" />
-                    <div className="h-5 bg-gray-200 rounded w-32 animate-pulse" />
+                  <div aria-hidden>
+                    <div className="h-3 bg-gray-100 rounded w-16 mb-2" />
+                    <div className="h-5 bg-gray-200 rounded w-32" />
                   </div>
 
-                  <div className="sm:text-right">
-                    <div className="h-3 bg-gray-100 rounded w-24 mb-2 animate-pulse ml-auto" />
-                    <div className="h-5 bg-gray-200 rounded w-36 ml-auto animate-pulse" />
+                  <div className="sm:text-right" aria-hidden>
+                    <div className="h-3 bg-gray-100 rounded w-24 mb-2 ml-auto" />
+                    <div className="h-5 bg-gray-200 rounded w-36 ml-auto" />
                   </div>
                 </>
               ) : (
@@ -208,12 +208,14 @@ export const SurveyDetailModal: React.FC<SurveyDetailModalProps> = ({
           {/* Lista de Preguntas */}
           <div className="space-y-6">
             {loading ? (
-              // show 4 skeleton question cards
+              // show 4 skeleton question cards (aligned, accessible)
               Array.from({ length: 4 }).map((_, idx) => (
-                <div key={idx} className="bg-white p-4 rounded-lg border border-gray-100 shadow-sm">
-                  <div className="h-4 bg-gray-100 rounded w-1/3 mb-3 animate-pulse" />
-                  <div className="h-3 bg-gray-100 rounded w-full mb-2 animate-pulse" />
-                  <div className="h-3 bg-gray-100 rounded w-5/6 animate-pulse" />
+                <div key={idx} className="bg-white p-4 rounded-lg border border-gray-100 shadow-sm" aria-hidden>
+                  <div className="animate-pulse">
+                    <div className="h-4 bg-gray-100 rounded w-1/3 mb-3" />
+                    <div className="h-3 bg-gray-100 rounded w-full mb-2" />
+                    <div className="h-3 bg-gray-100 rounded w-5/6" />
+                  </div>
                 </div>
               ))
             ) : (

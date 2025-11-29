@@ -15,17 +15,20 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import lombok.extern.slf4j.Slf4j;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import org.springframework.beans.factory.annotation.Value;
 import com.sqrc.module.backendsqrc.plantillaRespuesta.Service.EmailService;
+import com.sqrc.module.backendsqrc.plantillaRespuesta.Service.PdfService;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
 @Service
+@Slf4j
 public class EncuestaService {
 
     // Inyección de Dependencias (Patrón DI)
@@ -36,8 +39,13 @@ public class EncuestaService {
     @Autowired private Map<String, PreguntaFactory> fabricasPreguntas; // Patrón Factory
     @Autowired private ApplicationEventPublisher eventPublisher;       // Patrón Observer
     @Autowired private EmailService emailService;
+    @Autowired private PdfService pdfService;
     @Value("${app.test.recipient:}")
     private String testRecipient;
+    @Value("${app.frontend.url:http://localhost:5173}")
+    private String frontendUrl;
+    @Value("${app.encuesta.resendWindowHours:24}")
+    private long resendWindowHours;
 
     // ==========================================
     // 1. GESTIÓN DE PLANTILLAS (DISEÑO)
@@ -393,6 +401,68 @@ public class EncuestaService {
             }
         } else {
             System.out.println("No hay destinatario configurado (app.test.recipient) — registro de reenvío guardado, sin envío de correo.");
+        }
+    }
+
+    @Transactional(readOnly = true)
+    public boolean isEncuestaRespondida(String idStr) {
+        try {
+            Long id = Long.parseLong(idStr);
+            Encuesta encuesta = encuestaRepository.findById(id).orElse(null);
+            return encuesta != null && encuesta.getEstadoEncuesta() == EstadoEncuesta.RESPONDIDA;
+        } catch (Exception ex) {
+            return false;
+        }
+    }
+
+    @Transactional
+    public void enviarEncuestaManual(String idStr, String correoDestino, String asunto, boolean attachPdf) {
+        Long id = Long.parseLong(idStr);
+
+        // Coger la encuesta con bloqueo PESSIMISTIC_WRITE para evitar reenvíos concurrentes
+        Encuesta encuesta = encuestaRepository.findByIdForUpdate(id)
+                .orElseThrow(() -> new org.springframework.web.server.ResponseStatusException(org.springframework.http.HttpStatus.NOT_FOUND, "Encuesta no encontrada"));
+
+        // Guardia de ventana: no reenviar si lastSentAt dentro de la ventana configurada
+        LocalDateTime ahora = LocalDateTime.now();
+        if (encuesta.getLastSentAt() != null) {
+            LocalDateTime limite = ahora.minusHours(resendWindowHours);
+            if (encuesta.getLastSentAt().isAfter(limite)) {
+                log.info("Omitiendo reenvío de encuesta {} — lastSentAt={} dentro de ventana de {} horas", encuesta.getIdEncuesta(), encuesta.getLastSentAt(), resendWindowHours);
+                return; // no hacemos nada
+            }
+        }
+
+        String subject = (asunto != null && !asunto.isBlank()) ? asunto : "Encuesta #" + encuesta.getIdEncuesta();
+        String plantillaNombre = encuesta.getPlantilla() != null ? encuesta.getPlantilla().getNombre() : "Encuesta";
+        String link = frontendUrl + "/encuestas/exec/" + encuesta.getIdEncuesta();
+
+        StringBuilder html = new StringBuilder();
+        html.append("<p>Estimado/a,</p>");
+        html.append("<p>Por favor complete la encuesta: <strong>").append(plantillaNombre).append("</strong>.</p>");
+        html.append("<p><a href=\"").append(link).append("\">Abrir encuesta</a></p>");
+        html.append("<p>Si no puede abrir el enlace, copie y pegue la siguiente URL en su navegador:<br/>").append(link).append("</p>");
+
+        // Actualizar metadata (ya tenemos la entidad bajo lock)
+        encuesta.setFechaEnvio(ahora);
+        encuesta.setEstadoEncuesta(EstadoEncuesta.ENVIADA);
+        Integer count = encuesta.getResendCount();
+        if (count == null) count = 0;
+        encuesta.setResendCount(count + 1);
+        encuesta.setLastSentAt(ahora);
+        encuestaRepository.save(encuesta);
+
+        try {
+            if (attachPdf) {
+                byte[] pdf = pdfService.generarPdfDesdeHtml(html.toString());
+                String filename = "encuesta-" + encuesta.getIdEncuesta() + ".pdf";
+                emailService.enviarCorreoConAdjunto(correoDestino, subject, html.toString(), pdf, filename);
+            } else {
+                emailService.enviarCorreoHtmlAsync(correoDestino, subject, html.toString());
+            }
+        } catch (Exception ex) {
+            log.error("Error al enviar correo de encuesta {}: {}", encuesta.getIdEncuesta(), ex.getMessage(), ex);
+            throw new RuntimeException("Error al enviar correo: " + ex.getMessage(), ex);
         }
     }
 

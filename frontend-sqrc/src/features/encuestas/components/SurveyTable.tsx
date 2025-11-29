@@ -141,40 +141,49 @@ export const SurveyTable: React.FC<SurveyTableProps> = ({
 
           <tbody className="divide-y divide-gray-50">
             {loading ? (
-              // Skeleton rows while loading — match column structure
+              // Column-aligned skeleton rows
               Array.from({ length: 5 }).map((_, i) => (
                 <tr key={`skeleton-${i}`} className="animate-pulse">
-                  <td className="py-4 pl-2 align-top">
-                    <div className="h-5 w-28 bg-gray-200 rounded" />
+                  {/* Ticket */}
+                  <td className="py-4 pl-2 align-top w-36">
+                    <div className="h-5 w-28 bg-gray-200 rounded" aria-hidden />
                   </td>
 
-                  <td className="py-4 align-top">
-                    <div className="h-5 w-16 bg-gray-200 rounded" />
+                  {/* Puntuación */}
+                  <td className="py-4 align-top w-24">
+                    <div className="h-5 w-16 bg-gray-200 rounded" aria-hidden />
                   </td>
 
+                  {/* Comentario: two-line skeleton to match line-clamp-2 */}
                   <td className="py-4 text-sm text-gray-600 pr-4">
-                    <div className="h-8 bg-gray-100 rounded w-full max-w-[560px]" />
+                    <div className="space-y-2">
+                      <div className="h-4 bg-gray-100 rounded w-full max-w-[560px]" aria-hidden />
+                      <div className="h-4 bg-gray-100 rounded w-3/4 max-w-[420px]" aria-hidden />
+                    </div>
                   </td>
 
+                  {/* Agente (condicional) */}
                   {type === "agents" && (
-                    <td className="py-4 text-sm font-semibold text-gray-700 align-top whitespace-nowrap">
-                      <div className="h-5 w-32 bg-gray-100 rounded" />
+                    <td className="py-4 text-sm font-semibold text-gray-700 align-top whitespace-nowrap w-36">
+                      <div className="h-5 w-32 bg-gray-100 rounded" aria-hidden />
                     </td>
                   )}
 
+                  {/* Reenvíos / Acciones (cuando aplica) */}
                   {mode === 'pending' && (
                     <>
-                      <td className="py-4 text-sm text-gray-700 align-top text-center">
-                        <div className="h-5 w-10 bg-gray-100 rounded mx-auto" />
+                      <td className="py-4 text-sm text-gray-700 align-top text-center w-24">
+                        <div className="h-5 w-10 bg-gray-100 rounded mx-auto" aria-hidden />
                       </td>
-                      <td className="py-4 text-sm text-gray-700 align-top text-center">
-                        <div className="h-8 w-20 bg-gray-100 rounded mx-auto" />
+                      <td className="py-4 text-sm text-gray-700 align-top text-center w-24">
+                        <div className="h-8 w-20 bg-gray-100 rounded mx-auto" aria-hidden />
                       </td>
                     </>
                   )}
 
-                  <td className="py-4 text-xs text-gray-400 align-top text-right whitespace-nowrap pr-2 font-medium">
-                    <div className="h-4 w-28 bg-gray-100 rounded ml-auto" />
+                  {/* Tiempo */}
+                  <td className="py-4 text-xs text-gray-400 align-top text-right whitespace-nowrap pr-2 font-medium w-40">
+                    <div className="h-4 w-28 bg-gray-100 rounded ml-auto" aria-hidden />
                   </td>
                 </tr>
               ))

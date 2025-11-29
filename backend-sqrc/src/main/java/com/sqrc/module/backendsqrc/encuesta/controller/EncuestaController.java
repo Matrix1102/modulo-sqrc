@@ -115,4 +115,11 @@ public class EncuestaController {
         encuestaService.reenviarEncuesta(encuestaId);
         return ResponseEntity.accepted().build();
     }
+    // Enviar encuesta a un destinatario específico (manual)
+    @PostMapping("/{encuestaId}/send")
+    public ResponseEntity<Void> enviarEncuestaManual(@PathVariable String encuestaId,
+                                                     @Valid @RequestBody com.sqrc.module.backendsqrc.encuesta.dto.EncuestaSendRequestDTO request) {
+        encuestaService.enviarEncuestaManual(encuestaId, request.correoDestino(), request.asunto(), request.attachPdf() != null && request.attachPdf());
+        return ResponseEntity.accepted().build();
+    }
 }
