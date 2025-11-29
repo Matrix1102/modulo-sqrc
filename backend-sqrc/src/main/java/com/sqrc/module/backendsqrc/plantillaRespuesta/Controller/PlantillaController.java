@@ -12,7 +12,8 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 @RestController
-@RequestMapping("/api/plantillasres") // URL Base: http://localhost:8080/api/plantillas
+@Deprecated
+@RequestMapping("/internal/plantillasres-deprecated") // deprecated: removed public API mapping to avoid conflict with /api/encuestas/plantillas
 @RequiredArgsConstructor
 public class PlantillaController {
 

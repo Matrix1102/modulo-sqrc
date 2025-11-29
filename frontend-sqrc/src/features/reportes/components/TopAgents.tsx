@@ -15,7 +15,7 @@ interface TopAgentsProps {
 
 export const TopAgents: React.FC<TopAgentsProps> = ({
   agents = [
-    { name: "Andre SMelenddsaasez", tickets: 45, rating: 4.8 },
+    { name: "Andre Melendez", tickets: 45, rating: 4.8 },
     { name: "Maria Garcia", tickets: 41, rating: 4.5 },
     { name: "Carlos Rodriguez", tickets: 32, rating: 4.2 },
     { name: "Laura Martinez", tickets: 38, rating: 4.0 },
