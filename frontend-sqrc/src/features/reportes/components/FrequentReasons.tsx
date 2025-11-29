@@ -26,8 +26,8 @@ export const FrequentReasons: React.FC<FrequentReasonsProps> = ({
 
   const filtered = useMemo(() => {
     const q = (query || "").trim().toLowerCase();
-    if (!q) return reasons;
-    return reasons.filter((r) => r.label.toLowerCase().includes(q));
+    const list = q ? reasons.filter((r) => r.label.toLowerCase().includes(q)) : reasons.slice();
+    return list.sort((a, b) => b.count - a.count);
   }, [reasons, query]);
 
   if (loading) {
