@@ -51,6 +51,16 @@ export const FrequentReasons: React.FC<FrequentReasonsProps> = ({
     );
   }
 
+  if (!loading && (!reasons || reasons.length === 0)) {
+    return (
+      <div className="bg-white rounded-lg shadow-sm border border-neutral-200 p-6">
+        <h3 className="text-sm font-medium text-dark-900">Motivos frecuentes</h3>
+        <p className="text-xs text-neutral-400 mb-4">Motivos más frecuentes de los tickets</p>
+        <div className="text-sm text-dark-500">No hay motivos</div>
+      </div>
+    );
+  }
+
   const maxCount = Math.max(...reasons.map((r) => r.count));
 
   return (

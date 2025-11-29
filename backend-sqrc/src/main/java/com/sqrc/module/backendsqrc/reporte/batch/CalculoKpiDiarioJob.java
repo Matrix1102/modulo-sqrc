@@ -8,9 +8,12 @@ import com.sqrc.module.backendsqrc.encuesta.repository.EncuestaRepository;
 import com.sqrc.module.backendsqrc.reporte.model.*;
 import com.sqrc.module.backendsqrc.reporte.repository.*;
 
-// TODO: Descomentar cuando exista el módulo de Tickets
-// import com.sqrc.module.backendsqrc.ticket.model.Ticket;
-// import com.sqrc.module.backendsqrc.ticket.repository.TicketRepository;
+import com.sqrc.module.backendsqrc.ticket.model.Ticket;
+import com.sqrc.module.backendsqrc.ticket.model.Reclamo;
+import com.sqrc.module.backendsqrc.ticket.model.Solicitud;
+import com.sqrc.module.backendsqrc.ticket.model.Queja;
+import com.sqrc.module.backendsqrc.ticket.model.Consulta;
+import com.sqrc.module.backendsqrc.ticket.repository.TicketRepository;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -21,8 +24,9 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
-// import java.util.Map;          // Descomentar cuando uses la lógica de Tickets
-// import java.util.stream.Collectors; // Descomentar cuando uses la lógica de Tickets
+import java.util.Map;
+import java.util.stream.Collectors;
+import com.sqrc.module.backendsqrc.plantillaRespuesta.model.TipoCaso;
 
 @Component
 @RequiredArgsConstructor
@@ -31,8 +35,7 @@ public class CalculoKpiDiarioJob {
 
     // --- Repositorios Transaccionales (Lectura) ---
     
-    // TODO: Descomentar cuando exista el TicketRepository
-    // private final TicketRepository ticketRepository;
+    private final TicketRepository ticketRepository;
     
     private final EncuestaRepository encuestaRepository;
 
@@ -78,28 +81,44 @@ public class CalculoKpiDiarioJob {
         }
     }
 
+    // Helper to derive a TipoCaso string from the Ticket instance using instanceof checks
+    private String deriveTipoString(Ticket t) {
+        if (t instanceof Reclamo) return "RECLAMO";
+        if (t instanceof Solicitud) return "SOLICITUD";
+        if (t instanceof Queja) return "QUEJA";
+        if (t instanceof Consulta) return "CONSULTA";
+        return "UNKNOWN";
+    }
+
     // ==========================================
     // MÉTODOS DE CÁLCULO POR TABLA
     // ==========================================
 
     private void procesarResumenDiario(LocalDate fecha) {
         log.info("--- Procesando Resumen Diario (Lógica comentada hasta tener módulo Tickets) ---");
-        /*
-        // TODO: Descomentar lógica cuando TicketRepository exista
+        // We'll compute a conservative resumen using available Ticket fields.
         List<Ticket> ticketsCreados = ticketRepository.findByFechaCreacion(fecha);
         List<Ticket> ticketsResueltos = ticketRepository.findByFechaCierre(fecha);
 
-        var mapaCreados = ticketsCreados.stream()
-            .collect(Collectors.groupingBy(t -> t.getTipo() + "|" + t.getCanal(), Collectors.counting()));
+        // Group by tipo (derived from class) and use 'GLOBAL' as canal when canal info is not present
+        Map<String, Long> mapaCreados = ticketsCreados.stream()
+            .collect(Collectors.groupingBy(t -> deriveTipoString(t) + "|GLOBAL", Collectors.counting()));
 
         mapaCreados.forEach((clave, cantidad) -> {
             String[] parts = clave.split("\\|");
-            TipoCaso tipo = TipoCaso.valueOf(parts[0]);
+            String tipoStr = parts[0];
             String canal = parts[1];
 
+            TipoCaso tipo;
+            try {
+                tipo = TipoCaso.valueOf(tipoStr);
+            } catch (Exception ex) {
+                tipo = null;
+            }
+
             long resueltos = ticketsResueltos.stream()
-                .filter(t -> t.getTipo() == tipo && t.getCanal().equals(canal))
-                .count();
+                    .filter(t -> deriveTipoString(t).equals(tipoStr))
+                    .count();
 
             KpiResumenDiario kpi = KpiResumenDiario.builder()
                     .fecha(fecha)
@@ -111,93 +130,51 @@ public class CalculoKpiDiarioJob {
 
             resumenRepo.save(kpi);
         });
-        */
     }
 
     private void procesarRendimientoAgentes(LocalDate fecha) {
         log.info("--- Procesando Rendimiento Agentes (Lógica comentada hasta tener módulo Tickets) ---");
-        /*
-        // TODO: Descomentar lógica cuando TicketRepository exista
-        List<Ticket> cerrados = ticketRepository.findByFechaCierre(fecha);
-
-        Map<Long, List<Ticket>> porAgente = cerrados.stream()
-                .collect(Collectors.groupingBy(Ticket::getIdAgenteCierre));
-
-        porAgente.forEach((agenteId, tickets) -> {
-            double tiempoPromedio = tickets.stream()
-                    .mapToLong(Ticket::getTiempoResolucionMinutos)
-                    .average().orElse(0);
-
-            // Valor dummy hasta integrar cruce real
-            Double csatSimulado = 4.5; 
-
-            KpiRendimientoAgenteDiario kpi = KpiRendimientoAgenteDiario.builder()
-                    .fecha(fecha)
-                    .agenteId(agenteId)
-                    .ticketsResueltosTotal(tickets.size())
-                    .tiempoPromedioResolucionMinutos((int) tiempoPromedio)
-                    .csatPromedioAgente(csatSimulado)
-                    .build();
-
-            agentesRepo.save(kpi);
-        });
-        */
+        // Agent-level performance requires agent assignment data which may not be present.
+        // Keep as TODO: when Ticket/Asignacion contains agent references, implement this.
+        log.info("Skipping agent performance: agent attribution not available in Ticket model yet.");
     }
 
     private void procesarMotivosFrecuentes(LocalDate fecha) {
         log.info("--- Procesando Motivos Frecuentes (Lógica comentada hasta tener módulo Tickets) ---");
-        /*
-        // TODO: Descomentar lógica cuando TicketRepository exista
-        List<Ticket> tickets = ticketRepository.findByFechaCreacion(fecha);
-
-        Map<Long, Long> conteoMotivos = tickets.stream()
-                .collect(Collectors.groupingBy(Ticket::getIdMotivo, Collectors.counting()));
-
-        conteoMotivos.entrySet().stream()
-            .sorted((a, b) -> b.getValue().compareTo(a.getValue()))
-            .limit(10)
-            .forEach(entry -> {
-                KpiMotivosFrecuentes kpi = KpiMotivosFrecuentes.builder()
-                        .fecha(fecha)
-                        .idMotivo(entry.getKey())
-                        .conteoTotal(entry.getValue().intValue())
-                        .build();
-                motivosRepo.save(kpi);
-            });
-        */
+        // Motivos frecuentes require a motivo/id field in Ticket; leave as TODO.
+        log.info("Skipping motivos frecuentes: motivo id not available in Ticket model yet.");
     }
 
     private void procesarTiemposResolucion(LocalDate fecha) {
         log.info("--- Procesando Tiempos Resolución (Lógica comentada hasta tener módulo Tickets) ---");
-        /*
-        // TODO: Descomentar lógica cuando TicketRepository exista
+        // Compute average resolution time per tipo (derived) and default canal GLOBAL
         List<Ticket> cerrados = ticketRepository.findByFechaCierre(fecha);
 
-        var agrupado = cerrados.stream()
-                .collect(Collectors.groupingBy(t -> t.getTipo() + "|" + t.getCanal()));
+        Map<String, List<Ticket>> agrupado = cerrados.stream()
+            .collect(Collectors.groupingBy(t -> deriveTipoString(t) + "|GLOBAL"));
 
         agrupado.forEach((clave, lista) -> {
             String[] parts = clave.split("\\|");
-            
+            String tipoStr = parts[0];
+
             double tiempoRes = lista.stream()
-                    .mapToLong(Ticket::getTiempoResolucionMinutos)
-                    .average().orElse(0);
-            
-            double tiempoPrimResp = lista.stream()
-                    .mapToLong(Ticket::getTiempoPrimeraRespuestaMinutos) 
-                    .average().orElse(0);
+                .filter(t -> t.getFechaCreacion() != null && t.getFechaCierre() != null)
+                .mapToLong(t -> java.time.Duration.between(t.getFechaCreacion(), t.getFechaCierre()).toMinutes())
+                .average().orElse(0);
+
+            // No reliable primera respuesta in the Ticket model currently; set 0
+            double tiempoPrimResp = 0;
 
             KpiTiemposResolucion kpi = KpiTiemposResolucion.builder()
-                    .fecha(fecha)
-                    .tipoCaso(TipoCaso.valueOf(parts[0]))
-                    .canal(parts[1])
-                    .tiempoPromedioResolucionTotalMin((int) tiempoRes)
-                    .tiempoPromedioPrimeraRespuestaMin((int) tiempoPrimResp)
-                    .build();
+                .fecha(fecha)
+                .tipoCaso(TipoCaso.valueOf(tipoStr))
+                .canal("GLOBAL")
+                .tiempoPromedioResolucionTotalMin((int) tiempoRes)
+                .tiempoPromedioPrimeraRespuestaMin((int) tiempoPrimResp)
+                .build();
 
             tiemposRepo.save(kpi);
         });
-        */
     }
 
     private void procesarDashboardEncuestas(LocalDate fecha) {

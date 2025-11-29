@@ -1,5 +1,5 @@
 import React from "react";
-import { MoreVertical, Star } from "lucide-react";
+import { Star } from "lucide-react";
 
 interface Agent {
   name: string;
@@ -38,27 +38,41 @@ export const TopAgents: React.FC<TopAgentsProps> = ({
           </h3>
           <p className="text-xs text-neutral-400">Top 4 agentes</p>
         </div>
-        <button className="p-1 hover:bg-light-200 rounded">
-          <MoreVertical size={18} className="text-neutral-400" />
-        </button>
       </div>
       {loading ? (
-        <div className="space-y-4">
-          {Array.from({ length: 4 }).map((_, idx) => (
-            <div key={idx} className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-full bg-gray-100 animate-pulse" />
-                <div>
-                  <div className="h-4 bg-gray-100 rounded w-32 mb-1 animate-pulse"></div>
-                  <div className="h-3 bg-gray-100 rounded w-20 animate-pulse"></div>
+        <div className="space-y-4" role="status" aria-busy="true">
+          {Array.from({ length: 4 }).map((_, idx) => {
+            const nameWidth = [32, 28, 36, 30][idx % 4];
+            const ticketsWidth = [12, 10, 14, 11][idx % 4];
+            return (
+              <div key={idx} className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-full bg-gray-100 animate-pulse ring-1 ring-gray-50" />
+                  <div>
+                    <div
+                      className="h-4 bg-gray-100 rounded mb-1 animate-pulse"
+                      style={{ width: `${nameWidth}ch` }}
+                    ></div>
+                    <div
+                      className="h-3 bg-gray-100 rounded animate-pulse"
+                      style={{ width: `${Math.max(8, nameWidth - 8)}ch` }}
+                    ></div>
+                  </div>
+                </div>
+                <div className="flex items-center gap-2">
+                  <div
+                    className="h-5 bg-gray-100 rounded animate-pulse"
+                    style={{ width: `${ticketsWidth}ch` }}
+                  />
+                  <Star size={16} className="text-yellow-400 fill-yellow-400" />
                 </div>
               </div>
-              <div className="flex items-center gap-1">
-                <div className="h-5 w-10 bg-gray-100 rounded animate-pulse" />
-                <Star size={16} className="text-yellow-400 fill-yellow-400" />
-              </div>
-            </div>
-          ))}
+            );
+          })}
+        </div>
+      ) : !agents || agents.length === 0 ? (
+        <div className="py-8 text-sm text-dark-500">
+          No hay listado de agentes
         </div>
       ) : (
         <div className="space-y-4">
@@ -80,7 +94,9 @@ export const TopAgents: React.FC<TopAgentsProps> = ({
                   <p className="text-sm font-medium text-dark-900">
                     {agent.name}
                   </p>
-                  <p className="text-xs text-dark-500">{agent.tickets} tickets</p>
+                  <p className="text-xs text-dark-500">
+                    {agent.tickets} tickets
+                  </p>
                 </div>
               </div>
               <div className="flex items-center gap-1">
