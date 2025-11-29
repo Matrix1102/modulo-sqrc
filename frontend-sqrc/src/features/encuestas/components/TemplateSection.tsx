@@ -82,6 +82,7 @@ export const TemplatesSection = () => {
           canEdit={!!getActive('AGENTE')}
           canDelete={!!getActive('AGENTE')}
           canCreate={true}
+          loading={plantillasLoading}
         />
         <TemplateCard
           title="Encuesta sobre Servicio"
@@ -91,6 +92,7 @@ export const TemplatesSection = () => {
           canEdit={!!getActive('SERVICIO')}
           canDelete={!!getActive('SERVICIO')}
           canCreate={true}
+          loading={plantillasLoading}
         />
       </div>
 

@@ -9,6 +9,7 @@ interface Reason {
 
 interface FrequentReasonsProps {
   reasons?: Reason[];
+  loading?: boolean;
 }
 
 export const FrequentReasons: React.FC<FrequentReasonsProps> = ({
@@ -18,7 +19,38 @@ export const FrequentReasons: React.FC<FrequentReasonsProps> = ({
     { label: "Problemas técnicos", count: 7, color: "bg-primary-500" },
     { label: "Consulta general", count: 6, color: "bg-primary-500" },
   ],
+  loading = false,
 }) => {
+  if (loading) {
+    return (
+      <div className="bg-white rounded-lg shadow-sm border border-neutral-200 p-6">
+        <div className="flex items-center justify-between mb-6">
+          <div>
+            <div className="h-4 bg-gray-200 rounded w-40 mb-2 animate-pulse"></div>
+            <div className="h-3 bg-gray-100 rounded w-28 animate-pulse"></div>
+          </div>
+            <div className="h-6 w-6 rounded animate-pulse bg-gray-200" />
+        </div>
+
+        <div className="space-y-4">
+          {Array.from({ length: 4 }).map((_, idx) => (
+            <div key={idx} className="flex items-center gap-3">
+              <div className="flex-1">
+                <div className="flex items-center justify-between mb-2">
+                  <div className="h-4 bg-gray-100 rounded w-1/2 animate-pulse"></div>
+                  <div className="h-4 bg-gray-100 rounded w-12 animate-pulse"></div>
+                </div>
+                <div className="w-full bg-gray-100 rounded-full h-2">
+                  <div className={`h-2 rounded-full bg-gray-200`} style={{ width: `${60}%` }}></div>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+  }
+
   const maxCount = Math.max(...reasons.map((r) => r.count));
 
   return (

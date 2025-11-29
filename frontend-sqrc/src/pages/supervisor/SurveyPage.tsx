@@ -32,6 +32,7 @@ export default function EncuestasPage() {
           title="CSAT Promedio (Agente)"
           subtitle="Calificación promedio de la atención del agente"
           value={`${csatAgente}/5`}
+          loading={kpisLoading}
           progress={{
             value: Math.round(csatAgente * 20),
             valueText: "",
@@ -45,6 +46,7 @@ export default function EncuestasPage() {
           title="CSAT Promedio (Servicio)"
           subtitle="Calificación promedio de la atención del servicio"
           value={`${csatServicio}/5`}
+          loading={kpisLoading}
           progress={{
             value: Math.round(csatServicio * 20),
             valueText: "",
@@ -58,6 +60,7 @@ export default function EncuestasPage() {
           title="Total Respuestas"
           subtitle="Nro. de encuestas completadas por clientes."
           value={totalResponses}
+          loading={kpisLoading}
           progress={{
             value: Math.min(100, Math.round((totalResponses / 50) * 100)),
             valueText: "",
@@ -71,6 +74,7 @@ export default function EncuestasPage() {
           title="Tasa de Respuestas"
           subtitle="Porcentaje de encuestas respondidas"
           value={`${tasaPct}%`}
+          loading={kpisLoading}
           progress={{
             value: Math.round(tasaPct),
             valueText: "",

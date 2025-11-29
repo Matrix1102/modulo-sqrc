@@ -108,11 +108,32 @@ export const SurveyTable: React.FC<SurveyTableProps> = ({
 
           <tbody className="divide-y divide-gray-50">
             {loading ? (
-              <tr>
-                <td colSpan={type === "agents" ? 5 : 4} className="p-8 text-center text-gray-400">
-                  Cargando respuestas...
-                </td>
-              </tr>
+              // Skeleton rows while loading
+              Array.from({ length: 5 }).map((_, i) => (
+                <tr key={`skeleton-${i}`} className="animate-pulse">
+                  <td className="py-4 pl-2 align-top">
+                    <div className="h-5 w-24 bg-gray-200 rounded" />
+                  </td>
+
+                  <td className="py-4 align-top">
+                    <div className="h-5 w-16 bg-gray-200 rounded" />
+                  </td>
+
+                  <td className="py-4 text-sm text-gray-600 pr-4">
+                    <div className="h-8 bg-gray-100 rounded w-full" />
+                  </td>
+
+                  {type === "agents" && (
+                    <td className="py-4 text-sm font-semibold text-gray-700 align-top whitespace-nowrap">
+                      <div className="h-5 w-20 bg-gray-100 rounded" />
+                    </td>
+                  )}
+
+                  <td className="py-4 text-xs text-gray-400 align-top text-right whitespace-nowrap pr-2 font-medium">
+                    <div className="h-4 w-12 bg-gray-100 rounded ml-auto" />
+                  </td>
+                </tr>
+              ))
             ) : rows.length === 0 ? (
               <tr>
                 <td colSpan={type === "agents" ? 5 : 4} className="p-8 text-center text-gray-400">

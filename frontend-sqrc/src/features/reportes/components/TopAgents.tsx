@@ -10,15 +10,17 @@ interface Agent {
 
 interface TopAgentsProps {
   agents?: Agent[];
+  loading?: boolean;
 }
 
 export const TopAgents: React.FC<TopAgentsProps> = ({
   agents = [
-    { name: "Andre Melendez", tickets: 45, rating: 4.8 },
+    { name: "Andre SMelenddsaasez", tickets: 45, rating: 4.8 },
     { name: "Maria Garcia", tickets: 41, rating: 4.5 },
     { name: "Carlos Rodriguez", tickets: 32, rating: 4.2 },
     { name: "Laura Martinez", tickets: 38, rating: 4.0 },
   ],
+  loading = false,
 }) => {
   const getInitials = (name: string) => {
     return name
@@ -40,38 +42,57 @@ export const TopAgents: React.FC<TopAgentsProps> = ({
           <MoreVertical size={18} className="text-neutral-400" />
         </button>
       </div>
-
-      <div className="space-y-4">
-        {agents.map((agent, index) => (
-          <div key={index} className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              {agent.avatar ? (
-                <img
-                  src={agent.avatar}
-                  alt={agent.name}
-                  className="w-10 h-10 rounded-full object-cover"
-                />
-              ) : (
-                <div className="w-10 h-10 rounded-full bg-dark-800 flex items-center justify-center text-white font-semibold text-sm">
-                  {getInitials(agent.name)}
+      {loading ? (
+        <div className="space-y-4">
+          {Array.from({ length: 4 }).map((_, idx) => (
+            <div key={idx} className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-full bg-gray-100 animate-pulse" />
+                <div>
+                  <div className="h-4 bg-gray-100 rounded w-32 mb-1 animate-pulse"></div>
+                  <div className="h-3 bg-gray-100 rounded w-20 animate-pulse"></div>
                 </div>
-              )}
-              <div>
-                <p className="text-sm font-medium text-dark-900">
-                  {agent.name}
-                </p>
-                <p className="text-xs text-dark-500">{agent.tickets} tickets</p>
+              </div>
+              <div className="flex items-center gap-1">
+                <div className="h-5 w-10 bg-gray-100 rounded animate-pulse" />
+                <Star size={16} className="text-yellow-400 fill-yellow-400" />
               </div>
             </div>
-            <div className="flex items-center gap-1">
-              <span className="text-sm font-semibold text-dark-900">
-                {agent.rating}
-              </span>
-              <Star size={16} className="text-yellow-400 fill-yellow-400" />
+          ))}
+        </div>
+      ) : (
+        <div className="space-y-4">
+          {agents.map((agent, index) => (
+            <div key={index} className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                {agent.avatar ? (
+                  <img
+                    src={agent.avatar}
+                    alt={agent.name}
+                    className="w-10 h-10 rounded-full object-cover"
+                  />
+                ) : (
+                  <div className="w-10 h-10 rounded-full bg-dark-800 flex items-center justify-center text-white font-semibold text-sm">
+                    {getInitials(agent.name)}
+                  </div>
+                )}
+                <div>
+                  <p className="text-sm font-medium text-dark-900">
+                    {agent.name}
+                  </p>
+                  <p className="text-xs text-dark-500">{agent.tickets} tickets</p>
+                </div>
+              </div>
+              <div className="flex items-center gap-1">
+                <span className="text-sm font-semibold text-dark-900">
+                  {agent.rating}
+                </span>
+                <Star size={16} className="text-yellow-400 fill-yellow-400" />
+              </div>
             </div>
-          </div>
-        ))}
-      </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 };

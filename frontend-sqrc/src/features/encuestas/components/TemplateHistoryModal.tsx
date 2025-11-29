@@ -173,9 +173,6 @@ export const TemplateHistoryModal: React.FC<TemplateHistoryModalProps> = ({
 
         {/* --- CUERPO SCROLLEABLE (TABLA) --- */}
         <div className="overflow-y-auto p-6 bg-gray-50 flex-1">
-          {loading && (
-            <div className="p-4 text-sm text-gray-600">Cargando plantillas...</div>
-          )}
           <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
             <table className="w-full text-left text-sm">
               <thead className="bg-gray-50 border-b border-gray-200 text-gray-500 uppercase text-xs font-bold tracking-wider">
@@ -189,7 +186,32 @@ export const TemplateHistoryModal: React.FC<TemplateHistoryModalProps> = ({
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100">
-                {filteredData.map((item) => (
+                {loading ? (
+                  // skeleton rows
+                  Array.from({ length: 6 }).map((_, i) => (
+                    <tr key={`tpl-skel-${i}`} className="animate-pulse">
+                      <td className="p-4">
+                        <div className="h-4 bg-gray-100 rounded w-40 mb-2"></div>
+                        <div className="h-3 bg-gray-100 rounded w-20"></div>
+                      </td>
+                      <td className="p-4">
+                        <div className="h-4 bg-gray-100 rounded w-24"></div>
+                      </td>
+                      <td className="p-4 text-gray-500">
+                        <div className="h-4 bg-gray-100 rounded w-28"></div>
+                      </td>
+                      <td className="p-4 text-gray-500">
+                        <div className="h-4 bg-gray-100 rounded w-28"></div>
+                      </td>
+                      <td className="p-4">
+                        <div className="h-4 bg-gray-100 rounded w-16"></div>
+                      </td>
+                      <td className="p-4 text-right">
+                        <div className="h-8 w-24 bg-gray-100 rounded ml-auto"></div>
+                      </td>
+                    </tr>
+                  ))
+                ) : filteredData.map((item) => (
                   <tr
                     key={item.templateId || item.id}
                     className="hover:bg-blue-50/30 transition-colors group"

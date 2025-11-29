@@ -21,6 +21,7 @@ interface MetricCardProps {
     value: string;
     isPositive: boolean;
   };
+  loading?: boolean;
 }
 
 export const MetricCard: React.FC<MetricCardProps> = ({
@@ -30,7 +31,29 @@ export const MetricCard: React.FC<MetricCardProps> = ({
   stats,
   progress,
   trend,
+  loading = false,
 }) => {
+  if (loading) {
+    return (
+      <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 relative flex flex-col items-center">
+        <div className="absolute top-4 right-4 p-1 rounded"></div>
+
+        <div className="mb-3 text-center w-full">
+          <div className="h-4 bg-gray-200 rounded w-1/3 mx-auto mb-2 animate-pulse"></div>
+          <div className="h-3 bg-gray-100 rounded w-1/2 mx-auto animate-pulse"></div>
+        </div>
+
+        <div className="mb-4 w-full">
+          <div className="h-12 bg-gray-200 rounded w-3/4 mx-auto animate-pulse"></div>
+        </div>
+
+        <div className="w-full">
+          <div className="h-3 bg-gray-100 rounded w-full animate-pulse mb-2"></div>
+          <div className="h-2 bg-gray-100 rounded w-5/6 animate-pulse"></div>
+        </div>
+      </div>
+    );
+  }
   return (
     <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 relative flex flex-col items-center">
       {/* Menú de 3 puntos */}

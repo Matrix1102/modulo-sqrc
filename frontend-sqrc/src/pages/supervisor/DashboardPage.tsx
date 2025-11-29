@@ -127,6 +127,7 @@ export default function DashboardPage() {
           title="Total Casos"
           subtitle="Cantidad total de casos"
           value={kpis.kpisGlobales?.totalCasos ?? 0}
+          loading={loading}
           stats={stats}
         />
 
@@ -134,6 +135,7 @@ export default function DashboardPage() {
           title="Tickets Abiertos"
           subtitle="Pendientes de atención"
           value={kpis.kpisResumen?.ticketsAbiertos?.valor ?? 0}
+          loading={loading}
           progress={{
             value:
               kpis.kpisResumen?.ticketsAbiertos?.comparativoPeriodo_pct ??
@@ -162,6 +164,7 @@ export default function DashboardPage() {
           title="Tickets Resueltos"
           subtitle="Casos cerrados exitosamente"
           value={kpis.kpisResumen?.ticketsResueltos?.valor ?? 0}
+          loading={loading}
           progress={{
             value:
               kpis.kpisResumen?.ticketsResueltos?.comparativoPeriodo_pct ??
@@ -189,6 +192,7 @@ export default function DashboardPage() {
           title="Tiempo Promedio"
           subtitle="Tiempo de atención promedio"
           value={kpis.kpisResumen?.tiempoPromedio?.valor ?? "-"}
+          loading={loading}
           trend={{
             value:
               (
@@ -201,8 +205,8 @@ export default function DashboardPage() {
         />
       </div>
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <FrequentReasons reasons={motivos} />
-        <TopAgents agents={agents} />
+        <FrequentReasons reasons={motivos} loading={loading} />
+        <TopAgents agents={agents} loading={loading} />
       </div>
     </div>
   );

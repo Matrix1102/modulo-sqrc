@@ -134,43 +134,69 @@ export const SurveyDetailModal: React.FC<SurveyDetailModalProps> = ({
           {/* Sección de Metadatos (Caja Gris) */}
           <div className="bg-gray-50 rounded-xl p-6 mb-8 border border-gray-100">
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-y-4 gap-x-8 text-sm">
-              <div>
-                <span className="block text-xs font-bold text-gray-400 uppercase mb-1">
-                  Ticket
-                </span>
-                <span className="font-bold text-gray-800 text-lg">
-                  {detail?.ticketId || data.ticketId}
-                </span>
-              </div>
+              {loading ? (
+                <>
+                  <div>
+                    <div className="h-3 bg-gray-100 rounded w-24 mb-2 animate-pulse" />
+                    <div className="h-6 bg-gray-200 rounded w-40 animate-pulse" />
+                  </div>
 
-              <div className="sm:text-right">
-                <span className="block text-xs font-bold text-gray-400 uppercase mb-1">
-                  Cliente
-                </span>
-                <span className="font-medium text-gray-700">
-                  {detail?.clientEmail || data.clientEmail}
-                </span>
-              </div>
+                  <div className="sm:text-right">
+                    <div className="h-3 bg-gray-100 rounded w-20 mb-2 animate-pulse ml-auto" />
+                    <div className="h-5 bg-gray-200 rounded w-48 ml-auto animate-pulse" />
+                  </div>
 
-              <div>
-                <span className="block text-xs font-bold text-gray-400 uppercase mb-1">
-                  Agente
-                </span>
-                <span className="font-medium text-gray-700">
-                  {detail?.agenteName || data.agenteName || "N/A"}
-                </span>
-              </div>
+                  <div>
+                    <div className="h-3 bg-gray-100 rounded w-16 mb-2 animate-pulse" />
+                    <div className="h-5 bg-gray-200 rounded w-32 animate-pulse" />
+                  </div>
 
-              <div className="sm:text-right">
-                <span className="block text-xs font-bold text-gray-400 uppercase mb-1">
-                  Fecha Respuesta
-                </span>
-                <span className="font-medium text-gray-700">
-                  {detail?.fechaRespuesta ||
-                    detail?.responseDate ||
-                    data.responseDate}
-                </span>
-              </div>
+                  <div className="sm:text-right">
+                    <div className="h-3 bg-gray-100 rounded w-24 mb-2 animate-pulse ml-auto" />
+                    <div className="h-5 bg-gray-200 rounded w-36 ml-auto animate-pulse" />
+                  </div>
+                </>
+              ) : (
+                <>
+                  <div>
+                    <span className="block text-xs font-bold text-gray-400 uppercase mb-1">
+                      Ticket
+                    </span>
+                    <span className="font-bold text-gray-800 text-lg">
+                      {detail?.ticketId || data.ticketId}
+                    </span>
+                  </div>
+
+                  <div className="sm:text-right">
+                    <span className="block text-xs font-bold text-gray-400 uppercase mb-1">
+                      Cliente
+                    </span>
+                    <span className="font-medium text-gray-700">
+                      {detail?.clientEmail || data.clientEmail}
+                    </span>
+                  </div>
+
+                  <div>
+                    <span className="block text-xs font-bold text-gray-400 uppercase mb-1">
+                      Agente
+                    </span>
+                    <span className="font-medium text-gray-700">
+                      {detail?.agenteName || data.agenteName || "N/A"}
+                    </span>
+                  </div>
+
+                  <div className="sm:text-right">
+                    <span className="block text-xs font-bold text-gray-400 uppercase mb-1">
+                      Fecha Respuesta
+                    </span>
+                    <span className="font-medium text-gray-700">
+                      {detail?.fechaRespuesta ||
+                        detail?.responseDate ||
+                        data.responseDate}
+                    </span>
+                  </div>
+                </>
+              )}
             </div>
           </div>
 
@@ -181,9 +207,14 @@ export const SurveyDetailModal: React.FC<SurveyDetailModalProps> = ({
           {/* Lista de Preguntas */}
           <div className="space-y-6">
             {loading ? (
-              <div className="text-center py-8 text-gray-500">
-                Cargando detalle...
-              </div>
+              // show 4 skeleton question cards
+              Array.from({ length: 4 }).map((_, idx) => (
+                <div key={idx} className="bg-white p-4 rounded-lg border border-gray-100 shadow-sm">
+                  <div className="h-4 bg-gray-100 rounded w-1/3 mb-3 animate-pulse" />
+                  <div className="h-3 bg-gray-100 rounded w-full mb-2 animate-pulse" />
+                  <div className="h-3 bg-gray-100 rounded w-5/6 animate-pulse" />
+                </div>
+              ))
             ) : (
               answers.map((resp: any, idx: number) => (
                 <QuestionCard
