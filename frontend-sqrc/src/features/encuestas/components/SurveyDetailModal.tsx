@@ -1,6 +1,7 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
 import { X } from "lucide-react";
 import { QuestionCard } from "./QuestionCard";
+import reportService from "../../reportes/services/reportService";
 
 // --- 1. COMPONENTES VISUALES (Helpers) ---
 
@@ -57,11 +58,50 @@ export const SurveyDetailModal: React.FC<SurveyDetailModalProps> = ({
   onClose,
   data,
 }) => {
-  // Si no está abierto o no hay datos, no renderizamos nada
-  if (!isOpen || !data) return null;
+  const [detail, setDetail] = useState<any | null>(null);
+  const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    let mounted = true;
+    const load = async () => {
+      if (!isOpen) return;
+      // Si data ya contiene los resultados, usamos eso
+      if (data && data.resultados) {
+        setDetail(data);
+        return;
+      }
+
+      // Si tenemos responseId, fetcheamos el detalle
+      const responseId = data?.responseId || data?.id || data?.responseId;
+      if (!responseId) {
+        setDetail(data || null);
+        return;
+      }
+
+      setLoading(true);
+      try {
+        const d = await reportService.fetchEncuestaDetalle(String(responseId));
+        if (mounted) setDetail(d);
+      } catch (err) {
+        if (mounted) setDetail(data || null);
+      } finally {
+        if (mounted) setLoading(false);
+      }
+    };
+
+    load();
+    return () => {
+      mounted = false;
+      setDetail(null);
+      setLoading(false);
+    };
+  }, [isOpen, data]);
+
+  // Si no está abierto o no hay datos (ni detalle), no renderizamos nada
+  if (!isOpen || (!data && !detail)) return null;
 
   // Protección contra undefined
-  const answers = data.answers || [];
+  const answers = detail?.resultados || detail?.answers || data?.answers || [];
 
   return (
     /* --- OVERLAY (FONDO OSCURO) --- */
@@ -99,7 +139,7 @@ export const SurveyDetailModal: React.FC<SurveyDetailModalProps> = ({
                   Ticket
                 </span>
                 <span className="font-bold text-gray-800 text-lg">
-                  {data.ticketId}
+                  {detail?.ticketId || data.ticketId}
                 </span>
               </div>
 
@@ -108,7 +148,7 @@ export const SurveyDetailModal: React.FC<SurveyDetailModalProps> = ({
                   Cliente
                 </span>
                 <span className="font-medium text-gray-700">
-                  {data.clientEmail}
+                  {detail?.clientEmail || data.clientEmail}
                 </span>
               </div>
 
@@ -117,7 +157,7 @@ export const SurveyDetailModal: React.FC<SurveyDetailModalProps> = ({
                   Agente
                 </span>
                 <span className="font-medium text-gray-700">
-                  {data.agenteName || "N/A"}
+                  {detail?.agenteName || data.agenteName || "N/A"}
                 </span>
               </div>
 
@@ -126,7 +166,9 @@ export const SurveyDetailModal: React.FC<SurveyDetailModalProps> = ({
                   Fecha Respuesta
                 </span>
                 <span className="font-medium text-gray-700">
-                  {data.responseDate}
+                  {detail?.fechaRespuesta ||
+                    detail?.responseDate ||
+                    data.responseDate}
                 </span>
               </div>
             </div>
@@ -138,29 +180,35 @@ export const SurveyDetailModal: React.FC<SurveyDetailModalProps> = ({
 
           {/* Lista de Preguntas */}
           <div className="space-y-6">
-            {answers.map((resp: any, idx: number) => (
-              <QuestionCard
-                key={idx}
-                index={idx + 1}
-                questionText={resp.question}
-              >
-                {/* Renderizado Condicional según el tipo de respuesta */}
+            {loading ? (
+              <div className="text-center py-8 text-gray-500">
+                Cargando detalle...
+              </div>
+            ) : (
+              answers.map((resp: any, idx: number) => (
+                <QuestionCard
+                  key={idx}
+                  index={idx + 1}
+                  questionText={resp.question}
+                >
+                  {/* Renderizado Condicional según el tipo de respuesta */}
 
-                {resp.type === "RATING" && (
-                  <RatingDisplay value={Number(resp.answer)} />
-                )}
+                  {resp.type === "RATING" && (
+                    <RatingDisplay value={Number(resp.answer)} />
+                  )}
 
-                {resp.type === "BOOLEAN" && (
-                  <BooleanDisplay value={resp.answer} />
-                )}
+                  {resp.type === "BOOLEAN" && (
+                    <BooleanDisplay value={resp.answer} />
+                  )}
 
-                {resp.type === "TEXT" && (
-                  <p className="bg-white p-4 rounded-lg border border-gray-200 text-sm text-gray-600 leading-relaxed italic shadow-sm">
-                    "{resp.answer}"
-                  </p>
-                )}
-              </QuestionCard>
-            ))}
+                  {resp.type === "TEXT" && (
+                    <p className="bg-white p-4 rounded-lg border border-gray-200 text-sm text-gray-600 leading-relaxed italic shadow-sm">
+                      "{resp.answer}"
+                    </p>
+                  )}
+                </QuestionCard>
+              ))
+            )}
           </div>
         </div>
       </div>

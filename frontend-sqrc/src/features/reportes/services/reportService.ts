@@ -66,4 +66,9 @@ export const fetchEncuestaRespuestas = async (params?: {
   return resp.data;
 };
 
-export default { fetchDashboard, fetchAgentes, fetchTicketsByAgent, fetchSurveyKpis, fetchEncuestaRespuestas };
+export const fetchEncuestaDetalle = async (responseId: string) => {
+  const resp = await http.get<any>(`/api/encuestas/respuestas/${encodeURIComponent(responseId)}`);
+  return resp.data;
+};
+
+export default { fetchDashboard, fetchAgentes, fetchTicketsByAgent, fetchSurveyKpis, fetchEncuestaRespuestas, fetchEncuestaDetalle };
