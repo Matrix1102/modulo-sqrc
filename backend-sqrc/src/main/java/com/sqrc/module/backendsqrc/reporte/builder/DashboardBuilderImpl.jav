@@ -73,14 +73,18 @@ public class DashboardBuilderImpl implements DashboardBuilder {
         this.reporte.setKpisResumen(DashboardKpisDTO.KpisResumenDTO.builder()
                 .ticketsAbiertos(DashboardKpisDTO.KpiValorDTO.builder()
                         .valor(ticketsAbiertos)
-                        .comparativoPeriodo("+0")
+                        .comparativoPeriodo(null)
+                        .comparativoPeriodoPct(null)
                         .build())
                 .ticketsResueltos(DashboardKpisDTO.KpiValorDTO.builder()
                         .valor(totalResueltos)
-                        .comparativoPeriodo("+5%") // Esto podrías calcularlo trayendo el mes anterior
+                        .comparativoPeriodo(null) // calcular en backend real si hay datos historicos
+                        .comparativoPeriodoPct(null)
                         .build())
                 .tiempoPromedio(DashboardKpisDTO.KpiValorDTO.builder()
                         .valor(String.format("%.1f hrs", tiempoPromedioGlobal / 60))
+                        .comparativoPeriodo(null)
+                        .comparativoPeriodoPct(null)
                         .build())
                 .build());
     }

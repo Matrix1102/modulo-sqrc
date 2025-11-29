@@ -39,7 +39,7 @@ public class DashboardKpisDTO {
     @Builder
     public static class KpiValorDTO {
         private Object valor; // Puede ser Integer (12) o String ("2.4 hrs")
-        private String comparativoPeriodo; // Ej: "+8"
+        private Integer comparativoPeriodo; // Ej: 8 (valor absoluto, sin formato)
         @JsonProperty("comparativoPeriodo_pct")
         private Integer comparativoPeriodoPct; // Ej: -12 (opcional, para porcentajes)
     }
