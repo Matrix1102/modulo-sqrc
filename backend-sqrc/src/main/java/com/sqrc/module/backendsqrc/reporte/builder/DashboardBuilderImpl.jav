@@ -37,12 +37,18 @@ public class DashboardBuilderImpl implements DashboardBuilder {
                 ));
 
         List<DashboardKpisDTO.DesgloseTipoDTO> desglose = new ArrayList<>();
-        porTipo.forEach((tipo, cantidad) -> 
-            desglose.add(DashboardKpisDTO.DesgloseTipoDTO.builder()
-                    .tipo(tipo.name())
-                    .cantidad(cantidad)
-                    .build())
+        porTipo.forEach((tipo, cantidad) ->
+                desglose.add(DashboardKpisDTO.DesgloseTipoDTO.builder()
+                        .tipo(tipo.name())
+                        .cantidad(cantidad)
+                        .build())
         );
+
+        // Ensure known case types are always present in the breakdown (even if 0)
+        boolean hasConsultas = desglose.stream().anyMatch(d -> d.getTipo() != null && d.getTipo().toLowerCase().contains("consulta"));
+        if (!hasConsultas) {
+            desglose.add(DashboardKpisDTO.DesgloseTipoDTO.builder().tipo("Consultas").cantidad(0).build());
+        }
 
         this.reporte.setKpisGlobales(DashboardKpisDTO.KpisGlobalesDTO.builder()
                 .totalCasos(totalCasos)
