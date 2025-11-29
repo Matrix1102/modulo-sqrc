@@ -68,33 +68,55 @@ public class MockReporteController {
             int a2 = Math.max(0, (int) Math.round(38 * factor));
             int a3 = Math.max(0, (int) Math.round(38 * factor));
 
+            // Build per-canal mock breakdowns
+            java.util.Map<String, java.util.List<DashboardKpisDTO.DesgloseTipoDTO>> desglosePorCanal = new java.util.HashMap<>();
+
+            desglosePorCanal.put("GLOBAL", Arrays.asList(
+                    DashboardKpisDTO.DesgloseTipoDTO.builder().tipo("Solicitudes").cantidad(solicitudes).build(),
+                    DashboardKpisDTO.DesgloseTipoDTO.builder().tipo("Reclamos").cantidad(reclamos).build(),
+                    DashboardKpisDTO.DesgloseTipoDTO.builder().tipo("Quejas").cantidad(quejas).build(),
+                    DashboardKpisDTO.DesgloseTipoDTO.builder().tipo("Consultas").cantidad(Math.max(0, (int) Math.round(5 * factor))).build()
+            ));
+
+            desglosePorCanal.put("TELEFONICO", Arrays.asList(
+                    DashboardKpisDTO.DesgloseTipoDTO.builder().tipo("Solicitudes").cantidad(Math.max(0, solicitudes/2)).build(),
+                    DashboardKpisDTO.DesgloseTipoDTO.builder().tipo("Reclamos").cantidad(Math.max(0, reclamos/2)).build(),
+                    DashboardKpisDTO.DesgloseTipoDTO.builder().tipo("Quejas").cantidad(Math.max(0, quejas/2)).build(),
+                    DashboardKpisDTO.DesgloseTipoDTO.builder().tipo("Consultas").cantidad(Math.max(0, (int) Math.round(5 * factor) / 2)).build()
+            ));
+
+            desglosePorCanal.put("PRESENCIAL", Arrays.asList(
+                    DashboardKpisDTO.DesgloseTipoDTO.builder().tipo("Solicitudes").cantidad(Math.max(0, solicitudes - solicitudes/2)).build(),
+                    DashboardKpisDTO.DesgloseTipoDTO.builder().tipo("Reclamos").cantidad(Math.max(0, reclamos - reclamos/2)).build(),
+                    DashboardKpisDTO.DesgloseTipoDTO.builder().tipo("Quejas").cantidad(Math.max(0, quejas - quejas/2)).build(),
+                    DashboardKpisDTO.DesgloseTipoDTO.builder().tipo("Consultas").cantidad(Math.max(0, (int) Math.round(5 * factor) - (int) Math.round(5 * factor) / 2)).build()
+            ));
+
+            java.util.Map<String, DashboardKpisDTO.KpisResumenDTO> resumenMap = new java.util.HashMap<>();
+            resumenMap.put("GLOBAL", DashboardKpisDTO.KpisResumenDTO.builder()
+                    .ticketsAbiertos(DashboardKpisDTO.KpiValorDTO.builder().valor(ticketsAbiertos).comparativoPeriodo((int) Math.round(8 * factor)).comparativoPeriodoPct(null).build())
+                    .ticketsResueltos(DashboardKpisDTO.KpiValorDTO.builder().valor(ticketsResueltos).comparativoPeriodo((int) Math.round(8 * factor)).comparativoPeriodoPct(null).build())
+                    .tiempoPromedio(DashboardKpisDTO.KpiValorDTO.builder().valor("2.4 hrs").comparativoPeriodo(null).comparativoPeriodoPct(-12).build())
+                    .build());
+
+            resumenMap.put("TELEFONICO", DashboardKpisDTO.KpisResumenDTO.builder()
+                    .ticketsAbiertos(DashboardKpisDTO.KpiValorDTO.builder().valor(Math.max(0, ticketsAbiertos/2)).comparativoPeriodo(null).comparativoPeriodoPct(null).build())
+                    .ticketsResueltos(DashboardKpisDTO.KpiValorDTO.builder().valor(Math.max(0, ticketsResueltos/2)).comparativoPeriodo(null).comparativoPeriodoPct(null).build())
+                    .tiempoPromedio(DashboardKpisDTO.KpiValorDTO.builder().valor("1.8 hrs").comparativoPeriodo(null).comparativoPeriodoPct(null).build())
+                    .build());
+
+            resumenMap.put("PRESENCIAL", DashboardKpisDTO.KpisResumenDTO.builder()
+                    .ticketsAbiertos(DashboardKpisDTO.KpiValorDTO.builder().valor(Math.max(0, ticketsAbiertos - ticketsAbiertos/2)).comparativoPeriodo(null).comparativoPeriodoPct(null).build())
+                    .ticketsResueltos(DashboardKpisDTO.KpiValorDTO.builder().valor(Math.max(0, ticketsResueltos - ticketsResueltos/2)).comparativoPeriodo(null).comparativoPeriodoPct(null).build())
+                    .tiempoPromedio(DashboardKpisDTO.KpiValorDTO.builder().valor("3.1 hrs").comparativoPeriodo(null).comparativoPeriodoPct(null).build())
+                    .build());
+
             DashboardKpisDTO dto = DashboardKpisDTO.builder()
                     .kpisGlobales(DashboardKpisDTO.KpisGlobalesDTO.builder()
                             .totalCasos(totalCasos)
-                            .desgloseTipo(Arrays.asList(
-                                    DashboardKpisDTO.DesgloseTipoDTO.builder().tipo("Solicitudes").cantidad(solicitudes).build(),
-                                    DashboardKpisDTO.DesgloseTipoDTO.builder().tipo("Reclamos").cantidad(reclamos).build(),
-                                    DashboardKpisDTO.DesgloseTipoDTO.builder().tipo("Quejas").cantidad(quejas).build(),
-                                    DashboardKpisDTO.DesgloseTipoDTO.builder().tipo("Consultas").cantidad(Math.max(0, (int) Math.round(5 * factor))).build()
-                            ))
+                            .desglosePorCanal(desglosePorCanal)
                             .build())
-                    .kpisResumen(DashboardKpisDTO.KpisResumenDTO.builder()
-                            .ticketsAbiertos(DashboardKpisDTO.KpiValorDTO.builder()
-                                    .valor(ticketsAbiertos)
-                                    .comparativoPeriodo((int) Math.round(8 * factor))
-                                    .comparativoPeriodoPct(null)
-                                    .build())
-                            .ticketsResueltos(DashboardKpisDTO.KpiValorDTO.builder()
-                                    .valor(ticketsResueltos)
-                                    .comparativoPeriodo((int) Math.round(8 * factor))
-                                    .comparativoPeriodoPct(null)
-                                    .build())
-                            .tiempoPromedio(DashboardKpisDTO.KpiValorDTO.builder()
-                                    .valor("2.4 hrs")
-                                    .comparativoPeriodo(null)
-                                    .comparativoPeriodoPct(-12)
-                                    .build())
-                            .build())
+                    .kpisResumen(resumenMap)
                     .motivosFrecuentes(Arrays.asList(
                             DashboardKpisDTO.MotivoFrecuenteDTO.builder().motivo("Retraso en entregas").cantidad(m1).build(),
                             DashboardKpisDTO.MotivoFrecuenteDTO.builder().motivo("Error en facturación").cantidad(m2).build(),

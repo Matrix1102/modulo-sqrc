@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState } from "react";
 import { MoreVertical, TrendingDown, TrendingUp } from "lucide-react";
 
 interface MetricCardProps {
@@ -22,6 +22,11 @@ interface MetricCardProps {
     isPositive: boolean;
   };
   loading?: boolean;
+  /** Optional custom menu (rendered when clicking the three-dots).
+   * If provided, it is a function that receives a `close` callback so the menu
+   * can request the card to close it after an action (e.g. selection).
+   */
+  menu?: (close: () => void) => React.ReactNode;
 }
 
 export const MetricCard: React.FC<MetricCardProps> = ({
@@ -32,7 +37,10 @@ export const MetricCard: React.FC<MetricCardProps> = ({
   progress,
   trend,
   loading = false,
+  menu,
 }) => {
+  const [menuOpen, setMenuOpen] = useState(false);
+  const closeMenu = () => setMenuOpen(false);
   if (loading) {
     return (
       <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 relative flex flex-col items-center">
@@ -57,9 +65,21 @@ export const MetricCard: React.FC<MetricCardProps> = ({
   return (
     <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 relative flex flex-col items-center">
       {/* Menú de 3 puntos */}
-      <button className="absolute top-4 right-4 p-1 hover:bg-gray-100 rounded transition-colors">
-        <MoreVertical size={18} className="text-gray-400" />
-      </button>
+      <div className="absolute top-4 right-4 p-1">
+        <button
+          onClick={() => setMenuOpen((s) => !s)}
+          className="p-1 hover:bg-gray-100 rounded transition-colors"
+          aria-haspopup="true"
+          aria-expanded={menuOpen}
+        >
+          <MoreVertical size={18} className="text-gray-400" />
+        </button>
+        {menuOpen && menu && (
+          <div className="absolute right-0 mt-2 w-48 bg-white border border-gray-200 rounded shadow-md z-10 p-1">
+            {menu(closeMenu)}
+          </div>
+        )}
+      </div>
 
       {/* Header */}
       <div className="mb-3 text-center w-full">

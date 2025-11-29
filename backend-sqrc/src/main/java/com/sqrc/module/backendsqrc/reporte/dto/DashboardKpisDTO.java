@@ -9,7 +9,9 @@ import java.util.List;
 @Builder
 public class DashboardKpisDTO {
     private KpisGlobalesDTO kpisGlobales;
-    private KpisResumenDTO kpisResumen;
+    // Ahora exponemos un mapa por canal (clave: GLOBAL, TELEFONICO, PRESENCIAL, etc.)
+    // Cada valor contiene los KPI resumidos para ese canal
+    private java.util.Map<String, KpisResumenDTO> kpisResumen;
     private List<MotivoFrecuenteDTO> motivosFrecuentes;
     private List<AgenteRankingDTO> agentesMejorEvaluados;
 
@@ -17,7 +19,8 @@ public class DashboardKpisDTO {
     @Builder
     public static class KpisGlobalesDTO {
         private Integer totalCasos;
-        private List<DesgloseTipoDTO> desgloseTipo;
+        // Map canal -> lista de { tipo, cantidad }
+        private java.util.Map<String, List<DesgloseTipoDTO>> desglosePorCanal;
     }
 
     @Data

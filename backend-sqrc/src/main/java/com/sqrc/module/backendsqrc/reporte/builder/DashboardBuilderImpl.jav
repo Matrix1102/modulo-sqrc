@@ -28,71 +28,100 @@ public class DashboardBuilderImpl implements DashboardBuilder {
         int totalCasos = resumenes.stream()
                 .mapToInt(KpiResumenDiario::getTotalCasosCreados)
                 .sum();
-
-        // Agrupar por TipoCaso para el gráfico de torta
-        Map<TipoCaso, Integer> porTipo = resumenes.stream()
+        // Agrupar por TipoCaso de forma global y por canal para permitir desglose por canal
+        Map<String, Integer> porTipoGlobal = resumenes.stream()
                 .collect(Collectors.groupingBy(
-                        KpiResumenDiario::getTipoCaso,
+                        r -> r.getTipoCaso() != null ? r.getTipoCaso().name() : "UNKNOWN",
                         Collectors.summingInt(KpiResumenDiario::getTotalCasosCreados)
                 ));
 
-        List<DashboardKpisDTO.DesgloseTipoDTO> desglose = new ArrayList<>();
-        porTipo.forEach((tipo, cantidad) ->
-                desglose.add(DashboardKpisDTO.DesgloseTipoDTO.builder()
-                        .tipo(tipo.name())
-                        .cantidad(cantidad)
-                        .build())
-        );
+        // Agrupar por canal -> tipo -> suma
+        Map<String, Map<String, Integer>> porCanalTipo = resumenes.stream()
+                .collect(Collectors.groupingBy(
+                        r -> r.getCanal() != null ? r.getCanal().toUpperCase() : "GLOBAL",
+                        Collectors.groupingBy(
+                                r -> r.getTipoCaso() != null ? r.getTipoCaso().name() : "UNKNOWN",
+                                Collectors.summingInt(KpiResumenDiario::getTotalCasosCreados)
+                        )
+                ));
 
-        // Ensure known case types are always present in the breakdown (even if 0)
-        boolean hasConsultas = desglose.stream().anyMatch(d -> d.getTipo() != null && d.getTipo().toLowerCase().contains("consulta"));
-        if (!hasConsultas) {
-            desglose.add(DashboardKpisDTO.DesgloseTipoDTO.builder().tipo("Consultas").cantidad(0).build());
-        }
+        java.util.Map<String, List<DashboardKpisDTO.DesgloseTipoDTO>> desglosePorCanal = new java.util.HashMap<>();
+
+                // Global breakdown
+                List<DashboardKpisDTO.DesgloseTipoDTO> globalList = new ArrayList<>();
+                porTipoGlobal.forEach((tipo, cantidad) -> globalList.add(DashboardKpisDTO.DesgloseTipoDTO.builder().tipo(tipo).cantidad(cantidad).build()));
+
+                // Ensure common categories are present globally
+                if (globalList.stream().noneMatch(d -> d.getTipo() != null && d.getTipo().toLowerCase().contains("solic"))) {
+                        globalList.add(DashboardKpisDTO.DesgloseTipoDTO.builder().tipo("Solicitudes").cantidad(0).build());
+                }
+                if (globalList.stream().noneMatch(d -> d.getTipo() != null && d.getTipo().toLowerCase().contains("consult"))) {
+                        globalList.add(DashboardKpisDTO.DesgloseTipoDTO.builder().tipo("Consultas").cantidad(0).build());
+                }
+
+                desglosePorCanal.put("GLOBAL", globalList);
+
+                // Per-canal breakdowns
+                porCanalTipo.forEach((canal, mapTipo) -> {
+                        List<DashboardKpisDTO.DesgloseTipoDTO> lst = new ArrayList<>();
+                        mapTipo.forEach((tipo, cantidad) -> lst.add(DashboardKpisDTO.DesgloseTipoDTO.builder().tipo(tipo).cantidad(cantidad).build()));
+
+                        // Ensure Solicitudes and Consultas appear for each canal even if 0
+                        if (lst.stream().noneMatch(d -> d.getTipo() != null && d.getTipo().toLowerCase().contains("solic"))) {
+                                lst.add(DashboardKpisDTO.DesgloseTipoDTO.builder().tipo("Solicitudes").cantidad(0).build());
+                        }
+                        if (lst.stream().noneMatch(d -> d.getTipo() != null && d.getTipo().toLowerCase().contains("consult"))) {
+                                lst.add(DashboardKpisDTO.DesgloseTipoDTO.builder().tipo("Consultas").cantidad(0).build());
+                        }
+
+                        desglosePorCanal.put(canal, lst);
+                });
 
         this.reporte.setKpisGlobales(DashboardKpisDTO.KpisGlobalesDTO.builder()
                 .totalCasos(totalCasos)
-                .desgloseTipo(desglose)
+                .desglosePorCanal(desglosePorCanal)
                 .build());
     }
 
     @Override
     public void construirResumenOperativo(List<KpiResumenDiario> resumenes, List<KpiTiemposResolucion> tiempos) {
         // Calcular totales: creados y resueltos sumando la columna de la tabla KPI
-        int totalCreados = resumenes.stream()
-                .mapToInt(KpiResumenDiario::getTotalCasosCreados)
-                .sum();
+        // Totales por canal y global
+        Map<String, Integer> totalCreadosPorCanal = resumenes.stream()
+                .collect(Collectors.groupingBy(r -> r.getCanal() != null ? r.getCanal().toUpperCase() : "GLOBAL", Collectors.summingInt(KpiResumenDiario::getTotalCasosCreados)));
 
-        int totalResueltos = resumenes.stream()
-                .mapToInt(KpiResumenDiario::getTotalCasosResueltos)
-                .sum();
+        Map<String, Integer> totalResueltosPorCanal = resumenes.stream()
+                .collect(Collectors.groupingBy(r -> r.getCanal() != null ? r.getCanal().toUpperCase() : "GLOBAL", Collectors.summingInt(KpiResumenDiario::getTotalCasosResueltos)));
 
-        // Calcular promedio de tiempo (promedio de promedios ponderados simplificado)
-        double tiempoPromedioGlobal = tiempos.stream()
-                .mapToInt(KpiTiemposResolucion::getTiempoPromedioResolucionTotalMin)
-                .average()
-                .orElse(0.0);
+        // Promedio de tiempo por canal (en minutos)
+        Map<String, Double> tiempoPromedioPorCanal = tiempos.stream()
+                .collect(Collectors.groupingBy(r -> r.getCanal() != null ? r.getCanal().toUpperCase() : "GLOBAL", Collectors.averagingDouble(KpiTiemposResolucion::getTiempoPromedioResolucionTotalMin)));
 
-        // Calcular abiertos como creados - resueltos
-        int ticketsAbiertos = Math.max(0, totalCreados - totalResueltos);
+        java.util.Map<String, DashboardKpisDTO.KpisResumenDTO> resumenMap = new java.util.HashMap<>();
 
-        this.reporte.setKpisResumen(DashboardKpisDTO.KpisResumenDTO.builder()
-                .ticketsAbiertos(DashboardKpisDTO.KpiValorDTO.builder()
-                        .valor(ticketsAbiertos)
-                        .comparativoPeriodo(null)
-                        .comparativoPeriodoPct(null)
-                        .build())
-                .ticketsResueltos(DashboardKpisDTO.KpiValorDTO.builder()
-                        .valor(totalResueltos)
-                        .comparativoPeriodo(null) // calcular en backend real si hay datos historicos
-                        .comparativoPeriodoPct(null)
-                        .build())
-                .tiempoPromedio(DashboardKpisDTO.KpiValorDTO.builder()
-                        .valor(String.format("%.1f hrs", tiempoPromedioGlobal / 60))
-                        .comparativoPeriodo(null)
-                        .comparativoPeriodoPct(null)
-                        .build())
-                .build());
+        // Collect keys union of channels plus GLOBAL
+        java.util.Set<String> canales = new java.util.HashSet<>();
+        canales.addAll(totalCreadosPorCanal.keySet());
+        canales.addAll(totalResueltosPorCanal.keySet());
+        canales.addAll(tiempoPromedioPorCanal.keySet());
+        canales.add("GLOBAL");
+
+        for (String canal : canales) {
+            int creados = totalCreadosPorCanal.getOrDefault(canal, 0);
+            int resueltos = totalResueltosPorCanal.getOrDefault(canal, 0);
+            int abiertos = Math.max(0, creados - resueltos);
+            double tiempoMin = tiempoPromedioPorCanal.getOrDefault(canal, 0.0);
+
+            DashboardKpisDTO.KpisResumenDTO grupo = DashboardKpisDTO.KpisResumenDTO.builder()
+                    .ticketsAbiertos(DashboardKpisDTO.KpiValorDTO.builder().valor(abiertos).comparativoPeriodo(null).comparativoPeriodoPct(null).build())
+                    .ticketsResueltos(DashboardKpisDTO.KpiValorDTO.builder().valor(resueltos).comparativoPeriodo(null).comparativoPeriodoPct(null).build())
+                    .tiempoPromedio(DashboardKpisDTO.KpiValorDTO.builder().valor(String.format("%.1f hrs", tiempoMin / 60.0)).comparativoPeriodo(null).comparativoPeriodoPct(null).build())
+                    .build();
+
+            resumenMap.put(canal, grupo);
+        }
+
+        this.reporte.setKpisResumen(resumenMap);
     }
 
     @Override

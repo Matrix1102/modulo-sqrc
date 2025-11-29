@@ -11,7 +11,8 @@ export interface KpiValor {
 
 export interface KpisGlobales {
   totalCasos: number;
-  desgloseTipo: DesgloseTipo[];
+  // ahora es un mapa canal -> lista de desglose por tipo
+  desglosePorCanal: Record<string, DesgloseTipo[]>;
 }
 
 export interface MotivoFrecuente {
@@ -36,13 +37,16 @@ export interface AgenteDetail {
   csatPromedio?: number | null;
 }
 
+export interface KpisResumenPorCanal {
+  ticketsAbiertos?: KpiValor;
+  ticketsResueltos?: KpiValor;
+  tiempoPromedio?: KpiValor;
+}
+
 export interface DashboardKpis {
   kpisGlobales: KpisGlobales;
-  kpisResumen: {
-    ticketsAbiertos?: KpiValor;
-    ticketsResueltos?: KpiValor;
-    tiempoPromedio?: KpiValor;
-  };
+  // map kana -> resumen
+  kpisResumen: Record<string, KpisResumenPorCanal>;
   motivosFrecuentes: MotivoFrecuente[];
   agentesMejorEvaluados: AgenteRanking[];
 }
