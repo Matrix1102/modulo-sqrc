@@ -52,7 +52,11 @@ public class DashboardBuilderImpl implements DashboardBuilder {
 
     @Override
     public void construirResumenOperativo(List<KpiResumenDiario> resumenes, List<KpiTiemposResolucion> tiempos) {
-        // Ejemplo: Calcular total resueltos sumando la columna de la tabla KPI
+        // Calcular totales: creados y resueltos sumando la columna de la tabla KPI
+        int totalCreados = resumenes.stream()
+                .mapToInt(KpiResumenDiario::getTotalCasosCreados)
+                .sum();
+
         int totalResueltos = resumenes.stream()
                 .mapToInt(KpiResumenDiario::getTotalCasosResueltos)
                 .sum();
@@ -63,7 +67,14 @@ public class DashboardBuilderImpl implements DashboardBuilder {
                 .average()
                 .orElse(0.0);
 
+        // Calcular abiertos como creados - resueltos
+        int ticketsAbiertos = Math.max(0, totalCreados - totalResueltos);
+
         this.reporte.setKpisResumen(DashboardKpisDTO.KpisResumenDTO.builder()
+                .ticketsAbiertos(DashboardKpisDTO.KpiValorDTO.builder()
+                        .valor(ticketsAbiertos)
+                        .comparativoPeriodo("+0")
+                        .build())
                 .ticketsResueltos(DashboardKpisDTO.KpiValorDTO.builder()
                         .valor(totalResueltos)
                         .comparativoPeriodo("+5%") // Esto podrías calcularlo trayendo el mes anterior
@@ -109,15 +120,27 @@ public class DashboardBuilderImpl implements DashboardBuilder {
                         Collectors.averagingDouble(KpiRendimientoAgenteDiario::getCsatPromedioAgente)
                 ));
 
+        // Sumar tickets por agente
+        Map<Long, Integer> ticketsPorAgente = ranking.stream()
+                .collect(Collectors.groupingBy(
+                        KpiRendimientoAgenteDiario::getAgenteId,
+                        Collectors.summingInt(KpiRendimientoAgenteDiario::getTicketsResueltosTotal)
+                ));
+
         List<DashboardKpisDTO.AgenteRankingDTO> topAgentes = new ArrayList<>();
         
         csatPorAgente.forEach((id, csat) -> {
+            Integer tickets = ticketsPorAgente.getOrDefault(id, 0);
             topAgentes.add(DashboardKpisDTO.AgenteRankingDTO.builder()
-                    .agenteId(id.toString())
+                    .agenteId(id)
                     .nombre("Agente " + id) // O buscar nombre real
                     .rating(Math.round(csat * 10.0) / 10.0)
+                    .tickets(tickets)
                     .build());
         });
+
+        // Ordenar por rating descendente y limitar (top N)
+        topAgentes.sort((a, b) -> Double.compare(b.getRating(), a.getRating()));
 
         this.reporte.setAgentesMejorEvaluados(topAgentes);
     }

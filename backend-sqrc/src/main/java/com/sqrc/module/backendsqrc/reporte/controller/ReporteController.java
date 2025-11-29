@@ -3,6 +3,7 @@ package com.sqrc.module.backendsqrc.reporte.controller;
 import com.sqrc.module.backendsqrc.reporte.dto.*;
 import com.sqrc.module.backendsqrc.reporte.service.ReporteService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -13,6 +14,7 @@ import java.util.List;
 @RestController
 @RequestMapping("/api/reportes")
 @RequiredArgsConstructor
+@ConditionalOnProperty(name = "app.mock.reportes", havingValue = "false", matchIfMissing = true)
 public class ReporteController {
 
     private final ReporteService reporteService;

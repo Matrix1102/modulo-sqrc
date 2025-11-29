@@ -1,5 +1,6 @@
 package com.sqrc.module.backendsqrc.reporte.dto;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.Builder;
 import lombok.Data;
 import java.util.List;
@@ -39,6 +40,7 @@ public class DashboardKpisDTO {
     public static class KpiValorDTO {
         private Object valor; // Puede ser Integer (12) o String ("2.4 hrs")
         private String comparativoPeriodo; // Ej: "+8"
+        @JsonProperty("comparativoPeriodo_pct")
         private Integer comparativoPeriodoPct; // Ej: -12 (opcional, para porcentajes)
     }
     
@@ -52,7 +54,7 @@ public class DashboardKpisDTO {
     @Data
     @Builder
     public static class AgenteRankingDTO {
-        private String agenteId;
+        private Long agenteId;
         private String nombre;
         private Double rating;
         private Integer tickets;
