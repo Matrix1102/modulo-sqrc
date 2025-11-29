@@ -27,10 +27,14 @@ export interface MetricaKPI {
   estadoTendencia: 'POSITIVO' | 'NEGATIVO' | 'NEUTRO';
 }
 
-export interface ActualizarContactoRequest {
-  correo?: string;
+export interface ActualizarClienteDTO {
+  dni: string;
+  nombre: string;
+  apellido: string;
+  fechaNacimiento: string;
+  correo: string;
   telefono?: string;
-  celular?: string;
+  celular: string;
 }
 
 export interface ErrorResponse {
@@ -102,11 +106,11 @@ export async function obtenerMetricasCliente(id: number): Promise<MetricaKPI[]> 
 }
 
 /**
- * Actualiza la información de contacto de un cliente (PATCH)
+ * Actualiza la información del cliente (PATCH)
  */
-export async function actualizarInformacionContacto(
+export async function actualizarInformacionCliente(
   id: number,
-  datos: ActualizarContactoRequest
+  datos: ActualizarClienteDTO
 ): Promise<ClienteBasicoDTO> {
   const response = await fetch(`${VISTA360_ENDPOINT}/${id}`, {
     method: 'PATCH',

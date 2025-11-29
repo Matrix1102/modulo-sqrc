@@ -62,8 +62,8 @@ public class Vista360Service {
     }
 
     /**
-     * Actualiza la información de contacto de un cliente (correo, teléfono, celular).
-     * Implementa operación PATCH para actualización parcial.
+     * Actualiza la información del cliente (todos los campos excepto idCliente).
+     * Implementa operación PATCH para actualización completa.
      *
      * @param id ID del cliente a actualizar
      * @param datos DTO con los datos actualizados
@@ -71,13 +71,27 @@ public class Vista360Service {
      * @throws ClienteNotFoundException si el cliente no existe
      */
     @Transactional
-    public ClienteBasicoDTO actualizarInformacionContacto(Integer id, ClienteBasicoDTO datos) {
-        log.debug("Actualizando información de contacto para cliente ID: {}", id);
+    public ClienteBasicoDTO actualizarInformacionCliente(Integer id, com.sqrc.module.backendsqrc.vista360.dto.ActualizarClienteDTO datos) {
+        log.debug("Actualizando información del cliente ID: {}", id);
         
         ClienteEntity cliente = clienteRepository.findById(id)
                 .orElseThrow(() -> new ClienteNotFoundException(id));
 
-        // Actualizar solo los campos de contacto
+        // Actualizar datos personales
+        if (datos.getDni() != null && !datos.getDni().isBlank()) {
+            cliente.setDni(datos.getDni());
+        }
+        if (datos.getNombre() != null && !datos.getNombre().isBlank()) {
+            cliente.setNombres(datos.getNombre());
+        }
+        if (datos.getApellido() != null && !datos.getApellido().isBlank()) {
+            cliente.setApellidos(datos.getApellido());
+        }
+        if (datos.getFechaNacimiento() != null) {
+            cliente.setFechaNacimiento(datos.getFechaNacimiento());
+        }
+
+        // Actualizar datos de contacto
         if (datos.getCorreo() != null && !datos.getCorreo().isBlank()) {
             cliente.setCorreo(datos.getCorreo());
         }
@@ -89,7 +103,7 @@ public class Vista360Service {
         }
 
         ClienteEntity clienteActualizado = clienteRepository.save(cliente);
-        log.info("Información de contacto actualizada para cliente ID: {}", id);
+        log.info("Información del cliente actualizada para ID: {}", id);
 
         return mapearADTO(clienteActualizado);
     }

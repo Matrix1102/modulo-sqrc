@@ -1,12 +1,12 @@
 package com.sqrc.module.backendsqrc.vista360.controller;
 
+import com.sqrc.module.backendsqrc.vista360.dto.ActualizarClienteDTO;
 import com.sqrc.module.backendsqrc.vista360.dto.ClienteBasicoDTO;
 import com.sqrc.module.backendsqrc.vista360.dto.MetricaKPI_DTO;
 import com.sqrc.module.backendsqrc.vista360.service.Vista360Service;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -56,21 +56,21 @@ public class Vista360ClienteController {
     }
 
     /**
-     * Actualiza la información de contacto de un cliente (operación PATCH).
-     * Solo actualiza los campos proporcionados: correo, teléfono, celular.
+     * Actualiza la información del cliente (operación PATCH).
+     * Actualiza todos los campos excepto idCliente.
      *
      * @param id ID del cliente a actualizar
-     * @param datosActualizados DTO con los campos de contacto a actualizar
+     * @param datosActualizados DTO con los campos a actualizar
      * @return ResponseEntity con ClienteBasicoDTO actualizado
      */
     @PatchMapping("/{id}")
-    public ResponseEntity<ClienteBasicoDTO> actualizarInformacionContacto(
+    public ResponseEntity<ClienteBasicoDTO> actualizarInformacionCliente(
             @PathVariable Integer id,
-            @Valid @RequestBody ClienteBasicoDTO datosActualizados) {
+            @Valid @RequestBody ActualizarClienteDTO datosActualizados) {
         
-        log.info("PATCH /api/v1/vista360/cliente/{} - Actualizando información de contacto", id);
+        log.info("PATCH /api/v1/vista360/cliente/{} - Actualizando información del cliente", id);
         
-        ClienteBasicoDTO clienteActualizado = vista360Service.actualizarInformacionContacto(id, datosActualizados);
+        ClienteBasicoDTO clienteActualizado = vista360Service.actualizarInformacionCliente(id, datosActualizados);
         
         return ResponseEntity.ok(clienteActualizado);
     }

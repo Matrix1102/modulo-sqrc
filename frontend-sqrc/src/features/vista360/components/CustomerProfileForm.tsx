@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from "react";
 import CollapsibleSection from "./CollapsibleSection";
 import ActionButton from "./ActionButton";
+import ConfirmationModal from "./ConfirmationModal";
 import type { ClienteBasicoDTO } from "../../../services/vista360Api";
-import { actualizarInformacionContacto } from "../../../services/vista360Api";
+import { actualizarInformacionCliente } from "../../../services/vista360Api";
 
 const Labeled = ({ label, children }: { label: string; children: React.ReactNode }) => (
   <div className="mb-4 flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-4">
@@ -20,6 +21,10 @@ interface Props {
 const CustomerProfileForm: React.FC<Props> = ({ cliente, loading, onClienteUpdated }) => {
   const [isEditing, setIsEditing] = useState<boolean>(false);
   const [isSaving, setIsSaving] = useState<boolean>(false);
+  const [showConfirmModal, setShowConfirmModal] = useState<boolean>(false);
+  const [dni, setDni] = useState<string>("");
+  const [nombre, setNombre] = useState<string>("");
+  const [apellido, setApellido] = useState<string>("");
   const [birthdate, setBirthdate] = useState<string>("");
   const [correo, setCorreo] = useState<string>("");
   const [telefono, setTelefono] = useState<string>("");
@@ -28,6 +33,9 @@ const CustomerProfileForm: React.FC<Props> = ({ cliente, loading, onClienteUpdat
 
   useEffect(() => {
     if (cliente) {
+      setDni(cliente.dni || "");
+      setNombre(cliente.nombre || "");
+      setApellido(cliente.apellido || "");
       setBirthdate(cliente.fechaNacimiento?.toString() || "");
       setCorreo(cliente.correo || "");
       setTelefono(cliente.telefono || "");
@@ -37,7 +45,11 @@ const CustomerProfileForm: React.FC<Props> = ({ cliente, loading, onClienteUpdat
     }
   }, [cliente]);
 
-  const handleSave = async () => {
+  const handleSave = () => {
+    setShowConfirmModal(true);
+  };
+
+  const confirmSave = async () => {
     if (!cliente) return;
 
     setIsSaving(true);
@@ -45,20 +57,26 @@ const CustomerProfileForm: React.FC<Props> = ({ cliente, loading, onClienteUpdat
 
     try {
       const datosActualizados = {
+        dni: dni.trim(),
+        nombre: nombre.trim(),
+        apellido: apellido.trim(),
+        fechaNacimiento: birthdate,
         correo: correo.trim(),
         telefono: telefono.trim() || undefined,
         celular: celular.trim(),
       };
 
-      const clienteActualizado = await actualizarInformacionContacto(
+      const clienteActualizado = await actualizarInformacionCliente(
         cliente.idCliente,
         datosActualizados
       );
 
       setIsEditing(false);
+      setShowConfirmModal(false);
       onClienteUpdated?.(clienteActualizado);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Error al actualizar la información");
+      setShowConfirmModal(false);
     } finally {
       setIsSaving(false);
     }
@@ -66,6 +84,10 @@ const CustomerProfileForm: React.FC<Props> = ({ cliente, loading, onClienteUpdat
 
   const handleCancel = () => {
     if (cliente) {
+      setDni(cliente.dni || "");
+      setNombre(cliente.nombre || "");
+      setApellido(cliente.apellido || "");
+      setBirthdate(cliente.fechaNacimiento?.toString() || "");
       setCorreo(cliente.correo || "");
       setTelefono(cliente.telefono || "");
       setCelular(cliente.celular || "");
@@ -129,34 +151,54 @@ const CustomerProfileForm: React.FC<Props> = ({ cliente, loading, onClienteUpdat
       <CollapsibleSection title="Datos personales" defaultOpen>
         <Labeled label="DNI">
           <input
-            readOnly
-            value={cliente.dni}
+            readOnly={!isEditing}
+            value={dni}
+            onChange={(e) => setDni(e.target.value)}
             placeholder="Documento de identidad"
-            className="w-full rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 placeholder:text-gray-400/60"
+            className={`w-full rounded-lg border px-3 py-2 placeholder:text-gray-400/60 ${
+              isEditing
+                ? "border-blue-300 bg-white focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+                : "border-gray-200 bg-gray-50"
+            }`}
           />
         </Labeled>
         <Labeled label="Nombre">
           <input
-            readOnly
-            value={cliente.nombre}
+            readOnly={!isEditing}
+            value={nombre}
+            onChange={(e) => setNombre(e.target.value)}
             placeholder="Nombre del cliente"
-            className="w-full rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 placeholder:text-gray-400/60"
+            className={`w-full rounded-lg border px-3 py-2 placeholder:text-gray-400/60 ${
+              isEditing
+                ? "border-blue-300 bg-white focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+                : "border-gray-200 bg-gray-50"
+            }`}
           />
         </Labeled>
         <Labeled label="Apellido">
           <input
-            readOnly
-            value={cliente.apellido}
+            readOnly={!isEditing}
+            value={apellido}
+            onChange={(e) => setApellido(e.target.value)}
             placeholder="Apellido del cliente"
-            className="w-full rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 placeholder:text-gray-400/60"
+            className={`w-full rounded-lg border px-3 py-2 placeholder:text-gray-400/60 ${
+              isEditing
+                ? "border-blue-300 bg-white focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+                : "border-gray-200 bg-gray-50"
+            }`}
           />
         </Labeled>
         <Labeled label="Fecha nacimiento">
           <input
             type="date"
+            disabled={!isEditing}
             value={birthdate}
             onChange={(event) => setBirthdate(event.target.value)}
-            className="w-full rounded-lg border border-gray-200 bg-gray-50 px-3 py-2"
+            className={`w-full rounded-lg border px-3 py-2 ${
+              isEditing
+                ? "border-blue-300 bg-white focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+                : "border-gray-200 bg-gray-50 cursor-not-allowed"
+            }`}
           />
         </Labeled>
       </CollapsibleSection>
@@ -217,7 +259,7 @@ const CustomerProfileForm: React.FC<Props> = ({ cliente, loading, onClienteUpdat
         ) : (
           <>
             <ActionButton onClick={handleSave} disabled={isSaving}>
-              {isSaving ? "Guardando..." : "Guardar cambios"}
+              Guardar cambios
             </ActionButton>
             <button
               onClick={handleCancel}
@@ -229,6 +271,17 @@ const CustomerProfileForm: React.FC<Props> = ({ cliente, loading, onClienteUpdat
           </>
         )}
       </div>
+
+      <ConfirmationModal
+        isOpen={showConfirmModal}
+        title="Confirmar cambios"
+        message="¿Estás seguro de que deseas guardar los cambios realizados en la información del cliente?"
+        confirmText="Sí, guardar"
+        cancelText="No, volver"
+        onConfirm={confirmSave}
+        onCancel={() => setShowConfirmModal(false)}
+        isLoading={isSaving}
+      />
     </div>
   );
 };
