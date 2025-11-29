@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { Badge } from "../../components/ui/Badge";
+import SearchBar from "../../components/ui/SearchBar";
 
 export default function TicketDetailPage() {
   const { ticketId } = useParams();
@@ -122,11 +123,7 @@ export default function TicketDetailPage() {
             <label className="block text-sm font-bold text-gray-700 mb-2">
               Artículo de la Base de Conocimiento
             </label>
-            <input
-              type="text"
-              placeholder="Buscar solución..."
-              className="w-full p-2.5 bg-gray-50 border border-gray-300 rounded-lg text-sm outline-none focus:ring-2 focus:ring-blue-500/20 transition-all"
-            />
+            <SearchBar value={""} onChange={() => {}} placeholder="Buscar solución..." />
           </div>
 
           {/* Áreas de Texto */}

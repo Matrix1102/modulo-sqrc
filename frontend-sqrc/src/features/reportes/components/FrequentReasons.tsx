@@ -1,5 +1,6 @@
-import React from "react";
+import React, { useMemo, useState } from "react";
 import { MoreVertical } from "lucide-react";
+import SearchBar from "../../../components/ui/SearchBar";
 
 interface Reason {
   label: string;
@@ -21,6 +22,14 @@ export const FrequentReasons: React.FC<FrequentReasonsProps> = ({
   ],
   loading = false,
 }) => {
+  const [query, setQuery] = useState("");
+
+  const filtered = useMemo(() => {
+    const q = (query || "").trim().toLowerCase();
+    const list = q ? reasons.filter((r) => r.label.toLowerCase().includes(q)) : reasons.slice();
+    return list.sort((a, b) => b.count - a.count);
+  }, [reasons, query]);
+
   if (loading) {
     return (
       <div className="bg-white rounded-lg shadow-sm border border-neutral-200 p-6">
@@ -60,40 +69,34 @@ export const FrequentReasons: React.FC<FrequentReasonsProps> = ({
       </div>
     );
   }
-
-  const maxCount = Math.max(...reasons.map((r) => r.count));
+  const maxCount = filtered.length > 0 ? Math.max(...filtered.map((r) => r.count)) : 1;
 
   return (
     <div className="bg-white rounded-lg shadow-sm border border-neutral-200 p-6">
       <div className="flex items-center justify-between mb-6">
-        <div>
-          <h3 className="text-sm font-medium text-dark-900">
-            Motivos frecuentes
-          </h3>
-          <p className="text-xs text-neutral-400">
-            Motivos más frecuentes de los tickets
-          </p>
+        <div className="flex-1">
+          <h3 className="text-sm font-medium text-dark-900">Motivos frecuentes</h3>
+          <p className="text-xs text-neutral-400">Motivos más frecuentes de los tickets</p>
         </div>
-        <button className="p-1 hover:bg-light-200 rounded">
+        <div className="w-48 ml-4">
+          <SearchBar value={query} onChange={(q) => setQuery(q)} placeholder="Buscar motivo..." />
+        </div>
+        <button className="p-1 hover:bg-light-200 rounded ml-4">
           <MoreVertical size={18} className="text-neutral-400" />
         </button>
       </div>
 
       <div className="space-y-4">
-        {reasons.map((reason, index) => (
+        {filtered.map((reason, index) => (
           <div key={index} className="flex items-center gap-3">
             <div className="flex-1">
               <div className="flex items-center justify-between mb-2">
                 <span className="text-sm text-dark-700">{reason.label}</span>
-                <span className="text-sm font-semibold text-dark-900">
-                  {reason.count}
-                </span>
+                <span className="text-sm font-semibold text-dark-900">{reason.count}</span>
               </div>
               <div className="w-full bg-light-300 rounded-full h-2">
                 <div
-                  className={`h-2 rounded-full ${
-                    reason.color || "bg-primary-500"
-                  }`}
+                  className={`h-2 rounded-full ${reason.color || "bg-primary-500"}`}
                   style={{ width: `${(reason.count / maxCount) * 100}%` }}
                 ></div>
               </div>

@@ -1,13 +1,16 @@
-import React from "react";
-import { Search, Filter, Plus, FileQuestion } from "lucide-react";
+import React, { useMemo, useState } from "react";
+import { Filter, Plus, FileQuestion } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { Badge } from "../../../components/ui/Badge";
+import SearchBar from "../../../components/ui/SearchBar";
 
 interface TicketTableProps {
   tickets: any[];
   title?: string;
   showToolbar?: boolean;
   onRowClick?: (id: string) => void;
+  loading?: boolean;
+  emptyVariant?: "simple" | "rich";
 }
 
 // Lógica de colores para los estados
@@ -31,8 +34,25 @@ export const TicketTable: React.FC<TicketTableProps> = ({
   title,
   showToolbar = true,
   onRowClick,
+  loading = false,
+  emptyVariant = "simple",
 }) => {
   const navigate = useNavigate();
+  const [query, setQuery] = useState("");
+
+  const filtered = useMemo(() => {
+    const q = (query || "").trim().toLowerCase();
+    if (!q) return tickets;
+    return tickets.filter((t) => {
+      return (
+        String(t.id || "").toLowerCase().includes(q) ||
+        String(t.client || "").toLowerCase().includes(q) ||
+        String(t.motive || "").toLowerCase().includes(q) ||
+        String(t.status || "").toLowerCase().includes(q) ||
+        String(t.date || "").toLowerCase().includes(q)
+      );
+    });
+  }, [tickets, query]);
 
   const handleRowClick = (id: string) => {
     if (onRowClick) onRowClick(id);
@@ -52,14 +72,11 @@ export const TicketTable: React.FC<TicketTableProps> = ({
       {showToolbar && (
         <div className="flex gap-3 mb-6">
           <div className="relative flex-1">
-            <Search
-              className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"
-              size={18}
-            />
-            <input
-              type="text"
+            {/* Reusable SearchBar */}
+            <SearchBar
+              value={query}
+              onChange={(q) => setQuery(q)}
               placeholder="Buscar tickets..."
-              className="w-full pl-10 pr-4 py-2 bg-gray-50 border-none rounded-lg text-sm outline-none focus:ring-2 focus:ring-blue-100 transition-all placeholder-gray-400"
             />
           </div>
 
@@ -77,38 +94,59 @@ export const TicketTable: React.FC<TicketTableProps> = ({
 
       {/* CONTENIDO PRINCIPAL */}
       <div className="flex-1 relative flex flex-col">
-        {tickets.length === 0 ? (
-          /* --- EMPTY STATE MEJORADO --- */
-          <div className="flex-1 flex flex-col items-center justify-center text-center min-h-[300px] border-2 border-dashed border-gray-100 rounded-xl bg-gray-50/30 m-2">
-            {/* Icono con efecto de anillo */}
-            <div className="relative mb-6 group">
-              <div className="absolute inset-0 bg-blue-100 rounded-full blur-md opacity-50 group-hover:opacity-80 transition-opacity"></div>
-              <div className="relative bg-white p-5 rounded-full shadow-sm ring-8 ring-blue-50">
-                <FileQuestion
-                  size={40}
-                  className="text-blue-500"
-                  strokeWidth={1.5}
-                />
+        {loading ? (
+          <div className="space-y-3 p-2">
+            {Array.from({ length: 6 }).map((_, idx) => (
+              <div key={idx} className="flex items-center justify-between py-3 px-2">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-full bg-gray-100 animate-pulse" />
+                  <div>
+                    <div className="h-4 bg-gray-100 rounded w-36 mb-1 animate-pulse"></div>
+                    <div className="h-3 bg-gray-100 rounded w-24 animate-pulse"></div>
+                  </div>
+                </div>
+                <div className="h-6 w-20 bg-gray-100 rounded animate-pulse" />
               </div>
-            </div>
-
-            {/* Textos */}
-            <h4 className="text-gray-900 font-bold text-lg mb-2">
-              No hay tickets disponibles
-            </h4>
-            <p className="text-sm text-gray-500 max-w-xs mx-auto leading-relaxed">
-              Actualmente no hay tickets que coincidan con tu búsqueda o la
-              lista está vacía.
-            </p>
-
-            {/* Botón de acción secundaria */}
-            <button
-              onClick={() => window.location.reload()}
-              className="mt-6 px-5 py-2 bg-white border border-gray-200 text-gray-700 text-sm font-medium rounded-lg hover:bg-gray-50 hover:border-gray-300 transition-all shadow-sm"
-            >
-              Actualizar lista
-            </button>
+            ))}
           </div>
+        ) : filtered.length === 0 ? (
+          emptyVariant === "simple" ? (
+            <div className="flex-1 flex items-center justify-center text-center min-h-[200px] text-gray-500 m-2">
+              No hay tickets disponibles
+            </div>
+          ) : (
+            /* --- EMPTY STATE MEJORADO --- */
+            <div className="flex-1 flex flex-col items-center justify-center text-center min-h-[300px] border-2 border-dashed border-gray-100 rounded-xl bg-gray-50/30 m-2">
+              {/* Icono con efecto de anillo */}
+              <div className="relative mb-6 group">
+                <div className="absolute inset-0 bg-blue-100 rounded-full blur-md opacity-50 group-hover:opacity-80 transition-opacity"></div>
+                <div className="relative bg-white p-5 rounded-full shadow-sm ring-8 ring-blue-50">
+                  <FileQuestion
+                    size={40}
+                    className="text-blue-500"
+                    strokeWidth={1.5}
+                  />
+                </div>
+              </div>
+
+              {/* Textos */}
+              <h4 className="text-gray-900 font-bold text-lg mb-2">
+                No hay tickets disponibles
+              </h4>
+              <p className="text-sm text-gray-500 max-w-xs mx-auto leading-relaxed">
+                Actualmente no hay tickets que coincidan con tu búsqueda o la
+                lista está vacía.
+              </p>
+
+              {/* Botón de acción secundaria */}
+              <button
+                onClick={() => window.location.reload()}
+                className="mt-6 px-5 py-2 bg-white border border-gray-200 text-gray-700 text-sm font-medium rounded-lg hover:bg-gray-50 hover:border-gray-300 transition-all shadow-sm"
+              >
+                Actualizar lista
+              </button>
+            </div>
+          )
         ) : (
           /* --- TABLA DE DATOS --- */
           <div className="overflow-x-auto flex-1">
@@ -123,7 +161,7 @@ export const TicketTable: React.FC<TicketTableProps> = ({
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-50">
-                {tickets.map((t, idx) => (
+                {filtered.map((t, idx) => (
                   <tr
                     key={idx}
                     onClick={() => handleRowClick(t.id)}

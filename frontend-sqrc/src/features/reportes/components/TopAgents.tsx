@@ -1,5 +1,6 @@
-import React from "react";
+import React, { useMemo, useState } from "react";
 import { Star } from "lucide-react";
+import SearchBar from "../../../components/ui/SearchBar";
 
 interface Agent {
   name: string;
@@ -22,6 +23,13 @@ export const TopAgents: React.FC<TopAgentsProps> = ({
   ],
   loading = false,
 }) => {
+  const [query, setQuery] = useState("");
+
+  const filtered = useMemo(() => {
+    const q = (query || "").trim().toLowerCase();
+    if (!q) return agents;
+    return agents.filter((a) => a.name.toLowerCase().includes(q));
+  }, [agents, query]);
   const getInitials = (name: string) => {
     return name
       .split(" ")
@@ -37,6 +45,9 @@ export const TopAgents: React.FC<TopAgentsProps> = ({
             Agentes mejor evaluados
           </h3>
           <p className="text-xs text-neutral-400">Top 4 agentes</p>
+        </div>
+        <div className="w-48">
+          <SearchBar value={query} onChange={(q) => setQuery(q)} placeholder="Buscar agente..." />
         </div>
       </div>
       {loading ? (
@@ -70,13 +81,13 @@ export const TopAgents: React.FC<TopAgentsProps> = ({
             );
           })}
         </div>
-      ) : !agents || agents.length === 0 ? (
+      ) : !filtered || filtered.length === 0 ? (
         <div className="py-8 text-sm text-dark-500">
           No hay listado de agentes
         </div>
       ) : (
         <div className="space-y-4">
-          {agents.map((agent, index) => (
+          {filtered.map((agent, index) => (
             <div key={index} className="flex items-center justify-between">
               <div className="flex items-center gap-3">
                 {agent.avatar ? (

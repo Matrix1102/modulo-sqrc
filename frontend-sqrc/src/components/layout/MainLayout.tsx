@@ -17,9 +17,17 @@ const PAGE_CONFIG: Record<string, { title: string; subtitle: string }> = {
     title: "Tickets de Equipo",
     subtitle: "Gestión de los tickets asignados al equipo",
   },
+  "/supervisor/tickets": {
+    title: "Tickets de Equipo",
+    subtitle: "Gestión de los tickets asignados al equipo",
+  },
   "/supervisor/encuestas": {
     title: "Resultados de Encuesta",
     subtitle: "Feedback recibido de los clientes",
+  },
+  "/supervisor/tickets/agente/": {
+    title: "Detalle de Agente",
+    subtitle: "Historial de tickets del agente seleccionado",
   },
   // Nuevas rutas de Encuestas (Nivel 2)
   "/supervisor/encuestas/agentes": {
@@ -73,6 +81,17 @@ const DYNAMIC_ROUTES = [
   },
   {
     prefix: "/supervisor/ticketing/detalle/",
+    title: "Detalle del Ticket",
+    subtitle: "Gestión y resolución del caso",
+  },
+  // Also support the 'tickets' namespace (some routes use 'tickets' instead of 'ticketing')
+  {
+    prefix: "/supervisor/tickets/agente/",
+    title: "Detalle de Agente",
+    subtitle: "Historial de tickets del agente seleccionado",
+  },
+  {
+    prefix: "/supervisor/tickets/detalle/",
     title: "Detalle del Ticket",
     subtitle: "Gestión y resolución del caso",
   },

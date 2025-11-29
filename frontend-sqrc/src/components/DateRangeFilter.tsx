@@ -1,5 +1,6 @@
-import React, { useMemo, useState, useEffect } from "react";
+import React, { useMemo, useState, useEffect, useRef } from "react";
 import DatePicker from "react-datepicker";
+import { format } from "date-fns";
 
 interface Props {
   onChange?: (params: { startDate?: string; endDate?: string }) => void;
@@ -9,6 +10,9 @@ interface Props {
 export const DateRangeFilter: React.FC<Props> = ({ onChange, initialRange = "week" }) => {
   const [rangeType, setRangeType] = useState<"today" | "week" | "month" | "custom">(initialRange);
   const [range, setRange] = useState<[Date | null, Date | null]>([null, null]);
+  const [showPicker, setShowPicker] = useState(false);
+  const [tempRange, setTempRange] = useState<[Date | null, Date | null]>([null, null]);
+  const containerRef = useRef<HTMLDivElement | null>(null);
 
   const params = useMemo(() => {
     const now = new Date();
@@ -55,7 +59,7 @@ export const DateRangeFilter: React.FC<Props> = ({ onChange, initialRange = "wee
         </button>
         <button
           className={`px-3 py-1 rounded ${
-            rangeType === "week" ? "bg-primary-500 text-white" : "bg-light-100"
+            rangeType === "week" ? "bg-primary-600 text-white" : "bg-light-100"
           }`}
           onClick={() => {
             setRangeType("week");
@@ -66,7 +70,7 @@ export const DateRangeFilter: React.FC<Props> = ({ onChange, initialRange = "wee
         </button>
         <button
           className={`px-3 py-1 rounded ${
-            rangeType === "month" ? "bg-primary-500 text-white" : "bg-light-100"
+            rangeType === "month" ? "bg-primary-600 text-white" : "bg-light-100"
           }`}
           onClick={() => {
             setRangeType("month");
@@ -75,36 +79,64 @@ export const DateRangeFilter: React.FC<Props> = ({ onChange, initialRange = "wee
         >
           Último mes
         </button>
-        <button
-          className={`px-3 py-1 rounded ${
-            rangeType === "custom" ? "bg-primary-500 text-white" : "bg-light-100"
-          }`}
-          onClick={() => setRangeType("custom")}
-        >
-          Personalizado
-        </button>
+        <div className="relative" ref={containerRef}>
+          <button
+            className={`px-3 py-1 rounded ${
+              rangeType === "custom" ? "bg-primary-600 text-white" : "bg-light-100"
+            }`}
+            onClick={() => setShowPicker((s) => !s)}
+          >
+            Personalizado
+          </button>
+
+          {showPicker && (
+            <div className="absolute right-0 mt-2 w-[340px] bg-white shadow-lg rounded border border-gray-100 p-3 z-50">
+              <DatePicker
+                selectsRange
+                startDate={tempRange[0]}
+                endDate={tempRange[1]}
+                onChange={(update: [Date | null, Date | null]) => {
+                  setTempRange(update);
+                }}
+                isClearable
+                dateFormat="yyyy-MM-dd"
+                className="w-full px-3 py-2 border border-neutral-200 rounded mb-3"
+                placeholderText="Selecciona un rango"
+              />
+              <div className="flex justify-end gap-2">
+                <button
+                  className="px-3 py-1 rounded bg-white border border-gray-200 text-sm"
+                  onClick={() => {
+                    setTempRange([null, null]);
+                  }}
+                >
+                  Limpiar
+                </button>
+                <button
+                  className="px-3 py-1 rounded bg-primary-600 text-white text-sm"
+                  onClick={() => {
+                    setRange(tempRange);
+                    setRangeType("custom");
+                    setShowPicker(false);
+                  }}
+                >
+                  Aplicar
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
       </div>
 
       <div>
         {rangeType === "custom" && (
           <div className="flex items-center gap-2">
-            <DatePicker
-              selectsRange
-              startDate={range[0]}
-              endDate={range[1]}
-              onChange={(update: [Date | null, Date | null]) => {
-                setRange(update);
-              }}
-              isClearable
-              dateFormat="yyyy-MM-dd"
-              showPopperArrow
-              popperPlacement="bottom-start"
-              popperClassName="react-datepicker-custom-popper"
-              className="px-3 py-1 border border-neutral-200 rounded bg-light-100 text-dark-900 focus:outline-none focus:ring-2 focus:ring-primary-400"
-              placeholderText="Selecciona un rango"
-            />
-            <div className="text-sm text-dark-700">
-              {range[0] ? range[0].toISOString().slice(0, 10) : "-"} — {range[1] ? range[1].toISOString().slice(0, 10) : "-"}
+            <div className="text-sm text-dark-700 px-3 py-1 bg-white border border-neutral-200 rounded">
+              {range[0] ? format(range[0], "yyyy-MM-dd") : "-"}
+            </div>
+            <div className="text-sm text-dark-700">—</div>
+            <div className="text-sm text-dark-700 px-3 py-1 bg-white border border-neutral-200 rounded">
+              {range[1] ? format(range[1], "yyyy-MM-dd") : "-"}
             </div>
           </div>
         )}

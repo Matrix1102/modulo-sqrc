@@ -1,10 +1,11 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { Search, Filter, Plus, AlertCircle, Loader2 } from "lucide-react";
+import { Filter, Plus, AlertCircle, Loader2 } from "lucide-react";
 // 1. Importamos la Tabla Reutilizable
 import { TicketTable } from "../../features/tickets/components/TicketTable";
 import reportService from "../../features/reportes/services/reportService";
 import type { AgentTickets } from "../../features/reportes/types/reporte";
+import SearchBar from "../../components/ui/SearchBar";
 
 interface TicketData {
   id: string;
@@ -23,6 +24,17 @@ export default function TicketAgentPage() {
   const [error, setError] = useState<string | null>(null);
   const [tickets, setTickets] = useState<TicketData[]>([]);
   const [agentName, setAgentName] = useState("");
+  const [query, setQuery] = useState("");
+
+  const filtered = useMemo(() => {
+    const q = (query || "").trim().toLowerCase();
+    if (!q) return tickets;
+    return tickets.filter((t) =>
+      [t.id, t.client, t.motive, t.status, t.date]
+        .map((x) => String(x || "").toLowerCase())
+        .some((s) => s.includes(q))
+    );
+  }, [tickets, query]);
 
   // --- FETCH DATA ---
   useEffect(() => {
@@ -91,7 +103,6 @@ export default function TicketAgentPage() {
       {/* HEADER */}
       <div className="flex justify-between items-end">
         <div>
-          <h1 className="text-3xl font-extrabold text-gray-900 mb-1">Ticket</h1>
           <p className="text-gray-500 font-medium">
             Tickets relacionados a{" "}
             <span className="text-gray-800 font-semibold">{agentName}</span>
@@ -109,15 +120,7 @@ export default function TicketAgentPage() {
       {/* Mantenemos este toolbar aquí porque tiene un estilo gris específico para esta página */}
       <div className="flex items-center gap-4">
         <div className="relative flex-1">
-          <Search
-            className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400"
-            size={18}
-          />
-          <input
-            type="text"
-            placeholder="Buscar tickets..."
-            className="w-full pl-11 pr-4 py-3 bg-gray-200/60 border-none rounded-xl text-sm text-gray-700 outline-none focus:ring-2 focus:ring-blue-500/20 transition-all font-medium"
-          />
+          <SearchBar value={query} onChange={(q) => setQuery(q)} placeholder="Buscar tickets..." />
         </div>
         <button className="flex items-center gap-2 px-5 py-3 bg-gray-200/60 text-gray-700 rounded-xl text-sm font-bold hover:bg-gray-300 transition-colors">
           <Filter size={16} /> Todos
@@ -132,7 +135,7 @@ export default function TicketAgentPage() {
         {" "}
         {/* min-h-0 permite el scroll dentro de flex */}
         <TicketTable
-          tickets={tickets}
+          tickets={filtered}
           showToolbar={false} // 👈 Ocultamos el toolbar interno para usar el personalizado de arriba
           onRowClick={(id) => navigate(`/supervisor/ticketing/detalle/${id}`)}
         />
