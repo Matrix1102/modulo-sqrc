@@ -1,5 +1,19 @@
 package com.sqrc.module.backendsqrc.plantillaRespuesta.DTO;
 
 
-public record PlantillaResponseDTO() {
+import com.sqrc.module.backendsqrc.plantillaRespuesta.model.TipoCaso;
+
+import java.time.LocalDateTime;
+
+public record PlantillaCreacionResponseDTO(
+        Long idPlantilla,
+        String nombreInterno,
+        String tituloVisible,
+        TipoCaso tipoCaso,
+        boolean activo,
+        LocalDateTime fechaCreacion,
+        LocalDateTime fechaModificacion,
+        String cuerpo,
+        String despedida
+) {
 }

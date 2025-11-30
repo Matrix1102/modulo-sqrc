@@ -1,88 +1,148 @@
 package com.sqrc.module.backendsqrc.plantillaRespuesta.Service;
 
 
+import com.sqrc.module.backendsqrc.plantillaRespuesta.DTO.*;
 import com.sqrc.module.backendsqrc.plantillaRespuesta.Repository.PlantillaRepository;
-import org.springframework.beans.factory.annotation.Autowired;
+import com.sqrc.module.backendsqrc.plantillaRespuesta.model.PlantillaDefault;
 import org.springframework.stereotype.Service;
 import com.sqrc.module.backendsqrc.plantillaRespuesta.model.TipoCaso;
-import lombok.RequiredArgsConstructor;
 import com.sqrc.module.backendsqrc.plantillaRespuesta.model.Plantilla;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.time.LocalDate;
+
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.stream.Collectors;
 
 @Service
 public class PlantillaService {
 
 
     private final PlantillaRepository plantillaRepository;
+    private final PlantillaMapper mapper;
 
-    public PlantillaService(PlantillaRepository plantillaRepository) {
+    public PlantillaService(PlantillaRepository plantillaRepository, PlantillaMapper mapper) {
         this.plantillaRepository = plantillaRepository;
+        this.mapper = mapper;
     }
 
     @Transactional(readOnly = true)
-    public List<Plantilla> listarTodas() {
-        return plantillaRepository.findAll();
+    public List<PlantillaResumenResponseDTO> listarTodas() {
+        return plantillaRepository.findAll().stream()
+                .map(mapper::toResumenDTO) // Convertimos aquí mismo
+                .collect(Collectors.toList());
     }
 
     @Transactional(readOnly = true)
-    public List<Plantilla> listarActivasPorCaso(TipoCaso caso) {
-        // Si no especifican caso, devolvemos todas las activas ordenadas
+    public List<PlantillaResumenResponseDTO> listarActivasPorCaso(TipoCaso caso) {
+        List<Plantilla> lista;
         if (caso == null) {
-            return plantillaRepository.findByActivoTrueOrderByNombreAsc();
+            lista = plantillaRepository.findByActivoTrueOrderByNombreAsc();
+        } else {
+            lista = plantillaRepository.findByTipoCasoAndActivoTrue(caso);
         }
-        // Si especifican caso (ej: RECLAMO), filtramos
-        return plantillaRepository.findByTipoCasoAndActivoTrue(caso);
+
+        return lista.stream()
+                .map(mapper::toResumenDTO)
+                .collect(Collectors.toList());
+    }
+
+    @Transactional(readOnly = true)
+    public PlantillaResumenResponseDTO obtenerPorIdResumen(Long id) {
+        Plantilla plantilla = plantillaRepository.findById(id).orElseThrow(
+                () -> new RuntimeException("No se encontró la plantilla con ID: " + id)
+        );
+        return mapper.toResumenDTO(plantilla);
+    }
+
+    @Transactional(readOnly = true)
+    public PlantillaDetalleResponseDTO obtenerPorIdDetalle(Long id) {
+        Plantilla plantilla = plantillaRepository.findById(id).orElseThrow(
+                () -> new RuntimeException("No se encontró la plantilla con ID: " + id)
+        );
+        return mapper.toDetalleDTO(plantilla);
     }
 
     @Transactional(readOnly = true)
     public Plantilla obtenerPorId(Long id) {
-        return plantillaRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("No se encontró la plantilla con ID: " + id));
+        Plantilla plantilla = plantillaRepository.findById(id).orElseThrow(
+                () -> new RuntimeException("No se encontró la plantilla con ID: " + id)
+        );
+        return plantilla;
     }
 
 
     @Transactional
-    public Plantilla crearPlantilla(Plantilla plantilla) {
-        //verifica que no vea otro nombre igual
+    public PlantillaCreacionResponseDTO crearPlantilla(CrearPlantillaRequestDTO request) {
+
+        Plantilla plantilla = new Plantilla();
+        plantilla.setNombre(request.nombreInterno());
+        plantilla.setTituloVisible(request.tituloVisible());
+        plantilla.setTipoCaso(request.tipoCaso());
+        plantilla.setCuerpo(request.cuerpo());
+        plantilla.setDespedida(request.despedida());
+
+        // gloica del HTML (prioridad al request, si no, default)
+        if (request.htmlModelo() != null && !request.htmlModelo().isBlank()) {
+            plantilla.setHtmlModel(request.htmlModelo());
+        } else {
+            plantilla.setHtmlModel(PlantillaDefault.HTML_FORMAL);
+        }
+
+        // validaciones
+        validarCamposObligatorios(plantilla);
+
         if (plantillaRepository.existsByNombre(plantilla.getNombre())) {
             throw new RuntimeException("Ya existe una plantilla con el nombre interno: " + plantilla.getNombre());
         }
 
+        // completar datos
+        plantilla.setActivo(true);
+        plantilla.setIdPlantilla(null);
+        plantilla.setFechaCreacion(LocalDateTime.now());
+        plantilla.setFechaModificacion(LocalDateTime.now());
 
-        plantilla.setActivo(true); //nace activa por defecto
-        plantilla.setIdPlantilla(null); //forzamos que sea un INSERT, no un update accidental. en la misma bd le dan un id
+        // guardar
+        Plantilla guardada = plantillaRepository.save(plantilla);
 
-        return plantillaRepository.save(plantilla);
+        // retorno
+        return mapper.toCreacionDTO(guardada);
     }
 
     @Transactional
-    public Plantilla actualizarPlantilla(Long id, Plantilla datosNuevos) {
-        //buscamos la plantilla original
+    public PlantillaDetalleResponseDTO actualizarPlantilla(Long id, ActualizarPlantillaRequestDTO request) {
+
         Plantilla plantillaDB = obtenerPorId(id);
 
-        //validamos el nombre
-        // Solo lanzamos error si CAMBIÓ el nombre Y el nuevo nombre ya existe en OTRA plantilla
-        if (!plantillaDB.getNombre().equalsIgnoreCase(datosNuevos.getNombre())
-                && plantillaRepository.existsByNombre(datosNuevos.getNombre())) {
-            throw new RuntimeException("El nombre '" + datosNuevos.getNombre() + "' ya está en uso.");
+        // validar duplicados (regla: si el nombre cambió Y el nuevo ya existe)
+        if (!plantillaDB.getNombre().equalsIgnoreCase(request.nombreInterno())
+                && plantillaRepository.existsByNombre(request.nombreInterno())) {
+            throw new RuntimeException("El nombre '" + request.nombreInterno() + "' ya está en uso.");
         }
 
-        //actualizamos SOLO los campos editables
-        //no tocamos ID, ni fechaCreacion, ni activo
-        plantillaDB.setNombre(datosNuevos.getNombre());
-        plantillaDB.setTituloVisible(datosNuevos.getTituloVisible());
-        plantillaDB.setTipoCaso(datosNuevos.getTipoCaso());
-        plantillaDB.setHtmlModel(datosNuevos.getHtmlModel());
-        plantillaDB.setCuerpo(datosNuevos.getCuerpo());
-        plantillaDB.setDespedida(datosNuevos.getDespedida());
+
+        plantillaDB.setNombre(request.nombreInterno());
+        plantillaDB.setTituloVisible(request.tituloVisible());
+        plantillaDB.setTipoCaso(request.tipoCaso());
+        plantillaDB.setCuerpo(request.cuerpo());
+        plantillaDB.setDespedida(request.despedida());
+
+
+        if (request.htmlModelo() != null && !request.htmlModelo().isBlank()) {
+            plantillaDB.setHtmlModel(request.htmlModelo());
+        }
+
+        // validar integridad (que no hayamos dejado campos vacíos al setear)
+        validarCamposObligatorios(plantillaDB);
+
+
         plantillaDB.setFechaModificacion(LocalDateTime.now());
 
 
-        return plantillaRepository.save(plantillaDB);
+        Plantilla actualizada = plantillaRepository.save(plantillaDB);
+
+        // retornar el DTO de detalle (usando el mapper de salida)
+        return mapper.toDetalleDTO(actualizada);
     }
 
     @Transactional
@@ -90,6 +150,7 @@ public class PlantillaService {
         //borado logico
         Plantilla plantilla = obtenerPorId(id);
         plantilla.setActivo(false);
+        plantilla.setFechaModificacion(LocalDateTime.now());
         plantillaRepository.save(plantilla);
     }
 
@@ -98,6 +159,22 @@ public class PlantillaService {
 
         Plantilla plantilla = obtenerPorId(id);
         plantilla.setActivo(true);
+        plantilla.setFechaModificacion(LocalDateTime.now());
         plantillaRepository.save(plantilla);
+    }
+
+    private void validarCamposObligatorios(Plantilla p) {
+        if (esInvalido(p.getNombre()) ||
+                esInvalido(p.getTituloVisible()) ||
+                esInvalido(p.getCuerpo()) ||
+                esInvalido(p.getDespedida()) ||
+                p.getTipoCaso() == null) { // Enum no puede ser null
+
+            throw new RuntimeException("Todos los campos obligatorios deben estar llenos.");
+        }
+    }
+
+    private boolean esInvalido(String texto) {
+        return texto == null || texto.trim().isEmpty();
     }
 }
