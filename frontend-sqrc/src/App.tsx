@@ -10,7 +10,11 @@ import EncuestasPage from "./pages/supervisor/SurveyPage";
 import SurveyCategoryPage from "./pages/supervisor/SurveyCategoryPage";
 
 // Base de Conocimiento
-import { BaseConocimientoPage } from "./features/baseConocimiento";
+import {
+  BaseConocimientoPage,
+  ArticuloExpandidoPage,
+  EditarArticuloPage,
+} from "./features/baseConocimiento";
 
 // Contexto de Usuario
 import { UserProvider } from "./context";
@@ -96,6 +100,8 @@ export default function App() {
             element={<MainLayout role="AGENT" />}
           >
             <Route index element={<BaseConocimientoPage />} />
+            <Route path="articulo/:id" element={<ArticuloExpandidoPage />} />
+            <Route path="editar/:id" element={<EditarArticuloPage />} />
           </Route>
         </Routes>
       </BrowserRouter>

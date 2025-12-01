@@ -222,6 +222,19 @@ const articuloService = {
   },
 
   /**
+   * Propone una versión para revisión del supervisor.
+   */
+  async proponerVersion(
+    idArticulo: number,
+    idVersion: number
+  ): Promise<ArticuloVersionResponse> {
+    const response = await http.put<ArticuloVersionResponse>(
+      `${BASE_URL}/${idArticulo}/versiones/${idVersion}/proponer`
+    );
+    return response.data;
+  },
+
+  /**
    * Publica un artículo con una versión específica.
    */
   async publicarArticulo(

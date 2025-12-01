@@ -1,9 +1,11 @@
 import React, { useState, useCallback, useMemo } from "react";
+import { useNavigate } from "react-router-dom";
 import { Search, ThumbsUp, ThumbsDown, Eye, ChevronDown } from "lucide-react";
 import { useArticulos, useArticulo } from "../hooks/useArticulos";
 import articuloService from "../services/articuloService";
 import { useUserId } from "../../../context";
 import showToast from "../../../services/notification";
+import ArticuloModal from "./ArticuloModal";
 import type {
   BusquedaArticuloRequest,
   ArticuloResumenResponse,
@@ -11,10 +13,12 @@ import type {
 import { VISIBILIDAD_LABELS } from "../types/articulo";
 
 const TodosArticulosView: React.FC = () => {
+  const navigate = useNavigate();
   const userId = useUserId();
   const [selectedArticuloId, setSelectedArticuloId] = useState<number | null>(
     null
   );
+  const [showModal, setShowModal] = useState(false);
   const [feedbackGiven, setFeedbackGiven] = useState<boolean | null>(null);
   const [searchText, setSearchText] = useState("");
   const [ordenarPor] = useState("Relevancia");
@@ -40,10 +44,27 @@ const TodosArticulosView: React.FC = () => {
   const handleArticuloClick = useCallback(
     (articulo: ArticuloResumenResponse) => {
       setSelectedArticuloId(articulo.idArticulo);
+      setShowModal(true);
       setFeedbackGiven(null);
     },
     []
   );
+
+  const handleCloseModal = useCallback(() => {
+    setShowModal(false);
+  }, []);
+
+  const handleExpand = useCallback(() => {
+    if (selectedArticuloId) {
+      navigate(`/base-conocimiento/articulo/${selectedArticuloId}`);
+    }
+  }, [selectedArticuloId, navigate]);
+
+  const handleEdit = useCallback(() => {
+    if (selectedArticuloId) {
+      navigate(`/base-conocimiento/editar/${selectedArticuloId}`);
+    }
+  }, [selectedArticuloId, navigate]);
 
   const handleFeedback = useCallback(
     async (util: boolean) => {
@@ -331,6 +352,20 @@ const TodosArticulosView: React.FC = () => {
           </div>
         )}
       </div>
+
+      {/* Modal del Artículo */}
+      {articuloSeleccionado && (
+        <ArticuloModal
+          articulo={articuloSeleccionado}
+          isOpen={showModal}
+          onClose={handleCloseModal}
+          onExpand={handleExpand}
+          onEdit={handleEdit}
+          onFeedback={handleFeedback}
+          feedbackGiven={feedbackGiven}
+          showEditButton={true}
+        />
+      )}
     </div>
   );
 };

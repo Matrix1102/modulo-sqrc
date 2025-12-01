@@ -1,22 +1,31 @@
-import React, { useMemo } from "react";
+import React, { useMemo, useState, useCallback } from "react";
+import { useNavigate } from "react-router-dom";
 import { ChevronDown, Database, User } from "lucide-react";
-import { useMisArticulos } from "../hooks/useArticulos";
+import { useMisArticulos, useArticulo } from "../hooks/useArticulos";
 import { useUserId } from "../../../context";
+import articuloService from "../services/articuloService";
+import showToast from "../../../services/notification";
+import ArticuloModal from "./ArticuloModal";
 import type { ArticuloResumenResponse } from "../types/articulo";
 
 interface ArticuloCardProps {
   articulo: ArticuloResumenResponse;
   estadoLabel: string;
   estadoColor: string;
+  onClick: () => void;
 }
 
 const ArticuloMiniCard: React.FC<ArticuloCardProps> = ({
   articulo,
   estadoLabel,
   estadoColor,
+  onClick,
 }) => {
   return (
-    <div className="bg-white rounded-lg border border-gray-100 p-3 hover:border-blue-200 hover:shadow-sm transition-all cursor-pointer">
+    <div 
+      onClick={onClick}
+      className="bg-white rounded-lg border border-gray-100 p-3 hover:border-blue-200 hover:shadow-sm transition-all cursor-pointer"
+    >
       {/* Author */}
       <div className="flex items-center gap-2 mb-2">
         <div className="w-6 h-6 bg-gray-200 rounded-full flex items-center justify-center">
@@ -51,6 +60,7 @@ interface ColumnProps {
   estadoLabel: string;
   estadoColor: string;
   emptyMessage?: string;
+  onArticuloClick: (idArticulo: number) => void;
 }
 
 const KanbanColumn: React.FC<ColumnProps> = ({
@@ -61,6 +71,7 @@ const KanbanColumn: React.FC<ColumnProps> = ({
   estadoLabel,
   estadoColor,
   emptyMessage = "No hay datos disponibles",
+  onArticuloClick,
 }) => {
   return (
     <div className="flex flex-col min-w-60">
@@ -104,6 +115,7 @@ const KanbanColumn: React.FC<ColumnProps> = ({
               articulo={articulo}
               estadoLabel={estadoLabel}
               estadoColor={estadoColor}
+              onClick={() => onArticuloClick(articulo.idArticulo)}
             />
           ))
         )}
@@ -114,6 +126,11 @@ const KanbanColumn: React.FC<ColumnProps> = ({
 
 const MisArticulosView: React.FC = () => {
   const userId = useUserId();
+  const navigate = useNavigate();
+
+  // Estado del modal
+  const [showModal, setShowModal] = useState(false);
+  const [selectedArticuloId, setSelectedArticuloId] = useState<number | null>(null);
 
   const {
     articulos: misArticulos,
@@ -121,7 +138,13 @@ const MisArticulosView: React.FC = () => {
     deprecados,
     populares,
     loading,
+    refetch,
   } = useMisArticulos(userId);
+
+  // Obtener artículo seleccionado
+  const { data: articuloSeleccionado, loading: loadingArticulo } = useArticulo(
+    selectedArticuloId
+  );
 
   // Filtrar propuestos de misArticulos
   const propuestos = useMemo(
@@ -135,52 +158,109 @@ const MisArticulosView: React.FC = () => {
     [deprecados]
   );
 
+  // Handlers
+  const handleArticuloClick = useCallback((idArticulo: number) => {
+    setSelectedArticuloId(idArticulo);
+    setShowModal(true);
+  }, []);
+
+  const handleCloseModal = useCallback(() => {
+    setShowModal(false);
+    setSelectedArticuloId(null);
+  }, []);
+
+  const handleExpand = useCallback(() => {
+    if (selectedArticuloId) {
+      navigate(`/base-conocimiento/articulo/${selectedArticuloId}`);
+    }
+  }, [selectedArticuloId, navigate]);
+
+  const handleEdit = useCallback(() => {
+    if (selectedArticuloId) {
+      navigate(`/base-conocimiento/editar/${selectedArticuloId}`);
+    }
+  }, [selectedArticuloId, navigate]);
+
+  const handleFeedback = useCallback(async (esUtil: boolean) => {
+    if (!selectedArticuloId || !articuloSeleccionado) return;
+    try {
+      await articuloService.feedbackRapido(
+        selectedArticuloId,
+        articuloSeleccionado.versionVigente || 1,
+        userId,
+        esUtil
+      );
+      showToast("¡Gracias por tu feedback!", "success");
+      refetch();
+    } catch (error) {
+      showToast("Error al registrar feedback", "error");
+    }
+  }, [selectedArticuloId, articuloSeleccionado, userId, refetch]);
+
   return (
-    <div className="grid grid-cols-4 gap-6">
-      {/* Columna 1: Artículos propuestos */}
-      <KanbanColumn
-        title="Artículos propuestos"
-        count={propuestos.length}
-        articulos={propuestos}
-        loading={loading}
-        estadoLabel="Propuesto"
-        estadoColor="text-amber-600"
-        emptyMessage="No hay artículos propuestos"
-      />
+    <>
+      <div className="grid grid-cols-4 gap-6">
+        {/* Columna 1: Artículos propuestos */}
+        <KanbanColumn
+          title="Artículos propuestos"
+          count={propuestos.length}
+          articulos={propuestos}
+          loading={loading}
+          estadoLabel="Propuesto"
+          estadoColor="text-amber-600"
+          emptyMessage="No hay artículos propuestos"
+          onArticuloClick={handleArticuloClick}
+        />
 
-      {/* Columna 2: Mis borradores */}
-      <KanbanColumn
-        title="Mis borradores"
-        count={borradores.length}
-        articulos={borradores}
-        loading={loading}
-        estadoLabel="Borrador"
-        estadoColor="text-blue-600"
-        emptyMessage="No hay datos disponibles"
-      />
+        {/* Columna 2: Mis borradores */}
+        <KanbanColumn
+          title="Mis borradores"
+          count={borradores.length}
+          articulos={borradores}
+          loading={loading}
+          estadoLabel="Borrador"
+          estadoColor="text-blue-600"
+          emptyMessage="No hay datos disponibles"
+          onArticuloClick={handleArticuloClick}
+        />
 
-      {/* Columna 3: Mis Artículos deprecados */}
-      <KanbanColumn
-        title="Mis Artículos deprecados"
-        count={vencidos.length}
-        articulos={vencidos}
-        loading={loading}
-        estadoLabel="Vencido"
-        estadoColor="text-red-500"
-        emptyMessage="No hay artículos deprecados"
-      />
+        {/* Columna 3: Mis Artículos deprecados */}
+        <KanbanColumn
+          title="Mis Artículos deprecados"
+          count={vencidos.length}
+          articulos={vencidos}
+          loading={loading}
+          estadoLabel="Vencido"
+          estadoColor="text-red-500"
+          emptyMessage="No hay artículos deprecados"
+          onArticuloClick={handleArticuloClick}
+        />
 
-      {/* Columna 4: Mis Artículos más populares */}
-      <KanbanColumn
-        title="Mis Artículos más populares"
-        count={populares.length}
-        articulos={populares}
-        loading={loading}
-        estadoLabel="Propuesto"
-        estadoColor="text-amber-600"
-        emptyMessage="No hay artículos populares"
-      />
-    </div>
+        {/* Columna 4: Mis Artículos más populares */}
+        <KanbanColumn
+          title="Mis Artículos más populares"
+          count={populares.length}
+          articulos={populares}
+          loading={loading}
+          estadoLabel="Propuesto"
+          estadoColor="text-amber-600"
+          emptyMessage="No hay artículos populares"
+          onArticuloClick={handleArticuloClick}
+        />
+      </div>
+
+      {/* Modal de artículo */}
+      {articuloSeleccionado && !loadingArticulo && (
+        <ArticuloModal
+          articulo={articuloSeleccionado}
+          isOpen={showModal}
+          onClose={handleCloseModal}
+          onExpand={handleExpand}
+          onEdit={handleEdit}
+          onFeedback={handleFeedback}
+        />
+      )}
+    </>
   );
 };
 

@@ -184,6 +184,31 @@ public class ArticuloVersionService {
     }
 
     /**
+     * Propone una versión para revisión del supervisor.
+     * Cambia el estado de BORRADOR a PROPUESTO.
+     */
+    public ArticuloVersionResponse proponerVersion(Integer idVersion) {
+        log.info("Proponiendo versión ID: {} para revisión", idVersion);
+
+        ArticuloVersion version = versionRepository.findById(idVersion)
+                .orElseThrow(() -> new VersionNotFoundException(idVersion));
+
+        // Solo se pueden proponer versiones en borrador
+        if (version.getEstadoPropuesta() != EstadoArticulo.BORRADOR) {
+            throw new OperacionInvalidaException(
+                    "Solo se pueden proponer versiones en estado BORRADOR. Estado actual: " 
+                    + version.getEstadoPropuesta());
+        }
+
+        version.setEstadoPropuesta(EstadoArticulo.PROPUESTO);
+        version = versionRepository.save(version);
+
+        log.info("Versión ID: {} propuesta para revisión", idVersion);
+
+        return mapToResponse(version);
+    }
+
+    /**
      * Archiva una versión.
      */
     public ArticuloVersionResponse archivarVersion(Integer idVersion) {

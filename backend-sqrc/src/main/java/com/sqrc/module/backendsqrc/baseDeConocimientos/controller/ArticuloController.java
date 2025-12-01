@@ -246,6 +246,19 @@ public class ArticuloController {
     }
 
     /**
+     * Propone una versión para revisión del supervisor.
+     * PUT /api/articulos/{idArticulo}/versiones/{idVersion}/proponer
+     */
+    @PutMapping("/{idArticulo}/versiones/{idVersion}/proponer")
+    public ResponseEntity<ArticuloVersionResponse> proponerVersion(
+            @PathVariable Integer idArticulo,
+            @PathVariable Integer idVersion) {
+        log.info("PUT /api/articulos/{}/versiones/{}/proponer", idArticulo, idVersion);
+        ArticuloVersionResponse response = versionService.proponerVersion(idVersion);
+        return ResponseEntity.ok(response);
+    }
+
+    /**
      * Publica un artículo con una versión específica.
      * POST /api/articulos/{idArticulo}/publicacion
      */
