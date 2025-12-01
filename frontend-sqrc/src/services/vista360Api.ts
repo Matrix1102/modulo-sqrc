@@ -262,3 +262,99 @@ export async function ticketsHealthCheck(): Promise<string> {
 
   return response.text();
 }
+
+// ==================== New Detailed History Types ====================
+
+export interface EmployeeDto {
+  idEmpleado: number;
+  nombre: string;
+  apellido: string;
+  cargo: string;
+  area: string;
+}
+
+export interface ArticuloVersionDto {
+  idArticuloKB: number;
+  titulo: string;
+  contenido: string;
+}
+
+export interface DocumentacionDto {
+  idDocumentacion: number;
+  problema: string;
+  articulo: string;
+  fechaCreacion: string; // ISO format
+  autor: EmployeeDto | null;
+  articuloKB: ArticuloVersionDto | null;
+}
+
+export interface AssignmentDto {
+  idAsignacion: number;
+  tipo: string;
+  fechaInicio: string; // ISO format
+  fechaFin: string | null; // ISO format
+  motivoDesplazamiento: string;
+  area: string;
+  empleado: EmployeeDto | null;
+  documentacion: DocumentacionDto | null;
+}
+
+export interface TicketConsultaDto {
+  tema: string;
+}
+
+export interface TicketQuejaDto {
+  impacto: string;
+  areaInvolucrada: string;
+}
+
+export interface TicketSolicitudDto {
+  tipoSolicitud: string;
+}
+
+export interface TicketReclamoDto {
+  motivoReclamo: string;
+  fechaLimiteRespuesta: string; // ISO format
+  fechaLimiteResolucion: string; // ISO format
+  resultado: string | null;
+}
+
+export interface TicketHistoryResponse {
+  idTicket: number;
+  clienteId: number | null;
+  titulo: string;
+  motivo: string;
+  descripcion: string;
+  estado: 'ABIERTO' | 'ESCALADO' | 'DERIVADO' | 'AUDITORIA' | 'CERRADO';
+  origen: string;
+  tipoTicket: 'CONSULTA' | 'QUEJA' | 'RECLAMO' | 'SOLICITUD';
+  fechaCreacion: string; // ISO format
+  fechaCierre: string | null; // ISO format
+  asignaciones: AssignmentDto[];
+  // Información específica por tipo (solo una estará poblada)
+  consultaInfo: TicketConsultaDto | null;
+  quejaInfo: TicketQuejaDto | null;
+  solicitudInfo: TicketSolicitudDto | null;
+  reclamoInfo: TicketReclamoDto | null;
+}
+
+// ==================== New API Function ====================
+
+/**
+ * Obtiene el historial completo y detallado de un ticket
+ */
+export async function getTicketHistory(id: number): Promise<TicketHistoryResponse> {
+  const response = await fetch(`${TICKETS_ENDPOINT}/${id}/history`, {
+    method: 'GET',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+  });
+
+  if (!response.ok) {
+    const error: ErrorResponse = await response.json();
+    throw new Error(error.message || `Error ${response.status}: ${response.statusText}`);
+  }
+
+  return response.json();
+}

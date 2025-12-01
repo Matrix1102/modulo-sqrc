@@ -171,60 +171,30 @@ const CustomerTicketsView: React.FC = () => {
   const [filters, setFilters] = useState<FilterCriteria>(initialFilters);
   const [searchResults, setSearchResults] = useState<ReadonlyArray<LocalTicketSummary>>([]);
   const [selectedTicketId, setSelectedTicketId] = useState<number | null>(null);
-  const [activeTicket, setActiveTicket] = useState<LocalTicketDetail | null>(null);
-  const [isLoading, setIsLoading] = useState(false);
 
   const handleSearch = useCallback(async (criteria: FilterCriteria) => {
     if (!cliente?.idCliente) {
       setSearchResults([]);
       setSelectedTicketId(null);
-      setActiveTicket(null);
       return;
     }
 
-    setIsLoading(true);
     try {
       // Buscar tickets solo del cliente actual
       const results = await ticketService.searchTickets(criteria, cliente.idCliente);
       setFilters(criteria);
       setSearchResults(results);
       setSelectedTicketId(results[0]?.id ?? null);
-      setActiveTicket(null);
     } catch (error: any) {
       console.error('Error al buscar tickets:', error);
       setSearchResults([]);
       setSelectedTicketId(null);
-      setActiveTicket(null);
-    } finally {
-      setIsLoading(false);
     }
   }, [cliente?.idCliente]);
 
   const handleSelectTicket = useCallback((ticketId: number) => {
     setSelectedTicketId(ticketId);
   }, []);
-
-  const loadTicketDetail = useCallback(async (ticketId: number) => {
-    setIsLoading(true);
-    try {
-      const detail = await ticketService.getTicketById(ticketId);
-      setActiveTicket(detail);
-    } catch (error: any) {
-      console.error('Error al cargar detalle del ticket:', error);
-      setActiveTicket(null);
-    } finally {
-      setIsLoading(false);
-    }
-  }, []);
-
-  useEffect(() => {
-    if (selectedTicketId === null) {
-      setActiveTicket(null);
-      return;
-    }
-
-    void loadTicketDetail(selectedTicketId);
-  }, [selectedTicketId, loadTicketDetail]);
 
   useEffect(() => {
     void handleSearch(initialFilters);
@@ -259,14 +229,7 @@ const CustomerTicketsView: React.FC = () => {
         />
 
         <div className="relative">
-          <TicketDetailViewer ticket={activeTicket} />
-          {isLoading && (
-            <div className="absolute inset-0 flex items-center justify-center rounded-xl bg-white/70">
-              <span className="animate-pulse text-sm font-medium text-gray-600">
-                Cargando información...
-              </span>
-            </div>
-          )}
+          <TicketDetailViewer ticketId={selectedTicketId} />
         </div>
       </div>
     </section>

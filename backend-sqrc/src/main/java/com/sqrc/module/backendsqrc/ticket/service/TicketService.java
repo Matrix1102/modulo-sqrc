@@ -1,12 +1,8 @@
 package com.sqrc.module.backendsqrc.ticket.service;
 
-import com.sqrc.module.backendsqrc.ticket.dto.AssignmentHistoryDTO;
-import com.sqrc.module.backendsqrc.ticket.dto.TicketDetailDTO;
-import com.sqrc.module.backendsqrc.ticket.dto.TicketFilterDTO;
-import com.sqrc.module.backendsqrc.ticket.dto.TicketSummaryDTO;
+import com.sqrc.module.backendsqrc.ticket.dto.*;
 import com.sqrc.module.backendsqrc.ticket.model.*;
-import com.sqrc.module.backendsqrc.ticket.repository.DocumentacionRepository;
-import com.sqrc.module.backendsqrc.ticket.repository.TicketRepository;
+import com.sqrc.module.backendsqrc.ticket.repository.*;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.jpa.domain.Specification;
@@ -30,6 +26,10 @@ public class TicketService {
 
     private final TicketRepository ticketRepository;
     private final DocumentacionRepository documentacionRepository;
+    private final ConsultaRepository consultaRepository;
+    private final QuejaRepository quejaRepository;
+    private final SolicitudRepository solicitudRepository;
+    private final ReclamoRepository reclamoRepository;
 
     /**
      * Busca tickets aplicando filtros
@@ -257,5 +257,166 @@ public class TicketService {
             return "Media";
         }
         return "Baja";
+    }
+
+    /**
+     * Obtiene el historial completo del ticket con toda la información anidada
+     */
+    @Transactional(readOnly = true)
+    public TicketHistoryResponse getTicketHistory(Long ticketId) {
+        log.debug("Obteniendo historial completo del ticket ID: {}", ticketId);
+
+        Ticket ticket = ticketRepository.findByIdWithDetails(ticketId);
+        if (ticket == null) {
+            throw new RuntimeException("Ticket no encontrado: " + ticketId);
+        }
+
+        return mapToHistoryResponse(ticket);
+    }
+
+    /**
+     * Mapea Ticket a TicketHistoryResponse con toda la información completa
+     */
+    private TicketHistoryResponse mapToHistoryResponse(Ticket ticket) {
+        TicketHistoryResponse.TicketHistoryResponseBuilder builder = TicketHistoryResponse.builder()
+                .idTicket(ticket.getIdTicket())
+                .clienteId(ticket.getCliente() != null ? ticket.getCliente().getIdCliente() : null)
+                .titulo(ticket.getAsunto())
+                .motivo(ticket.getMotivo() != null ? ticket.getMotivo().getNombre() : "Sin motivo")
+                .descripcion(ticket.getDescripcion())
+                .estado(ticket.getEstado().name())
+                .origen(ticket.getOrigen() != null ? ticket.getOrigen().getDisplayName() : "Desconocido")
+                .tipoTicket(ticket.getTipoTicket() != null ? ticket.getTipoTicket().name() : "DESCONOCIDO")
+                .fechaCreacion(ticket.getFechaCreacion())
+                .fechaCierre(ticket.getFechaCierre())
+                .asignaciones(ticket.getAsignaciones().stream()
+                        .map(this::mapToAssignmentDto)
+                        .collect(java.util.stream.Collectors.toList()));
+
+        // Mapear información específica por tipo
+        switch (ticket.getTipoTicket()) {
+            case CONSULTA:
+                Consulta consulta = consultaRepository.findById(ticket.getIdTicket()).orElse(null);
+                if (consulta != null) {
+                    builder.consultaInfo(TicketConsultaDto.builder()
+                            .tema(consulta.getTema())
+                            .build());
+                }
+                break;
+            case QUEJA:
+                Queja queja = quejaRepository.findById(ticket.getIdTicket()).orElse(null);
+                if (queja != null) {
+                    builder.quejaInfo(TicketQuejaDto.builder()
+                            .impacto(queja.getImpacto())
+                            .areaInvolucrada(queja.getAreaInvolucrada())
+                            .build());
+                }
+                break;
+            case SOLICITUD:
+                Solicitud solicitud = solicitudRepository.findById(ticket.getIdTicket()).orElse(null);
+                if (solicitud != null) {
+                    builder.solicitudInfo(TicketSolicitudDto.builder()
+                            .tipoSolicitud(solicitud.getTipoSolicitud())
+                            .build());
+                }
+                break;
+            case RECLAMO:
+                Reclamo reclamo = reclamoRepository.findById(ticket.getIdTicket()).orElse(null);
+                if (reclamo != null) {
+                    builder.reclamoInfo(TicketReclamoDto.builder()
+                            .motivoReclamo(reclamo.getMotivoReclamo())
+                            .fechaLimiteRespuesta(reclamo.getFechaLimiteRespuesta())
+                            .fechaLimiteResolucion(reclamo.getFechaLimiteResolucion())
+                            .resultado(reclamo.getResultado())
+                            .build());
+                }
+                break;
+        }
+
+        return builder.build();
+    }
+
+    /**
+     * Mapea Asignacion a AssignmentDto con documentación y empleado
+     */
+    private AssignmentDto mapToAssignmentDto(Asignacion asignacion) {
+        // Determinar tipo de asignación
+        String tipo = asignacion.getAsignacionPadre() == null ? "Asignación Inicial" : "Derivación";
+        
+        // Determinar motivo de desplazamiento
+        String motivoDesplazamiento = asignacion.getAsignacionPadre() != null 
+                ? "Derivado desde área anterior" 
+                : "Asignación directa";
+
+        // Mapear empleado
+        EmployeeDto empleadoDto = null;
+        if (asignacion.getEmpleado() != null) {
+            empleadoDto = mapToEmployeeDto(asignacion.getEmpleado());
+        }
+
+        // Buscar documentación asociada a esta asignación
+        DocumentacionDto documentacionDto = null;
+        List<Documentacion> docs = documentacionRepository.findByAsignacionId(asignacion.getIdAsignacion());
+        if (!docs.isEmpty()) {
+            documentacionDto = mapToDocumentacionDto(docs.get(0));
+        }
+
+        return AssignmentDto.builder()
+                .idAsignacion(asignacion.getIdAsignacion())
+                .tipo(tipo)
+                .fechaInicio(asignacion.getFechaInicio())
+                .fechaFin(asignacion.getFechaFin())
+                .motivoDesplazamiento(motivoDesplazamiento)
+                .area(asignacion.getAreaId() != null ? "Área ID: " + asignacion.getAreaId() : "Sin área")
+                .empleado(empleadoDto)
+                .documentacion(documentacionDto)
+                .build();
+    }
+
+    /**
+     * Mapea Empleado a EmployeeDto
+     */
+    private EmployeeDto mapToEmployeeDto(Empleado empleado) {
+        // Separar nombre en nombre y apellido (asumiendo formato "Nombre Apellido")
+        String nombreCompleto = empleado.getNombre();
+        String[] partes = nombreCompleto != null ? nombreCompleto.split(" ", 2) : new String[]{"", ""};
+        String nombre = partes.length > 0 ? partes[0] : "";
+        String apellido = partes.length > 1 ? partes[1] : "";
+
+        return EmployeeDto.builder()
+                .idEmpleado(empleado.getIdEmpleado())
+                .nombre(nombre)
+                .apellido(apellido)
+                .cargo(empleado.getPuesto())
+                .area("Área por definir") // TODO: Obtener área real si existe
+                .build();
+    }
+
+    /**
+     * Mapea Documentacion a DocumentacionDto
+     */
+    private DocumentacionDto mapToDocumentacionDto(Documentacion doc) {
+        EmployeeDto autorDto = null;
+        if (doc.getEmpleado() != null) {
+            autorDto = mapToEmployeeDto(doc.getEmpleado());
+        }
+
+        ArticuloVersionDto articuloDto = null;
+        if (doc.getIdArticuloKB() != null) {
+            articuloDto = ArticuloVersionDto.builder()
+                    .idArticuloKB(doc.getIdArticuloKB())
+                    .titulo("Artículo KB-" + doc.getIdArticuloKB())
+                    .contenido("Contenido del artículo KB")
+                    .build();
+        }
+
+        return DocumentacionDto.builder()
+                .idDocumentacion(doc.getIdDocumentacion())
+                .problema(doc.getProblema())
+                .articulo(doc.getSolucion())
+                .fechaCreacion(doc.getFechaCreacion())
+                .autor(autorDto)
+                .articuloKB(articuloDto)
+                .build();
     }
 }

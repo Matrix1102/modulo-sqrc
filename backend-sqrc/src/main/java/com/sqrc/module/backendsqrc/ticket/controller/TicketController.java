@@ -2,6 +2,7 @@ package com.sqrc.module.backendsqrc.ticket.controller;
 
 import com.sqrc.module.backendsqrc.ticket.dto.TicketDetailDTO;
 import com.sqrc.module.backendsqrc.ticket.dto.TicketFilterDTO;
+import com.sqrc.module.backendsqrc.ticket.dto.TicketHistoryResponse;
 import com.sqrc.module.backendsqrc.ticket.dto.TicketSummaryDTO;
 import com.sqrc.module.backendsqrc.ticket.service.TicketService;
 import lombok.RequiredArgsConstructor;
@@ -65,6 +66,21 @@ public class TicketController {
         List<TicketSummaryDTO> tickets = ticketService.getTicketsByClienteId(clienteId);
 
         return ResponseEntity.ok(tickets);
+    }
+
+    /**
+     * Obtiene el historial completo del ticket con toda la información detallada
+     *
+     * @param id ID del ticket
+     * @return Historial completo del ticket
+     */
+    @GetMapping("/{id}/history")
+    public ResponseEntity<TicketHistoryResponse> getTicketHistory(@PathVariable Long id) {
+        log.info("GET /api/v1/tickets/{}/history - Obteniendo historial completo", id);
+
+        TicketHistoryResponse history = ticketService.getTicketHistory(id);
+
+        return ResponseEntity.ok(history);
     }
 
     /**

@@ -15,5 +15,8 @@ public interface DocumentacionRepository extends JpaRepository<Documentacion, In
     @Query("SELECT d FROM Documentacion d WHERE d.asignacion.ticket.idTicket = :ticketId")
     List<Documentacion> findByTicketId(@Param("ticketId") Long ticketId);
     
+    @Query("SELECT d FROM Documentacion d WHERE d.asignacion.idAsignacion = :asignacionId")
+    List<Documentacion> findByAsignacionId(@Param("asignacionId") Long asignacionId);
+    
     Optional<Documentacion> findByIdArticuloKB(Integer idArticuloKB);
 }
