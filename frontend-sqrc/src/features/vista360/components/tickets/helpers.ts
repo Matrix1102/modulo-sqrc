@@ -10,6 +10,7 @@ export const STATUS_BADGE_VARIANTS: Record<TicketStatus, string> = {
   Cerrado: "bg-red-100 text-red-700",
   Escalado: "bg-amber-100 text-amber-700",
   Derivado: "bg-blue-100 text-blue-700",
+  Auditoría: "bg-purple-100 text-purple-700",
 };
 
 export const STATUS_TEXT_VARIANTS: Record<TicketStatus, string> = {
@@ -17,6 +18,7 @@ export const STATUS_TEXT_VARIANTS: Record<TicketStatus, string> = {
   Cerrado: "text-red-700",
   Escalado: "text-amber-700",
   Derivado: "text-blue-700",
+  Auditoría: "text-purple-700",
 };
 
 export const STATUS_OPTIONS: TicketStatus[] = [
