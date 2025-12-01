@@ -9,6 +9,12 @@ import DashboardPage from "./pages/supervisor/DashboardPage";
 import EncuestasPage from "./pages/supervisor/SurveyPage";
 import SurveyCategoryPage from "./pages/supervisor/SurveyCategoryPage";
 
+// Base de Conocimiento
+import { BaseConocimientoPage } from "./features/baseConocimiento";
+
+// Contexto de Usuario
+import { UserProvider } from "./context";
+
 // Un Home temporal para que puedas navegar
 const Home = () => (
   <div className="h-screen flex flex-col items-center justify-center bg-sqrc-gray-900 text-sqrc-gray-100 gap-6">
@@ -43,46 +49,56 @@ const Home = () => (
 
 export default function App() {
   return (
-    <BrowserRouter>
-      <Routes>
-        {/* Ruta Pública (Inicio) */}
-        <Route path="/" element={<Home />} />
+    <UserProvider>
+      <BrowserRouter>
+        <Routes>
+          {/* Ruta Pública (Inicio) */}
+          <Route path="/" element={<Home />} />
 
-        {/* ─── ZONA AGENTE ─── */}
-        <Route path="/agente" element={<MainLayout role="AGENT" />}>
-          {/* Según tu carpeta, aquí vive la página de Tickets */}
-          <Route path="tickets" element={<TicketingPage />} />
-        </Route>
+          {/* ─── ZONA AGENTE ─── */}
+          <Route path="/agente" element={<MainLayout role="AGENT" />}>
+            {/* Según tu carpeta, aquí vive la página de Tickets */}
+            <Route path="tickets" element={<TicketingPage />} />
+          </Route>
 
-        {/* Vista 360 del cliente para agentes */}
-        <Route path="/cliente-360" element={<MainLayout role="AGENT" />}>
-          <Route index element={<Vista360Page />} />
-        </Route>
+          {/* Vista 360 del cliente para agentes */}
+          <Route path="/cliente-360" element={<MainLayout role="AGENT" />}>
+            <Route index element={<Vista360Page />} />
+          </Route>
 
-        {/* ─── ZONA SUPERVISOR ─── */}
-        <Route path="/supervisor" element={<MainLayout role="SUPERVISOR" />}>
-          {/* El Dashboard suele ser la página principal (index) */}
-          <Route index element={<DashboardPage />} />
-          <Route path="encuestas" element={<EncuestasPage />} />
+          {/* ─── ZONA SUPERVISOR ─── */}
+          <Route path="/supervisor" element={<MainLayout role="SUPERVISOR" />}>
+            {/* El Dashboard suele ser la página principal (index) */}
+            <Route index element={<DashboardPage />} />
+            <Route path="encuestas" element={<EncuestasPage />} />
+            <Route
+              path="encuestas/agentes"
+              element={<SurveyCategoryPage category="AGENTE" />}
+            />
+            <Route
+              path="encuestas/servicios"
+              element={<SurveyCategoryPage category="SERVICIO" />}
+            />
+            <Route path="tickets" element={<TicketPage />} />
+            <Route
+              path="tickets/agente/:agenteId"
+              element={<TicketAgentPage />}
+            />
+            <Route
+              path="tickets/detalle/:ticketId"
+              element={<TicketDetailPage />}
+            />
+          </Route>
+
+          {/* ─── BASE DE CONOCIMIENTO (Agente) ─── */}
           <Route
-            path="encuestas/agentes"
-            element={<SurveyCategoryPage category="AGENTE" />}
-          />
-          <Route
-            path="encuestas/servicios"
-            element={<SurveyCategoryPage category="SERVICIO" />}
-          />
-          <Route path="tickets" element={<TicketPage />} />
-          <Route
-            path="tickets/agente/:agenteId"
-            element={<TicketAgentPage />}
-          />
-          <Route
-            path="tickets/detalle/:ticketId"
-            element={<TicketDetailPage />}
-          />
-        </Route>
-      </Routes>
-    </BrowserRouter>
+            path="/base-conocimiento"
+            element={<MainLayout role="AGENT" />}
+          >
+            <Route index element={<BaseConocimientoPage />} />
+          </Route>
+        </Routes>
+      </BrowserRouter>
+    </UserProvider>
   );
 }

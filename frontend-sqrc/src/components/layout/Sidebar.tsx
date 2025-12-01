@@ -45,12 +45,21 @@ export const Sidebar: React.FC<SidebarProps> = ({ role = "AGENT" }) => {
         label: "Resultados Encuesta",
         path: "/supervisor/encuestas",
       },
+      {
+        icon: BookOpen,
+        label: "Base de Conocimiento",
+        path: "/base-conocimiento",
+      },
     ],
     AGENT: [
       { icon: PlusCircle, label: "Nuevo Ticket", path: "/nuevo-ticket" },
       { icon: Ticket, label: "Mis Casos", path: "/mis-casos" },
       { icon: Search, label: "Vista 360° Cliente", path: "/cliente-360" },
-      { icon: BookOpen, label: "Base de Conocimiento", path: "/kb" },
+      {
+        icon: BookOpen,
+        label: "Base de Conocimiento",
+        path: "/base-conocimiento",
+      },
       { icon: UserCircle, label: "Mi Perfil", path: "/perfil" },
     ],
   };
