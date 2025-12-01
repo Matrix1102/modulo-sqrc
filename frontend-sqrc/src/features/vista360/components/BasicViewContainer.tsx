@@ -3,9 +3,10 @@ import CustomerSearch from "./CustomerSearch";
 import CustomerProfileForm from "./CustomerProfileForm";
 import ServiceStatsGrid from "./ServiceStatsGrid";
 import { buscarClientePorDni, obtenerClientePorId, obtenerMetricasCliente, type ClienteBasicoDTO, type MetricaKPI } from "../../../services/vista360Api";
+import { useCustomer } from "../context/CustomerContext";
 
 const BasicViewContainer: React.FC = () => {
-  const [cliente, setCliente] = useState<ClienteBasicoDTO | null>(null);
+  const { cliente, setCliente } = useCustomer();
   const [metricas, setMetricas] = useState<MetricaKPI[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string>("");
@@ -69,7 +70,7 @@ const BasicViewContainer: React.FC = () => {
           <CustomerProfileForm 
             cliente={cliente} 
             loading={loading}
-            onClienteUpdated={(clienteActualizado) => setCliente(clienteActualizado)}
+            onClienteUpdated={setCliente}
           />
         </div>
       </div>
