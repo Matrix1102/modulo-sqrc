@@ -161,6 +161,34 @@ const articuloService = {
   },
 
   /**
+   * Busca sugerencias de artículos activos por palabras clave.
+   * Retorna artículos ordenados por relevancia (título > resumen > tags) y feedbacks positivos.
+   * Solo incluye artículos publicados y vigentes.
+   *
+   * @param palabrasClave - Texto a buscar (puede contener múltiples palabras)
+   * @param limite - Número máximo de sugerencias (default: 4)
+   * @param visibilidad - Filtro de visibilidad opcional
+   */
+  async buscarSugerencias(
+    palabrasClave: string,
+    limite = 4,
+    visibilidad?: Visibilidad
+  ): Promise<ArticuloResumenResponse[]> {
+    const params: Record<string, string | number> = {
+      q: palabrasClave,
+      limite,
+    };
+    if (visibilidad) {
+      params.visibilidad = visibilidad;
+    }
+    const response = await http.get<ArticuloResumenResponse[]>(
+      `${BASE_URL}/sugerencias`,
+      { params }
+    );
+    return response.data;
+  },
+
+  /**
    * Genera un código único para nuevo artículo.
    */
   async generarCodigo(): Promise<string> {

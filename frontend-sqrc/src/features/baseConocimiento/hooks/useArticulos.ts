@@ -1,10 +1,11 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import articuloService from "../services/articuloService";
 import type {
   ArticuloResumenResponse,
   ArticuloResponse,
   BusquedaArticuloRequest,
   PaginaResponse,
+  Visibilidad,
 } from "../types/articulo";
 
 /**
@@ -216,4 +217,90 @@ export function useVersiones(idArticulo: number | null) {
   }, [fetchData]);
 
   return { data, loading, error, refetch: fetchData };
+}
+
+/**
+ * Hook para buscar sugerencias de artículos por palabras clave.
+ * Incluye debounce para evitar llamadas excesivas mientras el usuario escribe.
+ *
+ * @param debounceMs - Tiempo de espera antes de buscar (default: 300ms)
+ */
+export function useSugerenciasArticulos(debounceMs = 300) {
+  const [sugerencias, setSugerencias] = useState<ArticuloResumenResponse[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<Error | null>(null);
+  const [palabrasClave, setPalabrasClave] = useState("");
+  const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const buscar = useCallback(
+    (texto: string, visibilidad?: Visibilidad, limite = 4) => {
+      setPalabrasClave(texto);
+
+      // Limpiar timeout anterior
+      if (timeoutRef.current) {
+        clearTimeout(timeoutRef.current);
+      }
+
+      // Si no hay texto, limpiar sugerencias
+      if (!texto.trim()) {
+        setSugerencias([]);
+        setLoading(false);
+        return;
+      }
+
+      setLoading(true);
+
+      // Debounce: esperar antes de buscar
+      timeoutRef.current = setTimeout(async () => {
+        try {
+          const result = await articuloService.buscarSugerencias(
+            texto.trim(),
+            limite,
+            visibilidad
+          );
+          setSugerencias(result);
+          setError(null);
+        } catch (err) {
+          setError(
+            err instanceof Error
+              ? err
+              : new Error("Error al buscar sugerencias")
+          );
+          setSugerencias([]);
+        } finally {
+          setLoading(false);
+        }
+      }, debounceMs);
+    },
+    [debounceMs]
+  );
+
+  const limpiar = useCallback(() => {
+    if (timeoutRef.current) {
+      clearTimeout(timeoutRef.current);
+    }
+    setSugerencias([]);
+    setPalabrasClave("");
+    setLoading(false);
+    setError(null);
+  }, []);
+
+  // Limpiar timeout al desmontar
+  useEffect(() => {
+    return () => {
+      if (timeoutRef.current) {
+        clearTimeout(timeoutRef.current);
+      }
+    };
+  }, []);
+
+  return {
+    sugerencias,
+    loading,
+    error,
+    palabrasClave,
+    buscar,
+    limpiar,
+    tieneSugerencias: sugerencias.length > 0,
+  };
 }

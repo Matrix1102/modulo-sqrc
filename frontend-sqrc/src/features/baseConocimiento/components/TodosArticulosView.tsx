@@ -1,11 +1,12 @@
 import React, { useState, useCallback, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
-import { Search, ThumbsUp, ThumbsDown, Eye, ChevronDown } from "lucide-react";
+import { ThumbsUp, ThumbsDown, Eye, ChevronDown } from "lucide-react";
 import { useArticulos, useArticulo } from "../hooks/useArticulos";
 import articuloService from "../services/articuloService";
 import { useUserId } from "../../../context";
 import showToast from "../../../services/notification";
 import ArticuloModal from "./ArticuloModal";
+import BuscadorArticulos from "./BuscadorArticulos";
 import type {
   BusquedaArticuloRequest,
   ArticuloResumenResponse,
@@ -20,7 +21,6 @@ const TodosArticulosView: React.FC = () => {
   );
   const [showModal, setShowModal] = useState(false);
   const [feedbackGiven, setFeedbackGiven] = useState<boolean | null>(null);
-  const [searchText, setSearchText] = useState("");
   const [ordenarPor] = useState("Relevancia");
 
   const [filtros] = useState<BusquedaArticuloRequest>({
@@ -31,10 +31,7 @@ const TodosArticulosView: React.FC = () => {
     tamanoPagina: 20,
   });
 
-  const { data, loading, refetch } = useArticulos({
-    ...filtros,
-    texto: searchText,
-  });
+  const { data, loading, refetch } = useArticulos(filtros);
   const { data: articuloSeleccionado, loading: loadingArticulo } =
     useArticulo(selectedArticuloId);
 
@@ -113,18 +110,16 @@ const TodosArticulosView: React.FC = () => {
     <div className="flex gap-6 min-h-[600px]">
       {/* Left Panel - Search & Results */}
       <div className="w-80 shrink-0 flex flex-col">
-        {/* Search Input */}
-        <div className="relative mb-4">
-          <Search
-            className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"
-            size={18}
-          />
-          <input
-            type="text"
-            placeholder="Soporte..."
-            value={searchText}
-            onChange={(e) => setSearchText(e.target.value)}
-            className="w-full pl-10 pr-4 py-2.5 border border-gray-200 rounded-lg text-sm outline-none focus:ring-2 focus:ring-blue-100 focus:border-blue-300"
+        {/* Buscador con sugerencias rankeadas */}
+        <div className="mb-4">
+          <BuscadorArticulos
+            placeholder="Buscar por palabras clave..."
+            limite={4}
+            visibilidad="AGENTE"
+            onArticuloSeleccionado={(articulo) => {
+              handleArticuloClick(articulo);
+            }}
+            autoFocus
           />
         </div>
 
@@ -144,8 +139,11 @@ const TodosArticulosView: React.FC = () => {
           </div>
         </div>
 
-        {/* Results List */}
-        <div className="flex-1 overflow-y-auto space-y-3">
+        {/* Results List - Max 3 visible with scroll */}
+        <div
+          className="overflow-y-auto space-y-3"
+          style={{ maxHeight: "calc(3.5 * 160px)" }}
+        >
           {loading ? (
             Array.from({ length: 3 }).map((_, i) => (
               <div key={i} className="bg-gray-50 rounded-lg p-4 animate-pulse">

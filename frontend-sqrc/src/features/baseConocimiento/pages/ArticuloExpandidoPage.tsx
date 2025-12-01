@@ -270,7 +270,9 @@ const ArticuloExpandidoPage: React.FC = () => {
               <h3 className="text-sm font-semibold text-blue-800 uppercase tracking-wide mb-2">
                 Resumen
               </h3>
-              <p className="text-gray-700 leading-relaxed">{articulo.resumen}</p>
+              <p className="text-gray-700 leading-relaxed">
+                {articulo.resumen}
+              </p>
             </div>
           )}
 

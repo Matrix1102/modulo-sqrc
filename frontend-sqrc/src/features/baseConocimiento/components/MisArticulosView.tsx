@@ -22,7 +22,7 @@ const ArticuloMiniCard: React.FC<ArticuloCardProps> = ({
   onClick,
 }) => {
   return (
-    <div 
+    <div
       onClick={onClick}
       className="bg-white rounded-lg border border-gray-100 p-3 hover:border-blue-200 hover:shadow-sm transition-all cursor-pointer"
     >
@@ -130,7 +130,9 @@ const MisArticulosView: React.FC = () => {
 
   // Estado del modal
   const [showModal, setShowModal] = useState(false);
-  const [selectedArticuloId, setSelectedArticuloId] = useState<number | null>(null);
+  const [selectedArticuloId, setSelectedArticuloId] = useState<number | null>(
+    null
+  );
 
   const {
     articulos: misArticulos,
@@ -142,9 +144,8 @@ const MisArticulosView: React.FC = () => {
   } = useMisArticulos(userId);
 
   // Obtener artículo seleccionado
-  const { data: articuloSeleccionado, loading: loadingArticulo } = useArticulo(
-    selectedArticuloId
-  );
+  const { data: articuloSeleccionado, loading: loadingArticulo } =
+    useArticulo(selectedArticuloId);
 
   // Filtrar propuestos de misArticulos
   const propuestos = useMemo(
@@ -181,21 +182,24 @@ const MisArticulosView: React.FC = () => {
     }
   }, [selectedArticuloId, navigate]);
 
-  const handleFeedback = useCallback(async (esUtil: boolean) => {
-    if (!selectedArticuloId || !articuloSeleccionado) return;
-    try {
-      await articuloService.feedbackRapido(
-        selectedArticuloId,
-        articuloSeleccionado.versionVigente || 1,
-        userId,
-        esUtil
-      );
-      showToast("¡Gracias por tu feedback!", "success");
-      refetch();
-    } catch (error) {
-      showToast("Error al registrar feedback", "error");
-    }
-  }, [selectedArticuloId, articuloSeleccionado, userId, refetch]);
+  const handleFeedback = useCallback(
+    async (esUtil: boolean) => {
+      if (!selectedArticuloId || !articuloSeleccionado) return;
+      try {
+        await articuloService.feedbackRapido(
+          selectedArticuloId,
+          articuloSeleccionado.versionVigente || 1,
+          userId,
+          esUtil
+        );
+        showToast("¡Gracias por tu feedback!", "success");
+        refetch();
+      } catch (error) {
+        showToast("Error al registrar feedback", "error");
+      }
+    },
+    [selectedArticuloId, articuloSeleccionado, userId, refetch]
+  );
 
   return (
     <>

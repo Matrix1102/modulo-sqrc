@@ -10,4 +10,5 @@ export { default as TodosArticulosView } from "./TodosArticulosView";
 export { default as MisArticulosView } from "./MisArticulosView";
 export { default as CrearArticuloView } from "./CrearArticuloView";
 export { default as ArticuloModal } from "./ArticuloModal";
+export { default as BuscadorArticulos } from "./BuscadorArticulos";
 export type { CrearArticuloViewRef } from "./CrearArticuloView";

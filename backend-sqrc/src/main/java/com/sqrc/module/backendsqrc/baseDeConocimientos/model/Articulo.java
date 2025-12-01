@@ -69,6 +69,9 @@ public class Articulo {
     @JoinColumn(name = "id_ultimo_editor")
     private Empleado ultimoEditor;
 
+    @Column(name = "tags", length = 500)
+    private String tags;
+
     @Column(name = "creado_en", nullable = false, updatable = false)
     private LocalDateTime creadoEn;
 

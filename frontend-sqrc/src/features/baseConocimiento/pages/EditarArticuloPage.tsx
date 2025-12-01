@@ -102,7 +102,10 @@ const EditarArticuloPage: React.FC = () => {
         return;
       }
       if (!formData.notaCambio.trim()) {
-        showToast("La nota de cambio es requerida para una nueva versión", "warning");
+        showToast(
+          "La nota de cambio es requerida para una nueva versión",
+          "warning"
+        );
         return;
       }
 

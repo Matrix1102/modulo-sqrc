@@ -35,7 +35,7 @@ export interface CrearArticuloRequest {
   vigenteDesde?: string;
   vigenteHasta?: string;
   idPropietario: number;
-  modulo?: string;
+  tags?: string;
   contenidoInicial: string;
   notaCambioInicial?: string;
 }
@@ -48,7 +48,6 @@ export interface ActualizarArticuloRequest {
   visibilidad?: Visibilidad;
   vigenteDesde?: string;
   vigenteHasta?: string;
-  modulo?: string;
   idUltimoEditor?: number;
 }
 
@@ -100,7 +99,7 @@ export interface ArticuloResponse {
   visibilidad: Visibilidad;
   vigenteDesde?: string;
   vigenteHasta?: string;
-  modulo?: string;
+  tags?: string;
   creadoEn: string;
   actualizadoEn?: string;
   idPropietario: number;
@@ -124,6 +123,7 @@ export interface ArticuloResumenResponse {
   etiqueta: Etiqueta;
   tipoCaso?: TipoCaso;
   visibilidad: Visibilidad;
+  tags?: string;
   nombrePropietario: string;
   fechaModificacion: string;
   versionActual: number;

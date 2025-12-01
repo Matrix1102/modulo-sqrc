@@ -270,6 +270,87 @@ public class ArticuloService {
     }
 
     /**
+     * Busca sugerencias de artículos activos por palabras clave.
+     * Retorna artículos ordenados por relevancia (coincidencia en título > resumen
+     * > tags)
+     * y cantidad de feedbacks positivos.
+     * Solo incluye artículos con versión publicada y vigentes en la fecha actual.
+     * 
+     * @param palabrasClave Texto a buscar (puede contener múltiples palabras)
+     * @param visibilidad   Visibilidad requerida (AGENTE siempre visible,
+     *                      SUPERVISOR solo para supervisores)
+     * @param limite        Número máximo de sugerencias a retornar
+     * @return Lista de artículos ordenados por relevancia
+     */
+    @Transactional(readOnly = true)
+    public List<ArticuloResumenResponse> buscarSugerencias(String palabrasClave, Visibilidad visibilidad, int limite) {
+        if (palabrasClave == null || palabrasClave.trim().isEmpty()) {
+            return List.of();
+        }
+
+        log.debug("Buscando sugerencias para: '{}' con límite: {}", palabrasClave, limite);
+
+        // Buscar con cada palabra clave y combinar resultados
+        String[] palabras = palabrasClave.trim().toLowerCase().split("\\s+");
+
+        List<Articulo> resultados = articuloRepository.buscarSugerenciasActivas(
+                palabrasClave.trim(),
+                visibilidad,
+                LocalDateTime.now(),
+                PageRequest.of(0, limite * 2) // Obtener más para permitir filtrado
+        );
+
+        // Calcular score de relevancia para ordenar mejor
+        return resultados.stream()
+                .map(articulo -> {
+                    int score = calcularScoreRelevancia(articulo, palabras);
+                    return new Object[] { articulo, score };
+                })
+                .sorted((a, b) -> Integer.compare((int) b[1], (int) a[1]))
+                .limit(limite)
+                .map(arr -> mapToResumen((Articulo) arr[0]))
+                .collect(Collectors.toList());
+    }
+
+    /**
+     * Calcula un score de relevancia para un artículo basado en las palabras clave.
+     */
+    private int calcularScoreRelevancia(Articulo articulo, String[] palabras) {
+        int score = 0;
+        String titulo = articulo.getTitulo() != null ? articulo.getTitulo().toLowerCase() : "";
+        String resumen = articulo.getResumen() != null ? articulo.getResumen().toLowerCase() : "";
+        String tags = articulo.getTags() != null ? articulo.getTags().toLowerCase() : "";
+
+        for (String palabra : palabras) {
+            // Título tiene mayor peso (x3)
+            if (titulo.contains(palabra)) {
+                score += 30;
+                // Bonus si la palabra está al inicio del título
+                if (titulo.startsWith(palabra)) {
+                    score += 10;
+                }
+            }
+            // Resumen tiene peso medio (x2)
+            if (resumen.contains(palabra)) {
+                score += 20;
+            }
+            // Tags tienen peso base (x1)
+            if (tags.contains(palabra)) {
+                score += 10;
+            }
+        }
+
+        // Bonus por feedbacks positivos
+        ArticuloVersion versionVigente = articulo.getVersionVigente();
+        if (versionVigente != null) {
+            Long feedbacksPositivos = feedbackRepository.contarFeedbacksUtiles(versionVigente.getIdArticuloVersion());
+            score += feedbacksPositivos != null ? feedbacksPositivos.intValue() * 5 : 0;
+        }
+
+        return score;
+    }
+
+    /**
      * Genera un código único para un nuevo artículo.
      */
     public String generarCodigoUnico() {
@@ -303,6 +384,7 @@ public class ArticuloService {
                 .visibilidad(articulo.getVisibilidad())
                 .vigenteDesde(articulo.getVigenteDesde())
                 .vigenteHasta(articulo.getVigenteHasta())
+                .tags(articulo.getTags())
                 .creadoEn(articulo.getCreadoEn())
                 .actualizadoEn(articulo.getActualizadoEn())
                 .idPropietario(articulo.getPropietario() != null ? articulo.getPropietario().getIdEmpleado() : null)
@@ -345,6 +427,7 @@ public class ArticuloService {
                 .etiqueta(articulo.getEtiqueta())
                 .tipoCaso(articulo.getTipoCaso())
                 .visibilidad(articulo.getVisibilidad())
+                .tags(articulo.getTags())
                 .nombrePropietario(articulo.getPropietario() != null ? articulo.getPropietario().getNombre() : null)
                 .fechaModificacion(articulo.getActualizadoEn() != null
                         ? articulo.getActualizadoEn().format(FECHA_FORMATTER)

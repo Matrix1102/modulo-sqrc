@@ -29,7 +29,7 @@ public class ArticuloResponse {
     private Visibilidad visibilidad;
     private LocalDateTime vigenteDesde;
     private LocalDateTime vigenteHasta;
-    private String modulo;
+    private String tags;
     private LocalDateTime creadoEn;
     private LocalDateTime actualizadoEn;
 

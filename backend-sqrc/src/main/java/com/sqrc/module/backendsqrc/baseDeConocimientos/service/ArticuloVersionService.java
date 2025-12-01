@@ -196,8 +196,8 @@ public class ArticuloVersionService {
         // Solo se pueden proponer versiones en borrador
         if (version.getEstadoPropuesta() != EstadoArticulo.BORRADOR) {
             throw new OperacionInvalidaException(
-                    "Solo se pueden proponer versiones en estado BORRADOR. Estado actual: " 
-                    + version.getEstadoPropuesta());
+                    "Solo se pueden proponer versiones en estado BORRADOR. Estado actual: "
+                            + version.getEstadoPropuesta());
         }
 
         version.setEstadoPropuesta(EstadoArticulo.PROPUESTO);

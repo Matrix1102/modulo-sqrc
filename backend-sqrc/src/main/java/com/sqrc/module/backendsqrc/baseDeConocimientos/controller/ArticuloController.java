@@ -185,6 +185,23 @@ public class ArticuloController {
     }
 
     /**
+     * Busca sugerencias de artículos activos por palabras clave.
+     * Retorna artículos ordenados por relevancia (coincidencia en título > resumen
+     * > tags)
+     * y cantidad de feedbacks positivos.
+     * GET /api/articulos/sugerencias?q=roaming&limite=4&visibilidad=AGENTE
+     */
+    @GetMapping("/sugerencias")
+    public ResponseEntity<List<ArticuloResumenResponse>> buscarSugerencias(
+            @RequestParam("q") String palabrasClave,
+            @RequestParam(defaultValue = "4") int limite,
+            @RequestParam(required = false) Visibilidad visibilidad) {
+        log.info("GET /api/articulos/sugerencias?q={}&limite={}&visibilidad={}", palabrasClave, limite, visibilidad);
+        List<ArticuloResumenResponse> response = articuloService.buscarSugerencias(palabrasClave, visibilidad, limite);
+        return ResponseEntity.ok(response);
+    }
+
+    /**
      * Genera un código único para un nuevo artículo.
      * GET /api/articulos/generar-codigo
      */

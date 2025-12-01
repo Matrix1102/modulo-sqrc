@@ -24,6 +24,7 @@ public class ArticuloResumenResponse {
     private Etiqueta etiqueta;
     private TipoCaso tipoCaso;
     private Visibilidad visibilidad;
+    private String tags;
     private String nombrePropietario;
     private String fechaModificacion;
     private Integer versionActual;

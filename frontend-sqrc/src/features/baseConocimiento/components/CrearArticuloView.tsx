@@ -1,4 +1,9 @@
-import React, { useState, useCallback, useImperativeHandle, forwardRef } from "react";
+import React, {
+  useState,
+  useCallback,
+  useImperativeHandle,
+  forwardRef,
+} from "react";
 import {
   Bold,
   Italic,
@@ -45,8 +50,10 @@ export interface CrearArticuloViewRef {
   tieneContenido: () => boolean;
 }
 
-const CrearArticuloView = forwardRef<CrearArticuloViewRef, CrearArticuloViewProps>(
-  ({ onArticuloCreated }, ref) => {
+const CrearArticuloView = forwardRef<
+  CrearArticuloViewRef,
+  CrearArticuloViewProps
+>(({ onArticuloCreated }, ref) => {
   const userId = useUserId();
   const [loading, setLoading] = useState(false);
 
@@ -110,7 +117,7 @@ const CrearArticuloView = forwardRef<CrearArticuloViewRef, CrearArticuloViewProp
       };
 
       await articuloService.crearArticulo(request);
-      
+
       // Reset form
       setFormData({
         categoria: "TROUBLESHOOTING",
@@ -137,10 +144,14 @@ const CrearArticuloView = forwardRef<CrearArticuloViewRef, CrearArticuloViewProp
   }, [formData, userId, tieneContenido]);
 
   // Exponer funciones al componente padre
-  useImperativeHandle(ref, () => ({
-    guardarBorrador,
-    tieneContenido,
-  }), [guardarBorrador, tieneContenido]);
+  useImperativeHandle(
+    ref,
+    () => ({
+      guardarBorrador,
+      tieneContenido,
+    }),
+    [guardarBorrador, tieneContenido]
+  );
 
   const handleSubmit = useCallback(
     async (asBorrador: boolean) => {
@@ -188,7 +199,7 @@ const CrearArticuloView = forwardRef<CrearArticuloViewRef, CrearArticuloViewProp
           const versiones = await articuloService.obtenerVersiones(
             nuevoArticulo.idArticulo
           );
-          
+
           if (versiones.length > 0) {
             // La primera versión es la más reciente (ordenadas DESC por numeroVersion)
             const primeraVersion = versiones[0];
@@ -197,7 +208,10 @@ const CrearArticuloView = forwardRef<CrearArticuloViewRef, CrearArticuloViewProp
               primeraVersion.idArticuloVersion
             );
           }
-          showToast("Artículo propuesto para revisión del supervisor", "success");
+          showToast(
+            "Artículo propuesto para revisión del supervisor",
+            "success"
+          );
         } else {
           showToast("Artículo guardado como borrador", "success");
         }
@@ -286,7 +300,9 @@ const CrearArticuloView = forwardRef<CrearArticuloViewRef, CrearArticuloViewProp
 
         {/* Tipo de Caso */}
         <div>
-          <label className="block text-xs text-gray-500 mb-1">Tipo de Caso</label>
+          <label className="block text-xs text-gray-500 mb-1">
+            Tipo de Caso
+          </label>
           <div className="relative">
             <select
               value={formData.tipoCaso}
@@ -351,7 +367,9 @@ const CrearArticuloView = forwardRef<CrearArticuloViewRef, CrearArticuloViewProp
       <div className="grid grid-cols-4 gap-4">
         {/* Vigente Desde */}
         <div>
-          <label className="block text-xs text-gray-500 mb-1">Vigente desde</label>
+          <label className="block text-xs text-gray-500 mb-1">
+            Vigente desde
+          </label>
           <input
             type="date"
             value={formData.vigenteDesde}
@@ -362,7 +380,9 @@ const CrearArticuloView = forwardRef<CrearArticuloViewRef, CrearArticuloViewProp
 
         {/* Vigente Hasta */}
         <div>
-          <label className="block text-xs text-gray-500 mb-1">Vigente hasta</label>
+          <label className="block text-xs text-gray-500 mb-1">
+            Vigente hasta
+          </label>
           <input
             type="date"
             value={formData.vigenteHasta}
@@ -411,7 +431,9 @@ const CrearArticuloView = forwardRef<CrearArticuloViewRef, CrearArticuloViewProp
 
       {/* Nota de cambio (para la versión) */}
       <div>
-        <label className="block text-xs text-gray-500 mb-1">Nota de cambio</label>
+        <label className="block text-xs text-gray-500 mb-1">
+          Nota de cambio
+        </label>
         <input
           type="text"
           placeholder="Describe brevemente los cambios de esta versión..."
