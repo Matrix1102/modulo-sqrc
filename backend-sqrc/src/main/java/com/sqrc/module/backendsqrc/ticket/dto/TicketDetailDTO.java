@@ -16,14 +16,14 @@ import java.util.List;
 @NoArgsConstructor
 @AllArgsConstructor
 public class TicketDetailDTO {
-    
+
     private Long id;
     private String reasonTitle; // nombre del motivo
     private String status; // estado del ticket
     private String priority; // prioridad
     private String description; // descripción del ticket
     private String type; // tipo: CONSULTA, QUEJA, RECLAMO, SOLICITUD
-    private String channel; // origen/canal: Web, Email, Telefono, etc.
+    private String channel; // origen/canal: Llamada, Presencial
     private LocalDateTime creationDate; // fecha de creación
     private LocalDateTime attentionDate; // fecha de primera atención (primera asignación)
     private LocalDateTime closingDate; // fecha de cierre

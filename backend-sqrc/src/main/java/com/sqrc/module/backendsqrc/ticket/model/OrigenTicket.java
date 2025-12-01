@@ -1,14 +1,8 @@
 package com.sqrc.module.backendsqrc.ticket.model;
 
 public enum OrigenTicket {
-    WEB("Web"),
-    EMAIL("Email"),
-    TELEFONO("Telefono"),
-    CHAT("Chat"),
-    API("API"),
-    INTERNO("Interno"),
-    APP("App"),
-    OTRO("Otro");
+    LLAMADA("Llamada"),
+    PRESENCIAL("Presencial");
 
     private final String displayName;
 

@@ -1,6 +1,6 @@
-export type TicketStatus = "Abierto" | "Cerrado" | "Escalado" | "Derivado" | "Auditoría";
+export type TicketStatus = "Abierto" | "Cerrado" | "Escalado" | "Derivado";
 export type TicketType = "Solicitud" | "Queja" | "Reclamo" | "Consulta";
-export type TicketChannel = "Llamada" | "Presencial" | "Web" | "Email" | "Chat" | "API" | "Interno" | "Aplicación Móvil" | "Otro";
+export type TicketChannel = "Llamada" | "Presencial";
 
 export interface TicketSummary {
   id: number;

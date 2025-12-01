@@ -107,7 +107,6 @@ const mapLocalFiltersToApi = (criteria: FilterCriteria, clienteId?: number): Api
       "Abierto": "ABIERTO",
       "Escalado": "ESCALADO",
       "Derivado": "DERIVADO",
-      "Auditoría": "AUDITORIA",
       "Cerrado": "CERRADO",
     };
     apiFilter.status = criteria.status.map(s => reverseStatusMap[s] || s) as any;

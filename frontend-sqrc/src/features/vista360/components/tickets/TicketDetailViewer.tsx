@@ -17,7 +17,6 @@ const ESTADOS_MAP: Record<string, string> = {
   ABIERTO: "Abierto",
   ESCALADO: "Escalado",
   DERIVADO: "Derivado",
-  AUDITORIA: "Auditoría",
   CERRADO: "Cerrado",
 };
 

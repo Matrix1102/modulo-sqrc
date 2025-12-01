@@ -325,7 +325,7 @@ export interface TicketHistoryResponse {
   titulo: string;
   motivo: string;
   descripcion: string;
-  estado: 'ABIERTO' | 'ESCALADO' | 'DERIVADO' | 'AUDITORIA' | 'CERRADO';
+  estado: 'ABIERTO' | 'ESCALADO' | 'DERIVADO' | 'CERRADO';
   origen: string;
   tipoTicket: 'CONSULTA' | 'QUEJA' | 'RECLAMO' | 'SOLICITUD';
   fechaCreacion: string; // ISO format

@@ -4,6 +4,5 @@ public enum EstadoTicket {
     ABIERTO,
     ESCALADO,
     DERIVADO,
-    AUDITORIA,
     CERRADO
 }
