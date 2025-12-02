@@ -16,6 +16,9 @@ import {
   EditarArticuloPage,
 } from "./features/baseConocimiento";
 
+// plantillas de respuestas
+import { PlantillasDashboard } from "./features/plantilla_respuestas/pages/PlantillasDashboard";
+
 // Contexto de Usuario
 import { UserProvider } from "./context";
 
@@ -74,6 +77,8 @@ export default function App() {
           <Route path="/supervisor" element={<MainLayout role="SUPERVISOR" />}>
             {/* El Dashboard suele ser la página principal (index) */}
             <Route index element={<DashboardPage />} />
+            {/*  Ruta de Gestión de Plantillas */}
+            <Route path="plantillas" element={<PlantillasDashboard />} />
             <Route path="encuestas" element={<EncuestasPage />} />
             <Route
               path="encuestas/agentes"
