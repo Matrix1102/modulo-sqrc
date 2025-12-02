@@ -270,10 +270,10 @@ public class ArticuloService {
     }
 
     /**
-     * Busca sugerencias de artículos activos por palabras clave.
-     * Retorna artículos ordenados por relevancia (coincidencia en título > resumen
-     * > tags)
-     * y cantidad de feedbacks positivos.
+     * Busca sugerencias de artículos activos por palabras clave usando FULLTEXT.
+     * Busca en título, resumen, tags y contenido de la versión vigente.
+     * Retorna artículos ordenados por relevancia FULLTEXT y cantidad de feedbacks
+     * positivos.
      * Solo incluye artículos con versión publicada y vigentes en la fecha actual.
      * 
      * @param palabrasClave Texto a buscar (puede contener múltiples palabras)
@@ -288,32 +288,43 @@ public class ArticuloService {
             return List.of();
         }
 
-        log.debug("Buscando sugerencias para: '{}' con límite: {}", palabrasClave, limite);
+        String textoBusqueda = palabrasClave.trim();
+        log.debug("Buscando sugerencias FULLTEXT para: '{}' con límite: {}", textoBusqueda, limite);
 
-        // Buscar con cada palabra clave y combinar resultados
-        String[] palabras = palabrasClave.trim().toLowerCase().split("\\s+");
-
-        List<Articulo> resultados = articuloRepository.buscarSugerenciasActivas(
-                palabrasClave.trim(),
-                visibilidad,
+        // Buscar usando FULLTEXT (query nativa)
+        List<Object[]> resultadosFulltext = articuloRepository.buscarSugerenciasFulltext(
+                textoBusqueda,
+                visibilidad != null ? visibilidad.name() : null,
                 LocalDateTime.now(),
-                PageRequest.of(0, limite * 2) // Obtener más para permitir filtrado
-        );
+                limite);
 
-        // Calcular score de relevancia para ordenar mejor
-        return resultados.stream()
-                .map(articulo -> {
-                    int score = calcularScoreRelevancia(articulo, palabras);
-                    return new Object[] { articulo, score };
-                })
-                .sorted((a, b) -> Integer.compare((int) b[1], (int) a[1]))
-                .limit(limite)
-                .map(arr -> mapToResumen((Articulo) arr[0]))
+        if (resultadosFulltext.isEmpty()) {
+            log.debug("No se encontraron resultados FULLTEXT para: '{}'", textoBusqueda);
+            return List.of();
+        }
+
+        // Obtener los IDs de los artículos encontrados (mantienen el orden por relevancia)
+        List<Integer> idsOrdenados = resultadosFulltext.stream()
+                .map(row -> ((Number) row[0]).intValue())
+                .collect(Collectors.toList());
+
+        // Cargar los artículos completos
+        List<Articulo> articulos = articuloRepository.findAllById(idsOrdenados);
+
+        // Ordenar según el orden de relevancia original
+        return idsOrdenados.stream()
+                .map(id -> articulos.stream()
+                        .filter(a -> a.getIdArticulo().equals(id))
+                        .findFirst()
+                        .orElse(null))
+                .filter(a -> a != null)
+                .map(this::mapToResumen)
                 .collect(Collectors.toList());
     }
 
     /**
      * Calcula un score de relevancia para un artículo basado en las palabras clave.
+     * Método de respaldo para ordenamiento adicional si es necesario.
      */
     private int calcularScoreRelevancia(Articulo articulo, String[] palabras) {
         int score = 0;
@@ -321,27 +332,37 @@ public class ArticuloService {
         String resumen = articulo.getResumen() != null ? articulo.getResumen().toLowerCase() : "";
         String tags = articulo.getTags() != null ? articulo.getTags().toLowerCase() : "";
 
+        // Obtener contenido de la versión vigente
+        String contenido = "";
+        ArticuloVersion versionVigente = articulo.getVersionVigente();
+        if (versionVigente != null && versionVigente.getContenido() != null) {
+            contenido = versionVigente.getContenido().toLowerCase();
+        }
+
         for (String palabra : palabras) {
-            // Título tiene mayor peso (x3)
+            // Título tiene mayor peso (x4)
             if (titulo.contains(palabra)) {
-                score += 30;
+                score += 40;
                 // Bonus si la palabra está al inicio del título
                 if (titulo.startsWith(palabra)) {
                     score += 10;
                 }
             }
-            // Resumen tiene peso medio (x2)
+            // Resumen tiene peso alto (x3)
             if (resumen.contains(palabra)) {
+                score += 30;
+            }
+            // Tags tienen peso medio (x2)
+            if (tags.contains(palabra)) {
                 score += 20;
             }
-            // Tags tienen peso base (x1)
-            if (tags.contains(palabra)) {
+            // Contenido tiene peso base (x1)
+            if (contenido.contains(palabra)) {
                 score += 10;
             }
         }
 
         // Bonus por feedbacks positivos
-        ArticuloVersion versionVigente = articulo.getVersionVigente();
         if (versionVigente != null) {
             Long feedbacksPositivos = feedbackRepository.contarFeedbacksUtiles(versionVigente.getIdArticuloVersion());
             score += feedbacksPositivos != null ? feedbacksPositivos.intValue() * 5 : 0;
