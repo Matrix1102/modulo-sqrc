@@ -7,237 +7,217 @@ import {
 } from "./tickets";
 import type {
   FilterCriteria,
-  TicketDetail,
-  TicketService,
-  TicketSummary,
+  TicketDetail as LocalTicketDetail,
+  TicketSummary as LocalTicketSummary,
 } from "./tickets";
+import {
+  searchTickets,
+  getTicketById,
+  getTicketsByClienteId,
+  type TicketSummary as ApiTicketSummary,
+  type TicketDetail as ApiTicketDetail,
+  type TicketFilter as ApiTicketFilter,
+} from "../../../services/vista360Api";
+import { useCustomer } from "../context/CustomerContext";
 
-const MOCK_TICKET_DETAILS: TicketDetail[] = [
-  {
-    id: 101,
-    reasonTitle: "Falla Telefónica",
-    status: "Cerrado",
-    priority: "Alta",
-    description: "Corte del servicio telefónico por mantenimiento en la zona norte.",
-    type: "Queja",
-    channel: "Llamada",
-    creationDate: new Date("2024-12-10T08:20:00-05:00"),
-    attentionDate: new Date("2024-12-10T12:15:00-05:00"),
-    closingDate: new Date("2024-12-10T18:45:00-05:00"),
-    kbArticleId: "KB-204",
-    lastAgentName: "Carla Ríos",
-    assignmentHistory: [
-      {
-        agentName: "Carla Ríos",
-        area: "Soporte Técnico",
-        startDate: new Date("2024-12-10T12:15:00-05:00"),
-        endDate: new Date("2024-12-10T18:45:00-05:00"),
-        stepStatus: "Caso resuelto",
-        notes: "Se reinició el servicio y se validó con el cliente la recuperación de la línea.",
-      },
-      {
-        agentName: "Javier Torres",
-        area: "Mesa de Ayuda",
-        startDate: new Date("2024-12-10T08:20:00-05:00"),
-        endDate: new Date("2024-12-10T11:45:00-05:00"),
-        stepStatus: "Investigación",
-        notes: "Se identificó un corte programado por mantenimiento preventivo.",
-      },
-    ],
-  },
-  {
-    id: 102,
-    reasonTitle: "Falla Factura",
-    status: "Abierto",
-    priority: "Media",
-    description: "El cliente reporta cargos duplicados en la factura de noviembre.",
-    type: "Reclamo",
-    channel: "Presencial",
-    creationDate: new Date("2024-11-28T10:05:00-05:00"),
-    attentionDate: null,
-    closingDate: null,
-    kbArticleId: null,
-    lastAgentName: "Marcos Díaz",
-    assignmentHistory: [
-      {
-        agentName: "Marcos Díaz",
-        area: "Backoffice Facturación",
-        startDate: new Date("2024-11-28T14:40:00-05:00"),
-        endDate: null,
-        stepStatus: "En revisión",
-        notes: "Se solicitó cuadro de facturación a contabilidad para validar cargos.",
-      },
-      {
-        agentName: "Lucía Fernández",
-        area: "Atención Comercial",
-        startDate: new Date("2024-11-28T10:05:00-05:00"),
-        endDate: new Date("2024-11-28T13:50:00-05:00"),
-        stepStatus: "Derivación",
-        notes: "Se recopiló documentación y se escaló a backoffice para revisión detallada.",
-      },
-    ],
-  },
-  {
-    id: 103,
-    reasonTitle: "Solicitud de Equipos Adicionales",
-    status: "Derivado",
-    priority: "Baja",
-    description: "El cliente solicita agregar dos terminales telefónicos para nuevas extensiones.",
-    type: "Solicitud",
-    channel: "Llamada",
-    creationDate: new Date("2024-12-02T09:30:00-05:00"),
-    attentionDate: new Date("2024-12-03T11:00:00-05:00"),
-    closingDate: null,
-    kbArticleId: "KB-108",
-    lastAgentName: "Paola Castro",
-    assignmentHistory: [
-      {
-        agentName: "Paola Castro",
-        area: "Implementaciones",
-        startDate: new Date("2024-12-03T11:00:00-05:00"),
-        endDate: null,
-        stepStatus: "Coordinando instalación",
-        notes: "Se coordina disponibilidad con logística para enviar equipos.",
-      },
-      {
-        agentName: "Luis Gómez",
-        area: "Atención Comercial",
-        startDate: new Date("2024-12-02T09:30:00-05:00"),
-        endDate: new Date("2024-12-03T09:15:00-05:00"),
-        stepStatus: "Validación",
-        notes: "Se validó la disponibilidad de stock y se derivó a implementaciones.",
-      },
-    ],
-  },
-];
+// Mapeo de valores API a valores de UI
+const statusMap: Record<string, string> = {
+  ABIERTO: "Abierto",
+  ESCALADO: "Escalado",
+  DERIVADO: "Derivado",
+  AUDITORIA: "Auditoría",
+  CERRADO: "Cerrado",
+};
 
-const DETAIL_MAP: Map<number, TicketDetail> = new Map(
-  MOCK_TICKET_DETAILS.map((detail) => [detail.id, detail]),
-);
+const typeMap: Record<string, string> = {
+  CONSULTA: "Consulta",
+  QUEJA: "Queja",
+  RECLAMO: "Reclamo",
+  SOLICITUD: "Solicitud",
+};
 
-const MOCK_SUMMARIES: TicketSummary[] = MOCK_TICKET_DETAILS.map((detail) => ({
-  id: detail.id,
-  reasonTitle: detail.reasonTitle,
-  status: detail.status,
-  relevantDate: detail.closingDate ?? detail.attentionDate ?? detail.creationDate,
-  priority: detail.priority,
-}));
+const channelMap: Record<string, string> = {
+  Web: "Web",
+  Email: "Email",
+  Telefono: "Llamada",
+  Chat: "Chat",
+  API: "API",
+  Interno: "Interno",
+  App: "Aplicación Móvil",
+  Otro: "Otro",
+};
 
-const delay = (ms: number) =>
-  new Promise((resolve) => {
-    setTimeout(resolve, ms);
-  });
+// Función auxiliar para crear fechas válidas
+const parseDate = (dateString: string | null | undefined): Date | null => {
+  if (!dateString) return null;
+  const date = new Date(dateString);
+  return isNaN(date.getTime()) ? null : date;
+};
 
-const cloneTicketDetail = (detail: TicketDetail): TicketDetail => ({
-  ...detail,
-  assignmentHistory: detail.assignmentHistory.map((entry) => ({ ...entry })),
+// Conversión de API DTO a tipo de UI
+const mapApiSummaryToLocal = (api: ApiTicketSummary): LocalTicketSummary => ({
+  id: api.id,
+  reasonTitle: api.reasonTitle,
+  status: (statusMap[api.status] || api.status) as LocalTicketSummary['status'],
+  relevantDate: parseDate(api.relevantDate) || new Date(),
+  priority: api.priority,
 });
 
-const mockTicketService: TicketService = {
-  async searchTickets(filters: FilterCriteria) {
-    await delay(200);
-    return MOCK_SUMMARIES.filter((summary) => {
-      const detail = DETAIL_MAP.get(summary.id);
-      if (!detail) {
-        return false;
-      }
+const mapApiDetailToLocal = (api: ApiTicketDetail): LocalTicketDetail => ({
+  id: api.id,
+  reasonTitle: api.reasonTitle,
+  status: (statusMap[api.status] || api.status) as LocalTicketDetail['status'],
+  priority: "Media", // Se calcula en el backend pero no viene en el DTO detail, usamos default
+  description: api.description,
+  type: (typeMap[api.type] || api.type) as LocalTicketDetail['type'],
+  channel: (channelMap[api.channel] || api.channel) as LocalTicketDetail['channel'],
+  creationDate: parseDate(api.createdDate) || new Date(),
+  attentionDate: api.assignmentHistory.length > 0 ? parseDate(api.assignmentHistory[0].startDate) : null,
+  closingDate: parseDate(api.closedDate),
+  kbArticleId: api.kbArticleId ? `KB-${api.kbArticleId}` : null,
+  lastAgentName: api.lastAgentName,
+  assignmentHistory: api.assignmentHistory.map(a => ({
+    agentName: a.agentName,
+    area: a.area,
+    startDate: parseDate(a.startDate) || new Date(),
+    endDate: parseDate(a.endDate),
+    stepStatus: a.stepStatus === "EN_PROGRESO" ? "En progreso" : "Completado",
+    notes: a.notes || "",
+  })),
+});
 
-      const term = filters.term.trim().toLowerCase();
-      const matchesTerm = term
-        ? [
-            summary.reasonTitle,
-            summary.priority,
-            detail.description,
-            detail.lastAgentName,
-          ]
-            .join(" ")
-            .toLowerCase()
-            .includes(term)
-        : true;
+// Mapeo de filtros UI a filtros API
+const mapLocalFiltersToApi = (criteria: FilterCriteria, clienteId?: number): ApiTicketFilter => {
+  const apiFilter: ApiTicketFilter = {};
 
-      const matchesStatus =
-        filters.status.length === 0 || filters.status.includes(summary.status);
+  if (criteria.term.trim()) {
+    apiFilter.term = criteria.term.trim();
+  }
 
-      const matchesType = !filters.type || detail.type === filters.type;
-      const matchesChannel =
-        !filters.channel || detail.channel === filters.channel;
+  if (criteria.dateRange.start) {
+    apiFilter.dateStart = criteria.dateRange.start.toISOString().split('T')[0];
+  }
 
-      const { start, end } = filters.dateRange;
-      const matchesDate =
-        (!start || summary.relevantDate >= start) &&
-        (!end || summary.relevantDate <= end);
+  if (criteria.dateRange.end) {
+    apiFilter.dateEnd = criteria.dateRange.end.toISOString().split('T')[0];
+  }
 
-      return (
-        matchesTerm &&
-        matchesStatus &&
-        matchesType &&
-        matchesChannel &&
-        matchesDate
-      );
-    });
+  if (criteria.status.length > 0) {
+    const reverseStatusMap: Record<string, string> = {
+      "Abierto": "ABIERTO",
+      "Escalado": "ESCALADO",
+      "Derivado": "DERIVADO",
+      "Cerrado": "CERRADO",
+    };
+    apiFilter.status = criteria.status.map(s => reverseStatusMap[s] || s) as any;
+  }
+
+  if (criteria.type) {
+    const reverseTypeMap: Record<string, string> = {
+      "Consulta": "CONSULTA",
+      "Queja": "QUEJA",
+      "Reclamo": "RECLAMO",
+      "Solicitud": "SOLICITUD",
+    };
+    apiFilter.type = reverseTypeMap[criteria.type] as any;
+  }
+
+  if (criteria.channel) {
+    const reverseChannelMap: Record<string, string> = {
+      "Web": "Web",
+      "Email": "Email",
+      "Llamada": "Telefono",
+      "Chat": "Chat",
+      "API": "API",
+      "Interno": "Interno",
+      "Aplicación Móvil": "App",
+      "Otro": "Otro",
+    };
+    apiFilter.channel = reverseChannelMap[criteria.channel] as any;
+  }
+
+  if (clienteId) {
+    apiFilter.clienteId = clienteId;
+  }
+
+  return apiFilter;
+};
+
+// Los datos ahora vienen del backend real
+
+// Servicio real que conecta con el backend
+const ticketService = {
+  async searchTickets(filters: FilterCriteria, clienteId?: number): Promise<LocalTicketSummary[]> {
+    const apiFilter = mapLocalFiltersToApi(filters, clienteId);
+    const apiResults = await searchTickets(apiFilter);
+    return apiResults.map(mapApiSummaryToLocal);
   },
 
-  async getTicketById(id: number) {
-    await delay(180);
-    const detail = DETAIL_MAP.get(id);
-    if (!detail) {
-      throw new Error(`Ticket ${id} no encontrado`);
-    }
+  async getTicketById(id: number): Promise<LocalTicketDetail> {
+    const apiDetail = await getTicketById(id);
+    return mapApiDetailToLocal(apiDetail);
+  },
 
-    return cloneTicketDetail(detail);
+  async getTicketsByClienteId(clienteId: number): Promise<LocalTicketSummary[]> {
+    const apiResults = await getTicketsByClienteId(clienteId);
+    return apiResults.map(mapApiSummaryToLocal);
   },
 };
 
 const CustomerTicketsView: React.FC = () => {
+  const { cliente } = useCustomer();
   const initialFilters = useMemo(() => createDefaultFilters(), []);
   const [filters, setFilters] = useState<FilterCriteria>(initialFilters);
-  const [searchResults, setSearchResults] = useState<ReadonlyArray<TicketSummary>>([]);
+  const [searchResults, setSearchResults] = useState<ReadonlyArray<LocalTicketSummary>>([]);
   const [selectedTicketId, setSelectedTicketId] = useState<number | null>(null);
-  const [activeTicket, setActiveTicket] = useState<TicketDetail | null>(null);
-  const [isLoading, setIsLoading] = useState(false);
 
   const handleSearch = useCallback(async (criteria: FilterCriteria) => {
-    setIsLoading(true);
+    if (!cliente?.idCliente) {
+      setSearchResults([]);
+      setSelectedTicketId(null);
+      return;
+    }
+
     try {
-      const results = await mockTicketService.searchTickets(criteria);
+      // Buscar tickets solo del cliente actual
+      const results = await ticketService.searchTickets(criteria, cliente.idCliente);
       setFilters(criteria);
       setSearchResults(results);
       setSelectedTicketId(results[0]?.id ?? null);
-      setActiveTicket(null);
-    } finally {
-      setIsLoading(false);
+    } catch (error: any) {
+      console.error('Error al buscar tickets:', error);
+      setSearchResults([]);
+      setSelectedTicketId(null);
     }
-  }, []);
+  }, [cliente?.idCliente]);
 
   const handleSelectTicket = useCallback((ticketId: number) => {
     setSelectedTicketId(ticketId);
   }, []);
 
-  const loadTicketDetail = useCallback(async (ticketId: number) => {
-    setIsLoading(true);
-    try {
-      const detail = await mockTicketService.getTicketById(ticketId);
-      setActiveTicket(detail);
-    } finally {
-      setIsLoading(false);
-    }
-  }, []);
-
-  useEffect(() => {
-    if (selectedTicketId === null) {
-      setActiveTicket(null);
-      return;
-    }
-
-    void loadTicketDetail(selectedTicketId);
-  }, [selectedTicketId, loadTicketDetail]);
-
   useEffect(() => {
     void handleSearch(initialFilters);
   }, [handleSearch, initialFilters]);
 
+  // Mensaje cuando no hay cliente seleccionado
+  if (!cliente) {
+    return (
+      <section className="flex h-full items-center justify-center rounded-xl bg-gray-50 p-8">
+        <div className="text-center">
+          <p className="text-lg font-semibold text-gray-700 mb-2">No hay cliente seleccionado</p>
+          <p className="text-sm text-gray-500">Por favor, busca un cliente en la pestaña "Básico" para ver sus tickets</p>
+        </div>
+      </section>
+    );
+  }
+
   return (
     <section className="flex h-full flex-col gap-6">
+      <div className="rounded-xl border border-blue-100 bg-blue-50 p-4">
+        <p className="text-sm text-blue-800">
+          <span className="font-semibold">Cliente:</span> {cliente.nombre} {cliente.apellido} (DNI: {cliente.dni})
+        </p>
+      </div>
       <SearchFilterComponent onSearch={handleSearch} initialFilters={filters} />
 
       <div className="grid flex-1 gap-6 lg:grid-cols-[minmax(300px,35%)_1fr]">
@@ -248,14 +228,7 @@ const CustomerTicketsView: React.FC = () => {
         />
 
         <div className="relative">
-          <TicketDetailViewer ticket={activeTicket} />
-          {isLoading && (
-            <div className="absolute inset-0 flex items-center justify-center rounded-xl bg-white/70">
-              <span className="animate-pulse text-sm font-medium text-gray-600">
-                Cargando información...
-              </span>
-            </div>
-          )}
+          <TicketDetailViewer ticketId={selectedTicketId} />
         </div>
       </div>
     </section>

@@ -1,5 +1,5 @@
 export type TicketStatus = "Abierto" | "Cerrado" | "Escalado" | "Derivado";
-export type TicketType = "Solicitud" | "Queja" | "Reclamo";
+export type TicketType = "Solicitud" | "Queja" | "Reclamo" | "Consulta";
 export type TicketChannel = "Llamada" | "Presencial";
 
 export interface TicketSummary {
@@ -31,7 +31,7 @@ export interface TicketDetail {
   attentionDate: Date | null;
   closingDate: Date | null;
   kbArticleId: string | null;
-  lastAgentName: string;
+  lastAgentName: string | null;
   assignmentHistory: AssignmentHistory[];
 }
 
