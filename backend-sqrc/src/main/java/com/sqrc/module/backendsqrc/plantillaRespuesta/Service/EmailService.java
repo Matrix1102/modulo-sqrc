@@ -69,4 +69,17 @@ public class EmailService {
             // No lanzamos excepción aquí para no romper el hilo asíncrono, solo lo registramos en el log.
         }
     }
+
+    /**
+     * Envía un correo HTML sin adjuntos.
+     * Se ejecuta en un hilo separado (@Async) para no bloquear al usuario.
+     *
+     * @param destinatario Email del destinatario
+     * @param asunto Título del correo
+     * @param cuerpoHtml Contenido en formato HTML
+     */
+    @Async
+    public void enviarCorreoHtmlAsync(String destinatario, String asunto, String cuerpoHtml) {
+        enviarCorreoConAdjunto(destinatario, asunto, cuerpoHtml, null, null);
+    }
 }

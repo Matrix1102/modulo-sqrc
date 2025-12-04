@@ -14,6 +14,7 @@ public class ValidarCoherenciaTipo extends ValidadorRespuesta {
     // private final AsignacionRepository asignacionRepository;
 
     @Override
+    @SuppressWarnings("unused") // plantilla se usará cuando se implemente validación de coherencia
     public void validar(EnviarRespuestaRequestDTO request) {
         System.out.println("⛓ [CHAIN] 3. Verificando coherencia de tipos...");
 

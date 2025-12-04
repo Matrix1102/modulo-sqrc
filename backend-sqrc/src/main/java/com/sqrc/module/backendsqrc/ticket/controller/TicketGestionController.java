@@ -1,9 +1,11 @@
 package com.sqrc.module.backendsqrc.ticket.controller;
 
+import com.sqrc.module.backendsqrc.ticket.dto.DocumentacionDto;
 import com.sqrc.module.backendsqrc.ticket.dto.request.*;
 import com.sqrc.module.backendsqrc.ticket.dto.response.*;
 import com.sqrc.module.backendsqrc.ticket.model.Ticket;
 import com.sqrc.module.backendsqrc.ticket.repository.TicketRepository;
+import com.sqrc.module.backendsqrc.ticket.service.DocumentacionService;
 import com.sqrc.module.backendsqrc.ticket.service.TicketGestionService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -21,15 +23,17 @@ import java.util.stream.Collectors;
  * Patrón: REST Controller + MVC
  * 
  * Endpoints disponibles:
- * - GET    /api/tickets                 -> Listar tickets
- * - GET    /api/tickets/{id}            -> Obtener ticket
- * - POST   /api/tickets                 -> Crear ticket
- * - PUT    /api/tickets/{id}            -> Actualizar ticket
- * - PATCH  /api/tickets/{id}/estado     -> Cambiar estado
- * - POST   /api/tickets/{id}/escalar    -> Escalar ticket
- * - POST   /api/tickets/{id}/derivar    -> Derivar ticket
- * - POST   /api/tickets/{id}/devolver   -> Devolver ticket
- * - POST   /api/tickets/{id}/cerrar     -> Cerrar ticket
+ * - GET    /api/tickets                           -> Listar tickets
+ * - GET    /api/tickets/{id}                      -> Obtener ticket
+ * - POST   /api/tickets                           -> Crear ticket
+ * - PUT    /api/tickets/{id}                      -> Actualizar ticket
+ * - PATCH  /api/tickets/{id}/estado               -> Cambiar estado
+ * - POST   /api/tickets/{id}/escalar              -> Escalar ticket
+ * - POST   /api/tickets/{id}/derivar              -> Derivar ticket
+ * - POST   /api/tickets/{id}/devolver             -> Devolver ticket
+ * - POST   /api/tickets/{id}/cerrar               -> Cerrar ticket
+ * - GET    /api/tickets/{id}/documentacion        -> Listar documentación
+ * - POST   /api/tickets/{id}/documentacion        -> Crear documentación
  */
 @RestController
 @RequestMapping("/api/tickets")
@@ -38,6 +42,7 @@ import java.util.stream.Collectors;
 public class TicketGestionController {
 
     private final TicketGestionService ticketGestionService;
+    private final DocumentacionService documentacionService;
     private final TicketRepository ticketRepository;
 
     /**
@@ -219,5 +224,43 @@ public class TicketGestionController {
         TicketOperationResponse response = ticketGestionService.cerrarTicket(id, empleadoId);
         
         return ResponseEntity.ok(response);
+    }
+
+    // ==================== Documentación ====================
+
+    /**
+     * Obtiene la documentación de un ticket.
+     * 
+     * @param id ID del ticket
+     * @return Lista de documentaciones
+     */
+    @GetMapping("/{id}/documentacion")
+    public ResponseEntity<List<DocumentacionDto>> obtenerDocumentacion(@PathVariable Long id) {
+        log.info("GET /api/tickets/{}/documentacion - Obteniendo documentación", id);
+        
+        List<DocumentacionDto> documentacion = documentacionService.obtenerDocumentacionPorTicket(id);
+        
+        return ResponseEntity.ok(documentacion);
+    }
+
+    /**
+     * Crea documentación para un ticket.
+     * 
+     * @param id ID del ticket
+     * @param request DTO con los datos de la documentación
+     * @return DocumentacionCreatedResponse con el resultado
+     */
+    @PostMapping("/{id}/documentacion")
+    public ResponseEntity<DocumentacionCreatedResponse> crearDocumentacion(
+            @PathVariable Long id,
+            @Valid @RequestBody CreateDocumentacionRequest request) {
+        log.info("POST /api/tickets/{}/documentacion - Creando documentación", id);
+        
+        // Asegurar que el ticketId del request coincida con el path
+        request.setTicketId(id);
+        
+        DocumentacionCreatedResponse response = documentacionService.crearDocumentacion(request);
+        
+        return new ResponseEntity<>(response, HttpStatus.CREATED);
     }
 }

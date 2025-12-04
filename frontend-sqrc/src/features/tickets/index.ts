@@ -16,3 +16,9 @@ export { TicketFilters } from "./components/TicketFilters";
 export { TicketListTable } from "./components/TicketListTable";
 export { ClienteAuthModal } from "./components/ClienteAuthModal";
 export { CreateTicketModal } from "./components/CreateTicketModal";
+
+// Detail Components
+export * from "./components/detail";
+
+// Pages
+export { TicketDetailPage } from "./pages/TicketDetailPage";

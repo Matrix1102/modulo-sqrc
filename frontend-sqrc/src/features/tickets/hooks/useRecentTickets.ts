@@ -1,8 +1,8 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import reportService from "../../reportes/services/reportService";
 import type { AgenteDetail, TicketReporte } from "../../reportes/types/reporte";
 
-// 1. Rescatamos la interfaz de la izquierda para mejor tipado
+// Interfaz para mejor tipado
 interface AgentTicketsResult {
   agenteId: string;
   tickets: TicketReporte[];
@@ -32,31 +32,38 @@ export default function useRecentTickets(
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<Error | null>(null);
 
-  // 2. Usamos la estructura de useEffect directo (como en la derecha) 
-  // para manejar la bandera 'mounted' y evitar memory leaks.
+  // Memoizar valores para evitar re-renders infinitos
+  const agentIds = useMemo(
+    () => (agentes ?? []).slice(0, 10).map((a) => a.agenteId),
+    [agentes]
+  );
+  const startDate = params?.startDate;
+  const endDate = params?.endDate;
+  const maxItems = options?.maxItems ?? 30;
+
   useEffect(() => {
     let mounted = true;
 
     async function load() {
+      if (agentIds.length === 0) {
+        setTickets([]);
+        return;
+      }
+
       setLoading(true);
       setError(null);
       try {
-        const agentList = agentes || [];
-        // Limit concurrency: fetch tickets for up to first 10 agents
-        const limited = agentList.slice(0, 10);
-        
-        const promises = limited.map((a) =>
-          reportService.fetchTicketsByAgent(a.agenteId, params)
-            .catch(() => ({ agenteId: a.agenteId, tickets: [] }))
+        const promises = agentIds.map((id) =>
+          reportService.fetchTicketsByAgent(id, { startDate, endDate })
+            .catch(() => ({ agenteId: id, tickets: [] }))
         );
 
         const results = await Promise.all(promises);
 
-        // 3. Usamos el tipado estricto de la izquierda (sin 'any')
         const all: TicketReporte[] = [];
         for (const r of results) {
           if (!r) continue;
-          const result = r as AgentTicketsResult; // Cast seguro gracias a la interfaz
+          const result = r as AgentTicketsResult;
           const list = result.tickets || [];
           for (const t of list) all.push(t);
         }
@@ -68,19 +75,16 @@ export default function useRecentTickets(
           return db - da;
         });
 
-        const max = options?.maxItems ?? 30;
-        
         if (mounted) {
-          setTickets(all.slice(0, max));
+          setTickets(all.slice(0, maxItems));
         }
       } catch (err: unknown) {
         if (mounted) {
-            // 4. Mejor manejo de errores (de la izquierda)
-            if (err instanceof Error) {
-                setError(err);
-            } else {
-                setError(new Error(String(err)));
-            }
+          if (err instanceof Error) {
+            setError(err);
+          } else {
+            setError(new Error(String(err)));
+          }
         }
       } finally {
         if (mounted) setLoading(false);
@@ -92,8 +96,7 @@ export default function useRecentTickets(
     return () => {
       mounted = false;
     };
-    // 5. Dependencias estables (de la derecha) para evitar re-renders infinitos
-  }, [agentes?.length, params?.startDate, params?.endDate, options?.maxItems]);
+  }, [agentIds, startDate, endDate, maxItems]);
 
   return { tickets, loading, error };
 }

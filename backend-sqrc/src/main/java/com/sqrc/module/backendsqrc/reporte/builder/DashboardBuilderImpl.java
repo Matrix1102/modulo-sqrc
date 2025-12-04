@@ -2,7 +2,7 @@ package com.sqrc.module.backendsqrc.reporte.builder;
 
 import com.sqrc.module.backendsqrc.reporte.dto.DashboardKpisDTO;
 import com.sqrc.module.backendsqrc.reporte.model.*;
-import com.sqrc.module.backendsqrc.plantillaRespuesta.model.TipoCaso;
+
 import org.springframework.context.annotation.Scope;
 import org.springframework.stereotype.Component;
 
