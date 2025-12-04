@@ -105,7 +105,12 @@ export const TicketDetailPage = () => {
       activeTab={activeTab}
       onTabChange={setActiveTab}
     >
-      {activeTab === 'detalles' && <DetallesTab ticket={ticket} />}
+      {activeTab === 'detalles' && (
+        <DetallesTab 
+          ticket={ticket} 
+          onRefresh={() => loadTicketData(parseInt(ticketId!))}
+        />
+      )}
       
       {activeTab === 'documentacion' && (
         <DocumentacionTab

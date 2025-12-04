@@ -2,14 +2,18 @@
  * Pestaña de Detalles del Ticket
  * Muestra la descripción del ticket e información específica por tipo
  */
-import React from 'react';
+import React, { useState } from 'react';
 import type { TicketDetail } from '../../types';
+import { EscalarTicketModal } from '../EscalarTicketModal';
 
 interface DetallesTabProps {
   ticket: TicketDetail;
+  onRefresh?: () => void;
 }
 
-export const DetallesTab: React.FC<DetallesTabProps> = ({ ticket }) => {
+export const DetallesTab: React.FC<DetallesTabProps> = ({ ticket, onRefresh }) => {
+  const [isEscalarModalOpen, setIsEscalarModalOpen] = useState(false);
+
   const formatDate = (dateString: string | null | undefined) => {
     if (!dateString) return '-';
     try {
@@ -25,6 +29,36 @@ export const DetallesTab: React.FC<DetallesTabProps> = ({ ticket }) => {
 
   return (
     <div className="space-y-6 max-w-3xl">
+      {/* Botón de Escalar (solo si el ticket está ABIERTO) */}
+      {ticket.estado === 'ABIERTO' && (
+        <div className="bg-gradient-to-r from-yellow-50 to-orange-50 rounded-xl border border-yellow-200 p-4 shadow-sm">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 bg-yellow-100 rounded-full flex items-center justify-center">
+                <svg className="w-6 h-6 text-yellow-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+                </svg>
+              </div>
+              <div>
+                <h4 className="font-semibold text-gray-900">¿Necesitas ayuda de BackOffice?</h4>
+                <p className="text-sm text-gray-600">Escala este ticket si requiere atención especializada</p>
+              </div>
+            </div>
+            <button
+              onClick={() => setIsEscalarModalOpen(true)}
+              className="px-5 py-2.5 bg-yellow-500 text-white rounded-lg text-sm font-semibold
+                       hover:bg-yellow-600 active:bg-yellow-700 transition-colors
+                       flex items-center gap-2 shadow-sm"
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+              </svg>
+              Escalar Ticket
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* Información del Ticket */}
       <div className="bg-white rounded-xl border border-gray-200 p-6 shadow-sm">
         <h3 className="text-lg font-semibold text-gray-900 mb-4">Información del Ticket</h3>
@@ -170,6 +204,16 @@ export const DetallesTab: React.FC<DetallesTabProps> = ({ ticket }) => {
           </div>
         </div>
       )}
+
+      {/* Modal de Escalamiento */}
+      <EscalarTicketModal
+        isOpen={isEscalarModalOpen}
+        onClose={() => setIsEscalarModalOpen(false)}
+        ticketId={ticket.idTicket}
+        onSuccess={() => {
+          onRefresh?.();
+        }}
+      />
     </div>
   );
 };

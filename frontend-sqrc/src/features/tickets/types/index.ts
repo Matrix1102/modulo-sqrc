@@ -184,3 +184,61 @@ export const TIPO_CONFIG: Record<TipoTicket, { label: string; color: string; bgC
   RECLAMO: { label: 'Reclamo', color: 'text-red-700', bgColor: 'bg-red-100', icon: '⚠️' },
   SOLICITUD: { label: 'Solicitud', color: 'text-purple-700', bgColor: 'bg-purple-100', icon: '📋' },
 };
+
+// ==================== Workflow (Escalamiento y Derivación) ====================
+
+/**
+ * DTO para escalar un ticket de Agente a BackOffice
+ * Coincide con EscalarRequestDTO.java
+ */
+export interface EscalarTicketRequest {
+  asunto: string;
+  problematica: string;
+  justificacion: string;
+}
+
+/**
+ * DTO para derivar un ticket de BackOffice a un área externa
+ * Coincide con DerivarTicketRequest.java
+ */
+export interface DerivarTicketRequest {
+  backofficeId: number;
+  areaId: number;
+  motivoDerivacion: string;
+  detallesProblema?: string;
+  correoModuloEspecializado?: string;
+}
+
+/**
+ * DTO para registrar respuesta de área externa
+ * Coincide con RespuestaDerivacionDTO.java
+ */
+export interface RespuestaDerivacionDTO {
+  solucionado: boolean;
+  detallesRespuesta: string;
+}
+
+// ==================== Correo / Hilo ====================
+
+export type TipoCorreo = 'ABIERTO' | 'CERRADO' | 'DERIVADO';
+
+/**
+ * Representa un correo/movimiento en el hilo del ticket
+ * Coincide con Correo.java
+ */
+export interface CorreoDTO {
+  idCorreo: number;
+  asunto: string;
+  cuerpo: string;
+  tipoCorreo: TipoCorreo;
+  fechaEnvio: string;
+  asignacion?: {
+    idAsignacion: number;
+    tipo: string;
+    empleado?: {
+      idEmpleado: number;
+      nombre: string;
+      apellido: string;
+    };
+  };
+}
