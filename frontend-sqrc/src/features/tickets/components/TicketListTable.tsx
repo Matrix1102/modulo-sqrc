@@ -134,7 +134,7 @@ export const TicketListTable = ({
                 <EstadoBadge estado={ticket.estado} />
               </td>
               <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-700">
-                {ticket.cliente.nombre} {ticket.cliente.apellido}
+                {ticket.cliente?.nombre ?? ''} {ticket.cliente?.apellido ?? ''}
               </td>
               <td className="px-4 py-4 whitespace-nowrap">
                 <TipoBadge tipo={ticket.tipoTicket} />
