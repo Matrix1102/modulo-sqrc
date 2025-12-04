@@ -1,7 +1,7 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { plantillaService } from '../services/plantillaService';
-import type { CrearPlantillaRequest } from '../type'; // Importar Type
-import { FaArrowLeft, FaEye} from 'react-icons/fa';
+import type { CrearPlantillaRequest } from '../type';
+import { FaArrowLeft, FaEye } from 'react-icons/fa';
 
 interface Props {
     onClose: () => void;
@@ -9,100 +9,72 @@ interface Props {
 }
 
 export const PlantillaCreatePage = ({ onClose, onSuccess }: Props) => {
-
+    
+    // Estado del Formulario
     const [formData, setFormData] = useState<CrearPlantillaRequest>({
         nombreInterno: '',
         tituloVisible: '',
         tipoCaso: 'RECLAMO',
         cuerpo: '',
         despedida: '',
-        htmlModelo: '' // Vacío para usar default del backend
+        htmlModelo: '' 
     });
 
-    const [previewHtml, setPreviewHtml] = useState<string>('');
+    const [previewHtml, setPreviewHtml] = useState<string>(''); 
     const [loading, setLoading] = useState(false);
+    
+    // ESTADO NUEVO: Aquí guardaremos el esqueleto que viene de Java
+    const [baseHtml, setBaseHtml] = useState<string>(''); 
+
+    // 1. EFECTO: Cargar el HTML base apenas entramos a la pantalla
+    useEffect(() => {
+        const cargarDiseno = async () => {
+            try {
+                const html = await plantillaService.getHtmlBase();
+                setBaseHtml(html);
+                console.log("Diseño base cargado correctamente");
+            } catch (error) {
+                console.error("No se pudo cargar el diseño base", error);
+            }
+        };
+        cargarDiseno();
+    }, []);
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
         setFormData({ ...formData, [e.target.name]: e.target.value });
     };
 
-    // Simulación Local de Vista Previa (Hoja Bond)
+    // 2. FUNCIÓN MODIFICADA: Ya no tiene HTML hardcodeado
     const handlePreviewClick = () => {
+        if (!baseHtml) {
+            alert("El diseño base aún no ha cargado del servidor. Espera un momento.");
+            return;
+        }
+
+        // Datos simulados para la vista previa (igual que antes)
+        const fechaSimulada = new Date().toLocaleDateString('es-PE', { day: '2-digit', month: 'long', year: 'numeric' });
         
-        // ESTE HTML AHORA COINCIDE CON TU BASE DE DATOS
-        const html = `
-            <!DOCTYPE html>
-            <html>
-            <head>
-                <style>
-                    body { font-family: 'Arial', sans-serif; background-color: #f0f0f0; margin: 0; padding: 20px; }
-                    /* Estilo de Hoja Bond Centrada */
-                    .hoja-carta { 
-                        background-color: #ffffff; 
-                        width: 100%; 
-                        max-width: 650px; 
-                        margin: 0 auto; 
-                        padding: 50px 60px; 
-                        border: 1px solid #ccc; 
-                        box-shadow: 0 0 10px rgba(0,0,0,0.1); 
-                        box-sizing: border-box; 
-                        min-height: 800px;
-                    }
-                    .header-expediente { text-align: right; font-weight: bold; font-size: 10pt; margin-bottom: 40px; }
-                    .fecha { margin-bottom: 30px; font-size: 11pt; }
-                    .cliente-info { margin-bottom: 20px; line-height: 1.5; font-size: 11pt; }
-                    .referencia-tabla { width: 100%; margin-bottom: 30px; font-size: 11pt; }
-                    .referencia-tabla td { padding-bottom: 5px; vertical-align: top; }
-                    .saludo { margin-bottom: 20px; font-size: 11pt; }
-                    .contenido { text-align: justify; line-height: 1.5; font-size: 11pt; min-height: 150px; margin-bottom: 50px; }
-                    .despedida { margin-top: 40px; font-size: 11pt; }
-                </style>
-            </head>
-            <body>
-                <div class="hoja-carta">
-                    <div class="header-expediente">EXPEDIENTE: 2025-NEW</div>
-                    
-                    <div class="fecha">
-                        ${new Date().toLocaleDateString('es-PE', { day: '2-digit', month: 'long', year: 'numeric' })}
-                    </div>
+        // Reemplazamos sobre la variable baseHtml que vino del Backend
+        // Usamos expresiones regulares /.../g para reemplazar todas las ocurrencias
+        let htmlFinal = baseHtml
+            .replace(/\$\{numero_ticket\}/g, '2025-NEW')
+            .replace(/\$\{fecha_actual\}/g, fechaSimulada)
+            .replace(/\$\{nombre_cliente\}/g, 'Juan Pérez (Vista Previa)')
+            // Si tu HTML tiene esta variable opcional
+            .replace(/\$\{identificador_servicio.*?\}/g, '999-000-000') 
+            
+            // Inyectamos los datos del formulario
+            .replace(/\$\{titulo\}/g, formData.tituloVisible || '[TÍTULO]')
+            .replace(/\$\{despedida\}/g, formData.despedida || '[Firma]');
 
-                    <div class="cliente-info">
-                        Señor(a):<br>
-                        <strong>[Nombre del Cliente]</strong>
-                    </div>
-
-                    <table class="referencia-tabla" border="0">
-                        <tr>
-                            <td width="120">Servicio/Línea</td>
-                            <td width="15">:</td>
-                            <td>000-000-000</td>
-                        </tr>
-                        <tr>
-                            <td>Referencia</td>
-                            <td>:</td>
-                            <td>Nuevo Caso</td>
-                        </tr>
-                    </table>
-
-                    <div class="saludo">De nuestra mayor consideración:</div>
-
-                    <div class="contenido">
-                        <div style="text-align: center; margin-bottom: 25px; font-weight: bold; text-decoration: underline;">
-                            ${formData.tituloVisible || '[Escribe un título]'}
-                        </div>
-
-                        ${formData.cuerpo ? formData.cuerpo.replace(/\n/g, '<br>') : '[Escribe el contenido del correo...]'}
-                    </div>
-
-                    <div class="despedida">
-                        ${formData.despedida || '[Escribe la despedida]'}
-                    </div>
-                </div>
-            </body>
-            </html>
-        `;
+        // Truco para el cuerpo: Convertir saltos de línea en <br>
+        const cuerpoFormat = formData.cuerpo 
+            ? formData.cuerpo.replace(/\n/g, '<br>') 
+            : '[El contenido aparecerá aquí...]';
+            
+        htmlFinal = htmlFinal.replace(/\$\{cuerpo\}/g, cuerpoFormat);
         
-        setPreviewHtml(html);
+        setPreviewHtml(htmlFinal);
     };
 
     const handleSubmit = async (e: React.FormEvent) => {
@@ -136,7 +108,9 @@ export const PlantillaCreatePage = ({ onClose, onSuccess }: Props) => {
                             <iframe srcDoc={previewHtml} className="w-full h-full border-none" title="Vista Previa" />
                         ) : (
                             <div className="flex flex-col items-center justify-center h-full text-gray-400 p-10 text-center">
+                                <div className="text-4xl mb-2">📄</div>
                                 <p>Completa los campos y haz clic en <b>"Vista previa"</b>.</p>
+                                {!baseHtml && <p className="text-xs text-orange-500 mt-2">Cargando diseño del servidor...</p>}
                             </div>
                         )}
                     </div>
@@ -146,7 +120,7 @@ export const PlantillaCreatePage = ({ onClose, onSuccess }: Props) => {
                 <div className="w-1/2 p-10 overflow-y-auto">
                     <h1 className="text-2xl font-bold text-gray-900 mb-8">Crear nueva Plantilla</h1>
                     <form onSubmit={handleSubmit} className="space-y-6 max-w-lg">
-
+                        
                         <div>
                             <label className="block text-sm font-bold text-gray-700 mb-1">Nombre interno</label>
                             <input type="text" name="nombreInterno" value={formData.nombreInterno} onChange={handleChange} className="w-full border p-2 rounded outline-none focus:border-blue-500" required />
@@ -173,11 +147,15 @@ export const PlantillaCreatePage = ({ onClose, onSuccess }: Props) => {
                             <input type="text" name="despedida" value={formData.despedida} onChange={handleChange} className="w-full border p-2 rounded outline-none focus:border-blue-500" required />
                         </div>
 
-                        <div className="flex justify-between pt-6">
-                            <button type="button" onClick={handlePreviewClick} className="text-blue-600 font-bold border border-blue-500 px-4 py-2 rounded hover:bg-blue-50 flex items-center gap-2"><FaEye /> Vista previa</button>
+                        <div className="flex justify-between pt-6 border-t mt-4">
+                            <button type="button" onClick={handlePreviewClick} className="text-blue-600 font-bold border border-blue-500 px-4 py-2 rounded hover:bg-blue-50 flex items-center gap-2">
+                                <FaEye /> Vista previa
+                            </button>
                             <div className="flex gap-3">
                                 <button type="button" onClick={onClose} className="bg-red-500 text-white font-bold px-4 py-2 rounded hover:bg-red-600">Cancelar</button>
-                                <button type="submit" disabled={loading} className="bg-green-500 text-white font-bold px-4 py-2 rounded hover:bg-green-600">{loading ? 'Guardando...' : 'Crear'}</button>
+                                <button type="submit" disabled={loading} className="bg-green-500 text-white font-bold px-4 py-2 rounded hover:bg-green-600">
+                                    {loading ? 'Guardando...' : 'Crear'}
+                                </button>
                             </div>
                         </div>
                     </form>

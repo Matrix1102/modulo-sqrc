@@ -41,5 +41,13 @@ export const plantillaService = {
 
     reactivar: async (id: number): Promise<void> => {
         await axios.put(`${API_URL}/${id}/reactivar`);
+    },
+    // 9. OBTENER HTML BASE
+    getHtmlBase: async (): Promise<string> => {
+        // Le decimos a Axios que esperamos un objeto con la propiedad 'contenido'
+        const response = await axios.get<{ contenido: string }>(`${API_URL}/html-base`);
+        
+        // Devolvemos solo el string del HTML
+        return response.data.contenido;
     }
 };
