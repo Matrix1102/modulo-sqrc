@@ -17,15 +17,19 @@ import java.time.LocalDate;
  * Jerarquía:
  * Empleado (base)
  * ├── Supervisor
- * ├── BackOffice  
+ * ├── BackOffice
  * └── Agente (abstract)
- *     ├── AgenteLlamada
- *     └── AgentePresencial
+ * ├── AgenteLlamada
+ * └── AgentePresencial
+ * 
+ * Nota: El discriminator value "AGENTE" mapea a la clase base Empleado
+ * para compatibilidad con registros existentes en la BD remota.
  */
 @Entity
 @Table(name = "empleados")
 @Inheritance(strategy = InheritanceType.JOINED)
 @DiscriminatorColumn(name = "tipo_empleado", discriminatorType = DiscriminatorType.STRING)
+@DiscriminatorValue("AGENTE")
 @Data
 @NoArgsConstructor
 @AllArgsConstructor

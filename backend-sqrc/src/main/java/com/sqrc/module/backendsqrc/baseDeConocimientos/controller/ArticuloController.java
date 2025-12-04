@@ -4,6 +4,7 @@ import com.sqrc.module.backendsqrc.baseDeConocimientos.dto.*;
 import com.sqrc.module.backendsqrc.baseDeConocimientos.model.Etiqueta;
 import com.sqrc.module.backendsqrc.baseDeConocimientos.model.TipoCaso;
 import com.sqrc.module.backendsqrc.baseDeConocimientos.model.Visibilidad;
+import com.sqrc.module.backendsqrc.baseDeConocimientos.service.ArticuloIAService;
 import com.sqrc.module.backendsqrc.baseDeConocimientos.service.ArticuloService;
 import com.sqrc.module.backendsqrc.baseDeConocimientos.service.ArticuloVersionService;
 import com.sqrc.module.backendsqrc.baseDeConocimientos.service.FeedbackService;
@@ -28,6 +29,7 @@ public class ArticuloController {
     private final ArticuloService articuloService;
     private final ArticuloVersionService versionService;
     private final FeedbackService feedbackService;
+    private final ArticuloIAService articuloIAService;
 
     // ===================== ENDPOINTS DE ARTÍCULOS =====================
 
@@ -395,5 +397,52 @@ public class ArticuloController {
         log.info("DELETE /api/articulos/feedback/{}", idFeedback);
         feedbackService.eliminarFeedback(idFeedback, idEmpleado);
         return ResponseEntity.noContent().build();
+    }
+
+    // ===================== ENDPOINTS DE GENERACIÓN CON IA =====================
+
+    /**
+     * Genera un artículo completo desde la documentación de un ticket usando IA (Gemini).
+     * Analiza el problema, solución, contexto del ticket y genera:
+     * - Título optimizado
+     * - Resumen
+     * - Contenido estructurado en HTML
+     * - Tags relevantes
+     * - Categoría sugerida
+     * 
+     * El artículo se crea como BORRADOR para revisión antes de publicar.
+     * 
+     * POST /api/articulos/generar-ia
+     */
+    @PostMapping("/generar-ia")
+    public ResponseEntity<GenerarArticuloIAResponse> generarArticuloConIA(
+            @Valid @RequestBody GenerarArticuloIARequest request) {
+        log.info("POST /api/articulos/generar-ia - Documentación ID: {}", request.getIdDocumentacion());
+        GenerarArticuloIAResponse response = articuloIAService.generarArticuloDesdeDocumentacion(request);
+        
+        if (response.isExito()) {
+            return ResponseEntity.status(HttpStatus.CREATED).body(response);
+        } else {
+            return ResponseEntity.badRequest().body(response);
+        }
+    }
+
+    /**
+     * Genera un preview del artículo sin guardarlo en base de datos.
+     * Útil para que el usuario revise el contenido generado antes de confirmar.
+     * 
+     * POST /api/articulos/preview-ia
+     */
+    @PostMapping("/preview-ia")
+    public ResponseEntity<GenerarArticuloIAResponse> previewArticuloConIA(
+            @Valid @RequestBody GenerarArticuloIARequest request) {
+        log.info("POST /api/articulos/preview-ia - Documentación ID: {}", request.getIdDocumentacion());
+        GenerarArticuloIAResponse response = articuloIAService.previewArticuloDesdeDocumentacion(request);
+        
+        if (response.isExito()) {
+            return ResponseEntity.ok(response);
+        } else {
+            return ResponseEntity.badRequest().body(response);
+        }
     }
 }

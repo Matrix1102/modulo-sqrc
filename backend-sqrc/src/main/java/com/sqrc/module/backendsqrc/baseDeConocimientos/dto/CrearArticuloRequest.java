@@ -12,7 +12,6 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import java.time.LocalDate;
-import java.time.LocalDateTime;
 
 /**
  * DTO para crear un nuevo artículo de conocimiento.
@@ -42,9 +41,9 @@ public class CrearArticuloRequest {
     @NotNull(message = "La visibilidad es obligatoria")
     private Visibilidad visibilidad;
 
-    private String vigenteDesde;
+    private LocalDate vigenteDesde;
 
-    private String vigenteHasta;
+    private LocalDate vigenteHasta;
 
     @NotNull(message = "El ID del propietario es obligatorio")
     private Long idPropietario;
@@ -59,40 +58,4 @@ public class CrearArticuloRequest {
     private String contenidoInicial;
 
     private String notaCambioInicial;
-
-    /**
-     * Convierte vigenteDesde string a LocalDateTime.
-     */
-    public LocalDateTime getVigenteDesdeAsDateTime() {
-        if (vigenteDesde == null || vigenteDesde.isBlank()) {
-            return null;
-        }
-        try {
-            if (vigenteDesde.contains("T")) {
-                return LocalDateTime.parse(vigenteDesde);
-            } else {
-                return LocalDate.parse(vigenteDesde).atStartOfDay();
-            }
-        } catch (Exception e) {
-            return null;
-        }
-    }
-
-    /**
-     * Convierte vigenteHasta string a LocalDateTime.
-     */
-    public LocalDateTime getVigenteHastaAsDateTime() {
-        if (vigenteHasta == null || vigenteHasta.isBlank()) {
-            return null;
-        }
-        try {
-            if (vigenteHasta.contains("T")) {
-                return LocalDateTime.parse(vigenteHasta);
-            } else {
-                return LocalDate.parse(vigenteHasta).atTime(23, 59, 59);
-            }
-        } catch (Exception e) {
-            return null;
-        }
-    }
 }
