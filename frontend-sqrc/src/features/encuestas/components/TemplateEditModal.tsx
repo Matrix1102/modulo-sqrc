@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import { X, Trash2, Plus, Save } from "lucide-react";
 import { QuestionCard } from "./QuestionCard";
 import showToast from "../../../services/notification";
+import { encuestaService } from "../services/encuestaService";
 
 interface TemplateEditModalProps {
   isOpen: boolean;
@@ -76,14 +77,14 @@ export const TemplateEditModal: React.FC<TemplateEditModalProps> = ({
       try {
         const payload = { nombre, descripcion, preguntas, alcanceEvaluacion: alcance };
         if (isCreating) {
-          const created = await (await import("../services/encuestaService")).encuestaService.plantillaCreate(payload);
+          const created = await encuestaService.plantillaCreate(payload);
           showToast('Plantilla creada', 'success');
           onClose();
           onSaved && onSaved(created);
         } else {
           const id = template?.id || template?.templateId || template?.templateId;
           if (!id) throw new Error("ID de plantilla no encontrado");
-          const updated = await (await import("../services/encuestaService")).encuestaService.plantillaUpdate(Number(id), payload);
+          const updated = await encuestaService.plantillaUpdate(Number(id), payload);
           showToast('Plantilla actualizada', 'success');
           onClose();
           onSaved && onSaved(updated);

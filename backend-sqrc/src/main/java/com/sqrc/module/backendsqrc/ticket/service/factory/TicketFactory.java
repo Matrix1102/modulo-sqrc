@@ -112,6 +112,7 @@ public class TicketFactory {
         ticket.setCliente(cliente);
         ticket.setMotivo(motivo);
         ticket.setEstado(EstadoTicket.ABIERTO);
+        ticket.setTipoTicket(request.getTipoTicket()); // Asignar explícitamente el tipo de ticket
         // fechaCreacion se establece automáticamente en @PrePersist
     }
 }

@@ -54,7 +54,7 @@ public class Ticket {
     private ClienteEntity cliente;
 
     @Enumerated(EnumType.STRING)
-    @Column(name = "tipo_ticket", nullable = false, insertable = false, updatable = false)
+    @Column(name = "tipo_ticket", nullable = false)
     private TipoTicket tipoTicket;
 
     @Column(name = "id_constancia")

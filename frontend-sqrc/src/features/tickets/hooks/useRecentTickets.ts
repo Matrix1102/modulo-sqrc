@@ -42,3 +42,4 @@ export default function useRecentTickets(
 
   return { tickets, loading, error };
 }
+

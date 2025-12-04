@@ -1,4 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
+import { encuestaService } from '../services/encuestaService';
+import showToast from '../../../services/notification';
 
 export function usePlantillas() {
   const [items, setItems] = useState<any[] | null>(null);
@@ -8,8 +10,7 @@ export function usePlantillas() {
   const load = useCallback(async () => {
     setLoading(true);
     try {
-      const svc = (await import('../services/encuestaService')).encuestaService;
-      const data = await svc.plantillasList();
+      const data = await encuestaService.plantillasList();
       // debug: log backend response length
       // eslint-disable-next-line no-console
       console.debug('[usePlantillas] fetched', Array.isArray(data) ? data.length : typeof data);
@@ -18,15 +19,9 @@ export function usePlantillas() {
     } catch (err) {
       // eslint-disable-next-line no-console
       console.error('[usePlantillas] error fetching plantillas', err);
-      try {
-        const showToast = (await import('../../../services/notification')).default;
-        // try to surface server message if present
-        // @ts-ignore
-        const msg = err?.response?.data || err?.message || 'Error fetching plantillas';
-        showToast(String(msg), 'error');
-      } catch (e) {
-        // ignore
-      }
+      // @ts-ignore
+      const msg = err?.response?.data || err?.message || 'Error fetching plantillas';
+      showToast(String(msg), 'error');
       setItems([]);
       setError(err);
     } finally {

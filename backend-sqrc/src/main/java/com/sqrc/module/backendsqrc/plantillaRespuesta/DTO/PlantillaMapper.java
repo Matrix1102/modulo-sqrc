@@ -1,6 +1,5 @@
 package com.sqrc.module.backendsqrc.plantillaRespuesta.DTO;
 
-import com.sqrc.module.backendsqrc.plantillaRespuesta.DTO.*;
 import com.sqrc.module.backendsqrc.plantillaRespuesta.model.Plantilla;
 import org.springframework.stereotype.Component;
 

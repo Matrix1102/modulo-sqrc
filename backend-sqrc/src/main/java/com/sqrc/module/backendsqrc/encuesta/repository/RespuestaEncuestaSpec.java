@@ -9,6 +9,7 @@ import java.time.LocalTime;
 
 public class RespuestaEncuestaSpec {
 
+    @SuppressWarnings("removal")
     public static Specification<RespuestaEncuesta> filtrarPorCriterios(
             String alcance,
             String agenteId,

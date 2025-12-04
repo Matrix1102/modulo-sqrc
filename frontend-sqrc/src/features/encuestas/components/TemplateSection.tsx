@@ -6,6 +6,7 @@ import { TemplateHistoryModal } from "./TemplateHistoryModal";
 import usePlantillas from "../hooks/usePlantillas";
 import showToast from "../../../services/notification";
 import showConfirm from "../../../services/confirm";
+import { encuestaService } from "../services/encuestaService";
 
 export const TemplatesSection = () => {
   // Estados para controlar qué modal se muestra
@@ -13,7 +14,7 @@ export const TemplatesSection = () => {
   const [isHistoryOpen, setIsHistoryOpen] = useState(false); // <--- NUEVO
 
   const [activeTemplate, setActiveTemplate] = useState<any>(null);
-  const { items: plantillas, loading: plantillasLoading, reload, getActive, addLocal, updateLocal } = usePlantillas();
+  const { items: _plantillas, loading: plantillasLoading, reload, getActive, addLocal, updateLocal } = usePlantillas();
 
   // Manejador de acciones de las tarjetas
   const handleCardAction = async (action: string, type: string) => {
@@ -38,8 +39,7 @@ export const TemplatesSection = () => {
       const ok = await showConfirm('¿Deseas desactivar la plantilla vigente?', 'Confirmar');
       if (!ok) return;
       try {
-        const svc = (await import('../services/encuestaService')).encuestaService;
-        await svc.plantillaDelete(active.templateId || active.id);
+        await encuestaService.plantillaDelete(active.templateId || active.id);
         showToast('Plantilla desactivada', 'success');
         await reload();
       } catch (err) {

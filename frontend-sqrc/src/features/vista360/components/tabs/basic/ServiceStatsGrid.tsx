@@ -1,0 +1,135 @@
+import React from "react";
+import { StatCard, type StatCardVariant } from "../../common";
+import { Clock, TicketCheck, Star, CalendarCheck } from "lucide-react";
+import type { MetricaKPI } from "../../../../../services/vista360Api";
+
+interface Props {
+  metricas?: MetricaKPI[];
+  loading?: boolean;
+}
+
+// Configuración de cada métrica con su ícono y variante de color
+const metricConfig: Record<string, { icon: React.ReactNode; variant: StatCardVariant }> = {
+  "Tiempo Promedio de Solución": { 
+    icon: <Clock size={24} strokeWidth={2} />, 
+    variant: "blue" 
+  },
+  "Tickets Abiertos": { 
+    icon: <TicketCheck size={24} strokeWidth={2} />, 
+    variant: "amber" 
+  },
+  "Calificación de la Atención": { 
+    icon: <Star size={24} strokeWidth={2} />, 
+    variant: "purple" 
+  },
+  "Tickets del Último Mes": { 
+    icon: <CalendarCheck size={24} strokeWidth={2} />, 
+    variant: "emerald" 
+  },
+};
+
+const defaultConfig = { 
+  icon: <Clock size={24} strokeWidth={2} />, 
+  variant: "cyan" as StatCardVariant 
+};
+
+const getMetricConfig = (titulo: string) => {
+  // Buscar coincidencia exacta o parcial
+  for (const [key, config] of Object.entries(metricConfig)) {
+    if (titulo.includes(key) || key.includes(titulo)) {
+      return config;
+    }
+  }
+  
+  // Fallback basado en palabras clave
+  if (titulo.toLowerCase().includes("tiempo")) {
+    return metricConfig["Tiempo Promedio de Solución"];
+  }
+  if (titulo.toLowerCase().includes("abierto")) {
+    return metricConfig["Tickets Abiertos"];
+  }
+  if (titulo.toLowerCase().includes("calificación") || titulo.toLowerCase().includes("rating")) {
+    return metricConfig["Calificación de la Atención"];
+  }
+  if (titulo.toLowerCase().includes("mes") || titulo.toLowerCase().includes("último")) {
+    return metricConfig["Tickets del Último Mes"];
+  }
+  
+  return defaultConfig;
+};
+
+const ServiceStatsGrid: React.FC<Props> = ({ metricas = [], loading = false }) => {
+  if (loading) {
+    return (
+      <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
+        {[1, 2, 3, 4].map((i) => (
+          <div 
+            key={i} 
+            className="h-[180px] animate-pulse rounded-2xl bg-gradient-to-br from-gray-100 to-gray-50 border border-gray-200"
+          >
+            <div className="p-6 space-y-4">
+              <div className="flex justify-between">
+                <div className="h-4 w-32 bg-gray-200 rounded-lg"></div>
+                <div className="h-12 w-12 bg-gray-200 rounded-xl"></div>
+              </div>
+              <div className="h-10 w-24 bg-gray-200 rounded-lg mt-4"></div>
+              <div className="h-6 w-28 bg-gray-200 rounded-full mt-4"></div>
+            </div>
+          </div>
+        ))}
+      </div>
+    );
+  }
+
+  if (metricas.length === 0) {
+    return (
+      <div className="flex items-center justify-center h-64 rounded-2xl bg-gradient-to-br from-gray-50 to-white border border-dashed border-gray-300">
+        <div className="text-center">
+          <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-gray-100 flex items-center justify-center">
+            <Clock size={32} className="text-gray-400" />
+          </div>
+          <p className="text-base font-semibold text-gray-700">No hay métricas disponibles</p>
+          <p className="text-sm text-gray-500 mt-1">Busca un cliente para ver sus estadísticas</p>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
+      {metricas.map((metrica, index) => {
+        const config = getMetricConfig(metrica.titulo);
+        
+        return (
+          <div key={index} className="min-h-[180px]">
+            <StatCard
+              title={metrica.titulo}
+              value={
+                metrica.unidad ? (
+                  <span className="flex items-baseline gap-1">
+                    {metrica.valorPrincipal}
+                    <span className="text-lg font-medium text-gray-500">{metrica.unidad}</span>
+                  </span>
+                ) : (
+                  metrica.valorPrincipal
+                )
+              }
+              trendValue={metrica.subtituloTendencia}
+              trendDirection={
+                metrica.estadoTendencia === "POSITIVO"
+                  ? "positive"
+                  : metrica.estadoTendencia === "NEGATIVO"
+                  ? "negative"
+                  : "neutral"
+              }
+              icon={config.icon}
+              variant={config.variant}
+            />
+          </div>
+        );
+      })}
+    </div>
+  );
+};
+
+export default ServiceStatsGrid;

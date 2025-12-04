@@ -3,12 +3,15 @@ import MainLayout from "./components/layout/MainLayout";
 import TicketingPage from "./pages/agente/TicketsPage";
 import Vista360Page from "./pages/agente/Vista360";
 import TicketPage from "./pages/supervisor/TicketPage";
-import TicketDetailPage from "./pages/supervisor/TicketDetailPage";
+import SupervisorTicketDetailPage from "./pages/supervisor/TicketDetailPage";
 import TicketAgentPage from "./pages/supervisor/TicketAgentPage";
 import DashboardPage from "./pages/supervisor/DashboardPage";
 import EncuestasPage from "./pages/supervisor/SurveyPage";
 import SurveyCategoryPage from "./pages/supervisor/SurveyCategoryPage";
 import SurveyExecutionPage from "./pages/public/SurveyExecutionPage";
+
+// Tickets Feature - Pages
+import { TicketDetailPage as AgenteTicketDetailPage } from "./features/tickets";
 
 // Base de Conocimiento
 import {
@@ -73,6 +76,8 @@ export default function App() {
           <Route path="/agente" element={<MainLayout role="AGENT" />}>
             {/* Según tu carpeta, aquí vive la página de Tickets */}
             <Route path="tickets" element={<TicketingPage />} />
+            {/* Detalle del ticket para agentes */}
+            <Route path="tickets/:ticketId" element={<AgenteTicketDetailPage />} />
           </Route>
 
           {/* Vista 360 del cliente para agentes */}
@@ -102,7 +107,7 @@ export default function App() {
             />
             <Route
               path="tickets/detalle/:ticketId"
-              element={<TicketDetailPage />}
+              element={<SupervisorTicketDetailPage />}
             />
           </Route>
 
