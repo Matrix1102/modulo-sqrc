@@ -1,7 +1,8 @@
 package com.sqrc.module.backendsqrc.encuesta.model;
 
-// import com.sqrc.module.backendsqrc.ticket.model.Ticket; // TODO: Descomentar cuando exista
-// import com.sqrc.module.backendsqrc.usuario.model.Agente; // TODO: Descomentar cuando exista
+import com.sqrc.module.backendsqrc.ticket.model.Agente;
+import com.sqrc.module.backendsqrc.ticket.model.Ticket;
+import com.sqrc.module.backendsqrc.vista360.model.ClienteEntity;
 import jakarta.persistence.*;
 import lombok.Data;
 import java.time.LocalDateTime;
@@ -16,15 +17,32 @@ public class Encuesta {
     private Long idEncuesta;
 
     // 1. Relación con el Diseño (¿Qué preguntas tiene?)
-    @ManyToOne
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "plantilla_id", nullable = false)
     private PlantillaEncuesta plantilla;
 
-    // 2. Relación con el Contexto (¿Por qué se envía?)
-    // TODO: Descomentar cuando la clase Ticket exista
-    // @OneToOne
-    // @JoinColumn(name = "ticket_id", nullable = false)
-    // private Ticket ticket;
+    // 2. Relación con el Contexto
+    /**
+     * Ticket asociado a la encuesta (puede ser null para encuestas generales)
+     */
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "ticket_id")
+    private Ticket ticket;
+
+    /**
+     * Agente evaluado (requerido si alcanceEvaluacion = AGENTE, null si evalúa SERVICIO)
+     */
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "agente_id")
+    private Agente agente;
+
+    /**
+     * Cliente que responde la encuesta.
+     * En producción siempre debería estar presente, pero puede ser null en datos de prueba.
+     */
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "cliente_id")
+    private ClienteEntity cliente;
 
     // 3. Metadatos del Diagrama
     @Enumerated(EnumType.STRING)
