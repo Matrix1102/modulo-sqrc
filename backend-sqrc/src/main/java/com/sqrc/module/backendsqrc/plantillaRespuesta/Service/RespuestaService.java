@@ -1,21 +1,25 @@
 package com.sqrc.module.backendsqrc.plantillaRespuesta.Service;
 
 import com.sqrc.module.backendsqrc.plantillaRespuesta.DTO.EnviarRespuestaRequestDTO;
+import com.sqrc.module.backendsqrc.plantillaRespuesta.DTO.RespuestaBorradorDTO;
 import com.sqrc.module.backendsqrc.plantillaRespuesta.Repository.PlantillaRepository;
 import com.sqrc.module.backendsqrc.plantillaRespuesta.Repository.RespuestaRepository;
 import com.sqrc.module.backendsqrc.plantillaRespuesta.chain.*;
 import com.sqrc.module.backendsqrc.plantillaRespuesta.event.RespuestaEnviadaEvent;
 import com.sqrc.module.backendsqrc.plantillaRespuesta.model.Plantilla;
+import com.sqrc.module.backendsqrc.plantillaRespuesta.model.PlantillaDefault;
 import com.sqrc.module.backendsqrc.plantillaRespuesta.model.RespuestaCliente;
 import com.sqrc.module.backendsqrc.plantillaRespuesta.observer.IRespuestaObserver;
-
+import com.sqrc.module.backendsqrc.vista360.model.ClienteEntity;
 import com.sqrc.module.backendsqrc.ticket.model.*;
+import com.sqrc.module.backendsqrc.ticket.repository.TicketRepository;
 import jakarta.annotation.PostConstruct;
 import org.springframework.context.ApplicationEventPublisher; // Si usas Observer de Spring
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -35,7 +39,7 @@ public class RespuestaService {
     // IMPORTANTE: Necesitamos el repo para buscar por nombre
     // Asegúrate de agregar findByNombre en PlantillaRepository
     private final PlantillaRepository plantillaRepository;
-
+    private final TicketRepository ticketRepository;
     // Lista de observadores (Patrón Observer Manual)
     private final List<IRespuestaObserver> observadores = new ArrayList<>();
 
@@ -54,7 +58,7 @@ public class RespuestaService {
             RenderService renderService,
             PdfService pdfService,
             EmailService emailService,
-            com.sqrc.module.backendsqrc.plantillaRespuesta.Repository.PlantillaRepository plantillaRepo,
+            com.sqrc.module.backendsqrc.plantillaRespuesta.Repository.PlantillaRepository plantillaRepo, TicketRepository ticketRepository,
             ValidarEstadoTicket validarEstado,
             ValidarDestinatario validarDestino,
             ValidarCoherenciaTipo validarCoherencia,
@@ -65,6 +69,7 @@ public class RespuestaService {
         this.pdfService = pdfService;
         this.emailService = emailService;
         this.plantillaRepository = plantillaRepo;
+        this.ticketRepository = ticketRepository;
         this.validarEstado = validarEstado;
         this.validarDestino = validarDestino;
         this.validarCoherencia = validarCoherencia;
@@ -233,5 +238,76 @@ public class RespuestaService {
             System.err.println("Error en confirmación automática: " + e.getMessage());
             e.printStackTrace();
         }
+    }
+
+    @Transactional(readOnly = true)
+    public RespuestaBorradorDTO generarBorrador(Long ticketId, Long plantillaId) {
+
+        // 1. Obtener Entidades
+        Ticket ticket = ticketRepository.findById(ticketId)
+                .orElseThrow(() -> new RuntimeException("Ticket no encontrado"));
+
+        // Aquí traemos la plantilla ESPECÍFICA de la BD (con su propio HTML)
+        Plantilla plantilla = plantillaService.obtenerPorId(plantillaId);
+
+        ClienteEntity cliente = ticket.getCliente();
+
+        // 2. Preparar Variables (Datos del Ticket)
+        Map<String, Object> variables = new HashMap<>();
+        variables.put("numero_ticket", ticket.getIdTicket().toString());
+        variables.put("fecha_actual", LocalDate.now().toString());
+        variables.put("nombre_cliente", cliente != null ? cliente.getNombres() + " " + cliente.getApellidos() : "Cliente");
+        variables.put("identificador_servicio", cliente != null ? cliente.getDni() : "");
+        variables.put("asunto_ticket", ticket.getAsunto());
+
+        // Datos Específicos por Tipo
+        if (ticket instanceof Reclamo r) {
+            variables.put("motivo", r.getMotivoReclamo() != null ? r.getMotivoReclamo() : "[MOTIVO]");
+        } else if (ticket instanceof Queja q) {
+            variables.put("area", q.getAreaInvolucrada() != null ? q.getAreaInvolucrada() : "[AREA]");
+            variables.put("impacto", q.getImpacto());
+        } else if (ticket instanceof Solicitud s) {
+            variables.put("tipo_solicitud", s.getTipoSolicitud());
+        } else if (ticket instanceof Consulta c) {
+            variables.put("tema", c.getTema());
+        }
+
+        // ---------------------------------------------------------
+        // PASO 3: RENDERIZAR EL CUERPO (Texto editable)
+        // ---------------------------------------------------------
+        // Aquí llenamos los huecos dentro del texto (ej: "Hola ${nombre}...")
+        String cuerpoPrellenado = renderService.renderizar(plantilla.getCuerpo(), variables);
+
+        // ---------------------------------------------------------
+        // PASO 4: RENDERIZAR EL HTML COMPLETO (Vista Previa)
+        // ---------------------------------------------------------
+        // CORRECCIÓN: Usamos el HTML de la plantilla recuperada, NO el default estático.
+        String htmlBase = plantilla.getHtmlModel();
+
+        // Seguridad: Solo si por error la BD tiene null, usamos el default
+        if (htmlBase == null || htmlBase.isBlank()) {
+            htmlBase = PlantillaDefault.HTML_FORMAL;
+        }
+
+        // Preparamos variables para el HTML Base
+        Map<String, Object> variablesVistaPrevia = new HashMap<>(variables);
+        variablesVistaPrevia.put("titulo", plantilla.getTituloVisible());
+
+        // Importante: El cuerpo ya cocinado lo pasamos como variable para el HTML
+        // Convertimos \n a <br> para que se vea bien en el HTML
+        variablesVistaPrevia.put("cuerpo", cuerpoPrellenado.replace("\n", "<br>"));
+
+        variablesVistaPrevia.put("despedida", plantilla.getDespedida());
+
+        // Renderizamos la hoja completa usando el diseño específico de ESTA plantilla
+        String htmlPreview = renderService.renderizar(htmlBase, variablesVistaPrevia);
+
+        // 5. Retornar
+        return new RespuestaBorradorDTO(
+                plantilla.getTituloVisible(),
+                cuerpoPrellenado, // Texto plano para que el agente edite
+                plantilla.getDespedida(),
+                htmlPreview       // HTML visual para el iframe
+        );
     }
 }
