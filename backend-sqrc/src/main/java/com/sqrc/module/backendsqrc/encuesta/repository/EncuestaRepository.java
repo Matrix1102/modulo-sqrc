@@ -16,7 +16,10 @@ import jakarta.persistence.LockModeType;
 @Repository
 public interface EncuestaRepository extends JpaRepository<Encuesta, Long>, JpaSpecificationExecutor<Encuesta> {
     List<Encuesta> findByFechaEnvioBetween(LocalDateTime inicio, LocalDateTime fin);
-    org.springframework.data.domain.Page<Encuesta> findByEstadoEncuesta(com.sqrc.module.backendsqrc.encuesta.model.EstadoEncuesta estado, org.springframework.data.domain.Pageable pageable);
+
+    org.springframework.data.domain.Page<Encuesta> findByEstadoEncuesta(
+            com.sqrc.module.backendsqrc.encuesta.model.EstadoEncuesta estado,
+            org.springframework.data.domain.Pageable pageable);
 
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("select e from Encuesta e where e.idEncuesta = :id")
@@ -33,4 +36,7 @@ public interface EncuestaRepository extends JpaRepository<Encuesta, Long>, JpaSp
            "LEFT JOIN FETCH e.cliente " +
            "WHERE e.idEncuesta = :id")
     Optional<Encuesta> findByIdWithPlantillaAndPreguntas(@Param("id") Long id);
+
+    @Query("SELECT AVG(r.calificacion) FROM Encuesta e JOIN e.respuestaEncuesta r WHERE e.cliente.idCliente = :clienteId")
+    Double findPromedioCalificacionByClienteId(@Param("clienteId") Integer clienteId);
 }
