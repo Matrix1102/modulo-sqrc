@@ -375,18 +375,12 @@ public class TicketService {
      * Mapea Empleado a EmployeeDto
      */
     private EmployeeDto mapToEmployeeDto(Empleado empleado) {
-        // Separar nombre en nombre y apellido (asumiendo formato "Nombre Apellido")
-        String nombreCompleto = empleado.getNombre();
-        String[] partes = nombreCompleto != null ? nombreCompleto.split(" ", 2) : new String[]{"", ""};
-        String nombre = partes.length > 0 ? partes[0] : "";
-        String apellido = partes.length > 1 ? partes[1] : "";
-
         return EmployeeDto.builder()
                 .idEmpleado(empleado.getIdEmpleado())
-                .nombre(nombre)
-                .apellido(apellido)
-                .cargo(empleado.getPuesto())
-                .area("Área por definir") // TODO: Obtener área real si existe
+                .nombre(empleado.getNombre())
+                .apellido(empleado.getApellido())
+                .cargo(empleado.getTipoEmpleado() != null ? empleado.getTipoEmpleado().name() : "Sin cargo")
+                .area(empleado.getArea() != null ? empleado.getArea() : "Sin área")
                 .build();
     }
 
@@ -405,7 +399,7 @@ public class TicketService {
         // TODO: Agregar relación con base de conocimientos si es necesario
 
         return DocumentacionDto.builder()
-                .idDocumentacion(doc.getIdDocumentacion().intValue()) // Convertir Long a Integer
+                .idDocumentacion(doc.getIdDocumentacion()) // Convertir Long a Integer
                 .problema(doc.getProblema())
                 .articulo(doc.getSolucion()) // En Documentacion, 'solucion' es el contenido
                 .fechaCreacion(doc.getFechaCreacion())

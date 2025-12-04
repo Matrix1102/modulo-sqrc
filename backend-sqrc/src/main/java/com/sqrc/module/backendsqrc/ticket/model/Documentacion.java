@@ -7,27 +7,36 @@ import java.time.LocalDateTime;
 @Entity
 @Table(name = "documentacion")
 @Data
+@Builder
 @NoArgsConstructor
 @AllArgsConstructor
-@Builder
 public class Documentacion {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    @Column(name = "id_documentacion")
     private Long idDocumentacion;
 
+    // Relación con la asignación (Vital para saber a qué ticket pertenece)
     @OneToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "asignacion_id", nullable = false)
+    @JoinColumn(name = "id_asignacion", nullable = false)
     private Asignacion asignacion;
 
-    @Lob
-    @Column(name = "problema", columnDefinition = "TEXT")
+    // --- CAMPOS QUE FALTABAN (Para coincidir con tu tabla) ---
+
+    @Column(name = "id_articulo_kb")
+    private Integer idArticuloKB; // Puede ser nulo si no se usó un artículo
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "id_empleado") // Relación con el empleado que documentó
+    private Empleado empleado;
+
+    // ---------------------------------------------------------
+
+    @Column(columnDefinition = "TEXT")
     private String problema;
 
-    @Lob
-    @Column(name = "solucion", columnDefinition = "TEXT")
-    private String solucion;
+    @Column(columnDefinition = "TEXT")
+    private String solucion; // Aquí va la justificación del escalamiento
 
     @Column(name = "fecha_creacion")
     private LocalDateTime fechaCreacion;
@@ -39,4 +48,3 @@ public class Documentacion {
         }
     }
 }
-

@@ -16,7 +16,7 @@ import java.time.LocalDateTime;
 @AllArgsConstructor
 public class DocumentacionDto {
     
-    private Integer idDocumentacion;
+    private Long idDocumentacion;
     private String problema;
     private String articulo;
     private LocalDateTime fechaCreacion;
