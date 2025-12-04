@@ -1,5 +1,10 @@
 package com.sqrc.module.backendsqrc.ticket.service;
 
+import com.sqrc.module.backendsqrc.encuesta.event.TicketClosedEvent;
+import com.sqrc.module.backendsqrc.encuesta.model.Encuesta;
+import com.sqrc.module.backendsqrc.encuesta.model.PlantillaEncuesta;
+import com.sqrc.module.backendsqrc.encuesta.repository.PlantillaEncuestaRepository;
+import com.sqrc.module.backendsqrc.encuesta.service.EncuestaService;
 import com.sqrc.module.backendsqrc.ticket.dto.request.*;
 import com.sqrc.module.backendsqrc.ticket.dto.response.*;
 import com.sqrc.module.backendsqrc.ticket.exception.*;
@@ -11,6 +16,7 @@ import com.sqrc.module.backendsqrc.vista360.model.ClienteEntity;
 import com.sqrc.module.backendsqrc.vista360.repository.ClienteRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -54,6 +60,11 @@ public class TicketGestionService {
     private final BackOfficeRepository backOfficeRepository;
     private final TicketFactory ticketFactory;
     private final DefaultEstadoTransitionValidator transitionValidator;
+    
+    // Dependencias para el patrón Observer (encuestas al cerrar ticket)
+    private final ApplicationEventPublisher eventPublisher;
+    private final EncuestaService encuestaService;
+    private final PlantillaEncuestaRepository plantillaEncuestaRepository;
 
     // ==================== CREAR TICKET ====================
 
@@ -521,6 +532,7 @@ public class TicketGestionService {
 
     /**
      * Cierra un ticket directamente.
+     * Implementa el patrón Observer: al cerrar, crea una encuesta y publica TicketClosedEvent.
      * 
      * @param ticketId ID del ticket
      * @param empleadoId ID del empleado que cierra
@@ -546,15 +558,61 @@ public class TicketGestionService {
         ticket.setFechaCierre(LocalDateTime.now());
         ticketRepository.save(ticket);
 
+        // ==================== PATRÓN OBSERVER: Crear encuesta y notificar ====================
+        Long encuestaId = null;
+        try {
+            encuestaId = crearEncuestaParaTicket(ticket);
+            log.info("Encuesta {} creada para ticket {}", encuestaId, ticketId);
+        } catch (Exception ex) {
+            log.warn("No se pudo crear encuesta para ticket {}: {}", ticketId, ex.getMessage());
+            // No bloqueamos el cierre del ticket si falla la creación de encuesta
+        }
+
+        // Publicar evento para que TicketClosedListener envíe el correo
+        if (encuestaId != null && ticket.getCliente() != null) {
+            eventPublisher.publishEvent(new TicketClosedEvent(
+                ticketId, 
+                encuestaId, 
+                ticket.getCliente().getIdCliente()
+            ));
+            log.info("TicketClosedEvent publicado: ticketId={}, encuestaId={}, clienteId={}", 
+                ticketId, encuestaId, ticket.getCliente().getIdCliente());
+        }
+
         return TicketOperationResponse.builder()
                 .ticketId(ticketId)
                 .estadoAnterior(estadoAnterior)
                 .estadoActual(EstadoTicket.CERRADO.name())
                 .operacion("CERRAR")
                 .fechaOperacion(LocalDateTime.now())
-                .mensaje("Ticket cerrado exitosamente")
+                .mensaje("Ticket cerrado exitosamente" + (encuestaId != null ? ". Encuesta enviada." : ""))
                 .exitoso(true)
                 .build();
+    }
+
+    /**
+     * Crea una encuesta para el ticket cerrado.
+     * Busca la primera plantilla vigente y crea la encuesta asociada al ticket, agente y cliente.
+     */
+    private Long crearEncuestaParaTicket(Ticket ticket) {
+        // Buscar plantilla vigente (por defecto la primera disponible)
+        PlantillaEncuesta plantilla = plantillaEncuestaRepository.findFirstByVigenteTrue()
+            .orElseThrow(() -> new IllegalStateException("No hay plantillas de encuesta vigentes"));
+
+        ClienteEntity cliente = ticket.getCliente();
+        if (cliente == null) {
+            throw new IllegalStateException("El ticket no tiene cliente asociado");
+        }
+
+        // Crear la encuesta usando el servicio
+        Encuesta encuesta = encuestaService.crearEncuestaParaTicket(
+            plantilla.getIdPlantillaEncuesta(),
+            ticket,
+            null, // El agente se obtiene de las asignaciones del ticket
+            cliente
+        );
+
+        return encuesta.getIdEncuesta();
     }
 
     // ==================== MÉTODOS AUXILIARES ====================

@@ -16,6 +16,12 @@ public class RespuestaClienteDTO {
     @NotEmpty(message = "La lista de respuestas no puede estar vacía")
     private List<ItemRespuesta> respuestas;
 
+    // Calificación general obligatoria (1..5)
+    @jakarta.validation.constraints.NotNull(message = "La calificación general (1-5) es obligatoria")
+    @jakarta.validation.constraints.Min(value = 1, message = "La calificación mínima es 1")
+    @jakarta.validation.constraints.Max(value = 5, message = "La calificación máxima es 5")
+    private Integer calificacion;
+
     @Data
     public static class ItemRespuesta {
         @NotNull(message = "El idPregunta es obligatorio")
