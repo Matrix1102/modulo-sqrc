@@ -28,10 +28,81 @@ export const PlantillaCreatePage = ({ onClose, onSuccess }: Props) => {
 
     // Simulación Local de Vista Previa (Hoja Bond)
     const handlePreviewClick = () => {
-        // ... (Aquí va el código HTML de Hoja Bond que te pasé antes) ...
-        // Para resumir en este mensaje, usa el HTML que ya tenías en este componente.
-        // Si lo necesitas completo de nuevo, avísame.
-        setPreviewHtml(`<div style="padding:20px; font-family:Arial;"><b>${formData.tituloVisible}</b><br><br>${formData.cuerpo}<br><br>${formData.despedida}</div>`);
+        
+        // ESTE HTML AHORA COINCIDE CON TU BASE DE DATOS
+        const html = `
+            <!DOCTYPE html>
+            <html>
+            <head>
+                <style>
+                    body { font-family: 'Arial', sans-serif; background-color: #f0f0f0; margin: 0; padding: 20px; }
+                    /* Estilo de Hoja Bond Centrada */
+                    .hoja-carta { 
+                        background-color: #ffffff; 
+                        width: 100%; 
+                        max-width: 650px; 
+                        margin: 0 auto; 
+                        padding: 50px 60px; 
+                        border: 1px solid #ccc; 
+                        box-shadow: 0 0 10px rgba(0,0,0,0.1); 
+                        box-sizing: border-box; 
+                        min-height: 800px;
+                    }
+                    .header-expediente { text-align: right; font-weight: bold; font-size: 10pt; margin-bottom: 40px; }
+                    .fecha { margin-bottom: 30px; font-size: 11pt; }
+                    .cliente-info { margin-bottom: 20px; line-height: 1.5; font-size: 11pt; }
+                    .referencia-tabla { width: 100%; margin-bottom: 30px; font-size: 11pt; }
+                    .referencia-tabla td { padding-bottom: 5px; vertical-align: top; }
+                    .saludo { margin-bottom: 20px; font-size: 11pt; }
+                    .contenido { text-align: justify; line-height: 1.5; font-size: 11pt; min-height: 150px; margin-bottom: 50px; }
+                    .despedida { margin-top: 40px; font-size: 11pt; }
+                </style>
+            </head>
+            <body>
+                <div class="hoja-carta">
+                    <div class="header-expediente">EXPEDIENTE: 2025-NEW</div>
+                    
+                    <div class="fecha">
+                        ${new Date().toLocaleDateString('es-PE', { day: '2-digit', month: 'long', year: 'numeric' })}
+                    </div>
+
+                    <div class="cliente-info">
+                        Señor(a):<br>
+                        <strong>[Nombre del Cliente]</strong>
+                    </div>
+
+                    <table class="referencia-tabla" border="0">
+                        <tr>
+                            <td width="120">Servicio/Línea</td>
+                            <td width="15">:</td>
+                            <td>000-000-000</td>
+                        </tr>
+                        <tr>
+                            <td>Referencia</td>
+                            <td>:</td>
+                            <td>Nuevo Caso</td>
+                        </tr>
+                    </table>
+
+                    <div class="saludo">De nuestra mayor consideración:</div>
+
+                    <div class="contenido">
+                        <div style="text-align: center; margin-bottom: 25px; font-weight: bold; text-decoration: underline;">
+                            ${formData.tituloVisible || '[Escribe un título]'}
+                        </div>
+
+                        ${formData.cuerpo ? formData.cuerpo.replace(/\n/g, '<br>') : '[Escribe el contenido del correo...]'}
+                    </div>
+
+                    <div class="despedida">
+                        ${formData.despedida || '[Escribe la despedida]'}
+                    </div>
+                </div>
+            </body>
+            </html>
+        `;
+        
+        setPreviewHtml(html);
     };
 
     const handleSubmit = async (e: React.FormEvent) => {

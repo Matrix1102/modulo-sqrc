@@ -6,7 +6,10 @@ import com.sqrc.module.backendsqrc.plantillaRespuesta.model.TipoCaso;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+
+import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 
 
 @RestController
@@ -69,4 +72,11 @@ public class PlantillaController {
         return ResponseEntity.ok().build();
     }
 
+    @GetMapping("/html-base")
+    public ResponseEntity<Map<String, String>> obtenerHtmlBase() {
+        String html = plantillaService.obtenerHtmlBase();
+
+        // Esto crea un JSON: { "contenido": "<!DOCTYPE html>..." }
+        return ResponseEntity.ok(Collections.singletonMap("contenido", html));
+    }
 }
