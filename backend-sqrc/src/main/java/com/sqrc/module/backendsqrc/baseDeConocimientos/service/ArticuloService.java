@@ -387,7 +387,8 @@ public class ArticuloService {
 
     private ArticuloResponse mapToResponse(Articulo articulo) {
         ArticuloVersion versionVigente = articulo.getVersionVigente();
-        // Si no hay versión vigente, usar la última versión disponible (para borradores)
+        // Si no hay versión vigente, usar la última versión disponible (para
+        // borradores)
         ArticuloVersion versionMostrar = versionVigente;
         if (versionMostrar == null && articulo.getVersiones() != null && !articulo.getVersiones().isEmpty()) {
             versionMostrar = articulo.getVersiones().get(0);

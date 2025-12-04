@@ -7,7 +7,8 @@ import lombok.NoArgsConstructor;
 
 /**
  * DTO para solicitar la generación de un artículo usando IA (Gemini).
- * Puede usarse con documentación de ticket o para generar un artículo de ejemplo.
+ * Puede usarse con documentación de ticket o para generar un artículo de
+ * ejemplo.
  */
 @Data
 @NoArgsConstructor
@@ -32,17 +33,17 @@ public class GenerarArticuloIARequest {
      * Ejemplo: "Enfocarse en el proceso de solución", "Hacerlo más técnico"
      */
     private String instruccionesAdicionales;
-    
+
     /**
      * Tema sugerido para el artículo (usado cuando no hay documentación).
      */
     private String tema;
-    
+
     /**
      * Etiqueta sugerida para el artículo.
      */
     private String etiquetaSugerida;
-    
+
     /**
      * Tipo de caso sugerido.
      */

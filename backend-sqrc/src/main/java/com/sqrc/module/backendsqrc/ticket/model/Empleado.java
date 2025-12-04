@@ -17,10 +17,10 @@ import java.time.LocalDate;
  * Jerarquía:
  * Empleado (base)
  * ├── Supervisor
- * ├── BackOffice  
+ * ├── BackOffice
  * └── Agente (abstract)
- *     ├── AgenteLlamada
- *     └── AgentePresencial
+ * ├── AgenteLlamada
+ * └── AgentePresencial
  * 
  * Nota: El discriminator value "AGENTE" mapea a la clase base Empleado
  * para compatibilidad con registros existentes en la BD remota.
