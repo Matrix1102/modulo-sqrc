@@ -30,12 +30,16 @@ public class ArticuloVersionResponse {
     private EstadoArticulo estadoPropuesta;
     private OrigenVersion origen;
 
-    // Información del creador
+    // Información del creador (empleado)
     private Long idCreador;
     private String nombreCreador;
+    private String apellidoCreador;
+    private String nombreCompletoCreador;
 
     // Información del ticket origen (si aplica)
     private Long idTicketOrigen;
+    private String asuntoTicket;
+    private String estadoTicket;
 
     // Métricas de esta versión
     private Long feedbacksPositivos;

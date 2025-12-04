@@ -33,13 +33,17 @@ public class ArticuloResponse {
     private LocalDateTime creadoEn;
     private LocalDateTime actualizadoEn;
 
-    // Información del propietario
+    // Información del propietario (empleado creador)
     private Long idPropietario;
     private String nombrePropietario;
+    private String apellidoPropietario;
+    private String nombreCompletoPropietario;
 
-    // Información del último editor
+    // Información del último editor (empleado)
     private Long idUltimoEditor;
     private String nombreUltimoEditor;
+    private String apellidoUltimoEditor;
+    private String nombreCompletoUltimoEditor;
 
     // Información de la versión vigente
     private Integer versionVigente;

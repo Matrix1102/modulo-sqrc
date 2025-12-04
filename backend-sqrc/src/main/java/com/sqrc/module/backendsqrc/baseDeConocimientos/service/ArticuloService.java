@@ -63,8 +63,8 @@ public class ArticuloService {
                 .etiqueta(request.getEtiqueta())
                 .tipoCaso(request.getTipoCaso() != null ? request.getTipoCaso() : TipoCaso.TODOS)
                 .visibilidad(request.getVisibilidad())
-                .vigenteDesde(request.getVigenteDesdeAsDateTime())
-                .vigenteHasta(request.getVigenteHastaAsDateTime())
+                .vigenteDesde(request.getVigenteDesde() != null ? request.getVigenteDesde().atStartOfDay() : null)
+                .vigenteHasta(request.getVigenteHasta() != null ? request.getVigenteHasta().atTime(23, 59, 59) : null)
                 .tags(request.getTags())
                 .propietario(propietario)
                 .ultimoEditor(propietario)
@@ -136,11 +136,11 @@ public class ArticuloService {
         if (request.getVisibilidad() != null) {
             articulo.setVisibilidad(request.getVisibilidad());
         }
-        if (request.getVigenteDesde() != null && !request.getVigenteDesde().isBlank()) {
-            articulo.setVigenteDesde(request.getVigenteDesdeAsDateTime());
+        if (request.getVigenteDesde() != null) {
+            articulo.setVigenteDesde(request.getVigenteDesde().atStartOfDay());
         }
-        if (request.getVigenteHasta() != null && !request.getVigenteHasta().isBlank()) {
-            articulo.setVigenteHasta(request.getVigenteHastaAsDateTime());
+        if (request.getVigenteHasta() != null) {
+            articulo.setVigenteHasta(request.getVigenteHasta().atTime(23, 59, 59));
         }
         if (request.getIdUltimoEditor() != null) {
             Empleado editor = empleadoRepository.findById(request.getIdUltimoEditor())
@@ -328,7 +328,6 @@ public class ArticuloService {
      * Calcula un score de relevancia para un artículo basado en las palabras clave.
      * Método de respaldo para ordenamiento adicional si es necesario.
      */
-    @SuppressWarnings("unused") // Método de respaldo disponible para uso futuro
     private int calcularScoreRelevancia(Articulo articulo, String[] palabras) {
         int score = 0;
         String titulo = articulo.getTitulo() != null ? articulo.getTitulo().toLowerCase() : "";
@@ -403,6 +402,20 @@ public class ArticuloService {
                     .calcularCalificacionPromedio(versionMostrar.getIdArticuloVersion());
         }
 
+        // Extraer información del propietario (empleado creador)
+        Empleado propietario = articulo.getPropietario();
+        Long idPropietario = propietario != null ? propietario.getIdEmpleado() : null;
+        String nombrePropietario = propietario != null ? propietario.getNombre() : null;
+        String apellidoPropietario = propietario != null ? propietario.getApellido() : null;
+        String nombreCompletoPropietario = propietario != null ? propietario.getNombreCompleto() : null;
+
+        // Extraer información del último editor (empleado)
+        Empleado ultimoEditor = articulo.getUltimoEditor();
+        Long idUltimoEditor = ultimoEditor != null ? ultimoEditor.getIdEmpleado() : null;
+        String nombreUltimoEditor = ultimoEditor != null ? ultimoEditor.getNombre() : null;
+        String apellidoUltimoEditor = ultimoEditor != null ? ultimoEditor.getApellido() : null;
+        String nombreCompletoUltimoEditor = ultimoEditor != null ? ultimoEditor.getNombreCompleto() : null;
+
         return ArticuloResponse.builder()
                 .idArticulo(articulo.getIdArticulo())
                 .codigo(articulo.getCodigo())
@@ -416,10 +429,17 @@ public class ArticuloService {
                 .tags(articulo.getTags())
                 .creadoEn(articulo.getCreadoEn())
                 .actualizadoEn(articulo.getActualizadoEn())
-                .idPropietario(articulo.getPropietario() != null ? articulo.getPropietario().getIdEmpleado() : null)
-                .nombrePropietario(articulo.getPropietario() != null ? articulo.getPropietario().getNombre() : null)
-                .idUltimoEditor(articulo.getUltimoEditor() != null ? articulo.getUltimoEditor().getIdEmpleado() : null)
-                .nombreUltimoEditor(articulo.getUltimoEditor() != null ? articulo.getUltimoEditor().getNombre() : null)
+                // Información del propietario (empleado)
+                .idPropietario(idPropietario)
+                .nombrePropietario(nombrePropietario)
+                .apellidoPropietario(apellidoPropietario)
+                .nombreCompletoPropietario(nombreCompletoPropietario)
+                // Información del último editor (empleado)
+                .idUltimoEditor(idUltimoEditor)
+                .nombreUltimoEditor(nombreUltimoEditor)
+                .apellidoUltimoEditor(apellidoUltimoEditor)
+                .nombreCompletoUltimoEditor(nombreCompletoUltimoEditor)
+                // Versión vigente
                 .versionVigente(versionMostrar != null ? versionMostrar.getNumeroVersion() : null)
                 .estadoVersionVigente(versionMostrar != null ? versionMostrar.getEstadoPropuesta() : null)
                 .contenidoVersionVigente(versionMostrar != null ? versionMostrar.getContenido() : null)

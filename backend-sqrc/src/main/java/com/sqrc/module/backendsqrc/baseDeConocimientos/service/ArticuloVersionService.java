@@ -164,18 +164,20 @@ public class ArticuloVersionService {
         // Desmarcar todas las versiones vigentes
         versionRepository.desmarcarVersionesVigentes(idArticulo);
 
-        // Publicar la versión
-        LocalDateTime fechaDesde = request.getVigenteDesdeAsDateTime();
-        version.publicar(fechaDesde != null ? fechaDesde : LocalDateTime.now());
+        // Publicar la versión (convertir LocalDate a LocalDateTime)
+        LocalDateTime fechaPublicacion = request.getVigenteDesde() != null 
+                ? request.getVigenteDesde().atStartOfDay() 
+                : LocalDateTime.now();
+        version.publicar(fechaPublicacion);
         versionRepository.save(version);
 
         // Actualizar el artículo
         articulo.setVisibilidad(request.getVisibilidad());
-        if (request.getVigenteDesdeAsDateTime() != null) {
-            articulo.setVigenteDesde(request.getVigenteDesdeAsDateTime());
+        if (request.getVigenteDesde() != null) {
+            articulo.setVigenteDesde(request.getVigenteDesde().atStartOfDay());
         }
-        if (request.getVigenteHastaAsDateTime() != null) {
-            articulo.setVigenteHasta(request.getVigenteHastaAsDateTime());
+        if (request.getVigenteHasta() != null) {
+            articulo.setVigenteHasta(request.getVigenteHasta().atTime(23, 59, 59));
         }
         articuloRepository.save(articulo);
 
@@ -288,6 +290,19 @@ public class ArticuloVersionService {
         Long feedbacksNegativos = feedbackRepository.contarFeedbacksNoUtiles(version.getIdArticuloVersion());
         Double calificacionPromedio = feedbackRepository.calcularCalificacionPromedio(version.getIdArticuloVersion());
 
+        // Extraer información del creador (empleado)
+        Empleado creador = version.getCreadoPor();
+        String nombreCreador = creador != null ? creador.getNombre() : null;
+        String apellidoCreador = creador != null ? creador.getApellido() : null;
+        String nombreCompletoCreador = creador != null ? creador.getNombreCompleto() : null;
+
+        // Extraer información del ticket origen
+        Ticket ticketOrigen = version.getTicketOrigen();
+        Long idTicketOrigen = ticketOrigen != null ? ticketOrigen.getIdTicket() : null;
+        String asuntoTicket = ticketOrigen != null ? ticketOrigen.getAsunto() : null;
+        String estadoTicket = ticketOrigen != null && ticketOrigen.getEstado() != null 
+            ? ticketOrigen.getEstado().name() : null;
+
         return ArticuloVersionResponse.builder()
                 .idArticuloVersion(version.getIdArticuloVersion())
                 .idArticulo(version.getArticulo() != null ? version.getArticulo().getIdArticulo() : null)
@@ -300,9 +315,16 @@ public class ArticuloVersionService {
                 .esVigente(version.getEsVigente())
                 .estadoPropuesta(version.getEstadoPropuesta())
                 .origen(version.getOrigen())
-                .idCreador(version.getCreadoPor() != null ? version.getCreadoPor().getIdEmpleado() : null)
-                .nombreCreador(version.getCreadoPor() != null ? version.getCreadoPor().getNombre() : null)
-                .idTicketOrigen(version.getTicketOrigen() != null ? version.getTicketOrigen().getIdTicket() : null)
+                // Información del creador (empleado)
+                .idCreador(creador != null ? creador.getIdEmpleado() : null)
+                .nombreCreador(nombreCreador)
+                .apellidoCreador(apellidoCreador)
+                .nombreCompletoCreador(nombreCompletoCreador)
+                // Información del ticket origen
+                .idTicketOrigen(idTicketOrigen)
+                .asuntoTicket(asuntoTicket)
+                .estadoTicket(estadoTicket)
+                // Métricas
                 .feedbacksPositivos(feedbacksPositivos != null ? feedbacksPositivos : 0L)
                 .feedbacksNegativos(feedbacksNegativos != null ? feedbacksNegativos : 0L)
                 .calificacionPromedio(calificacionPromedio != null ? calificacionPromedio : 0.0)
