@@ -1,5 +1,6 @@
 # Archivos sensibles
 .env
+application.properties
 application-local.properties
 
 # Maven
