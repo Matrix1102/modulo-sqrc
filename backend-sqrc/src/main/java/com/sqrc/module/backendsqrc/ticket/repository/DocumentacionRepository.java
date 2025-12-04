@@ -6,20 +6,16 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
-import java.util.List;
 import java.util.Optional;
 
 @Repository
-public interface DocumentacionRepository extends JpaRepository<Documentacion, Integer> {
-    
-    @Query("SELECT d FROM Documentacion d WHERE d.asignacion.ticket.idTicket = :ticketId")
-    List<Documentacion> findByTicketId(@Param("ticketId") Long ticketId);
-    
-    @Query("SELECT d FROM Documentacion d WHERE d.asignacion.idAsignacion = :asignacionId")
-    List<Documentacion> findByAsignacionId(@Param("asignacionId") Long asignacionId);
-    
-    @Query("SELECT COUNT(d) FROM Documentacion d WHERE d.asignacion.ticket.idTicket = :ticketId")
-    long countByAsignacionTicketIdTicket(@Param("ticketId") Long ticketId);
+public interface DocumentacionRepository extends JpaRepository<Documentacion, Long> {
 
-    Optional<Documentacion> findByIdArticuloKB(Integer idArticuloKB);
+    // Busca documentación por ID de ticket navegando la relación
+    @Query("SELECT d FROM Documentacion d WHERE d.asignacion.ticket.idTicket = :ticketId")
+    Optional<Documentacion> findByTicketId(@Param("ticketId") Long ticketId);
+
+    // Busca documentación por ID de asignación
+    @Query("SELECT d FROM Documentacion d WHERE d.asignacion.idAsignacion = :asignacionId")
+    Optional<Documentacion> findByAsignacionId(@Param("asignacionId") Long asignacionId);
 }

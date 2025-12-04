@@ -1,7 +1,11 @@
 package com.sqrc.module.backendsqrc.ticket.model;
 
+/**
+ * Enum que diferencia los tipos de comunicación en el historial de correos.
+ */
 public enum TipoCorreo {
-    SOLICITUD_ESCALAMIENTO, // Agente pide escalar
-    RESPUESTA_INTERNA,      // Backoffice responde/rechaza
-    DERIVACION_EXTERNA      // Backoffice manda a TI
+    SOLICITUD_ESCALAMIENTO,
+    RESPUESTA_INTERNA,
+    DERIVACION_EXTERNA
 }
+

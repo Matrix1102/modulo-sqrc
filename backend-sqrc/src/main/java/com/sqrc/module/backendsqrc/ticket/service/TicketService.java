@@ -14,6 +14,7 @@ import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 /**
@@ -164,11 +165,8 @@ public class TicketService {
      * Mapea Ticket a TicketDetailDTO
      */
     private TicketDetailDTO mapToDetail(Ticket ticket) {
-        // Buscar KB article en documentación
-        List<Documentacion> docs = documentacionRepository.findByTicketId(ticket.getIdTicket());
-        String kbArticleId = docs.isEmpty() || docs.get(0).getIdArticuloKB() == null
-                ? null
-                : "KB-" + docs.get(0).getIdArticuloKB();
+        // Buscar KB article en documentación (por ahora no hay relación con KB en Documentacion)
+        String kbArticleId = null; // TODO: Agregar relación con base de conocimientos si es necesario
 
         // Obtener último agente asignado
         String lastAgentName = ticket.getAsignaciones().stream()
@@ -356,9 +354,9 @@ public class TicketService {
 
         // Buscar documentación asociada a esta asignación
         DocumentacionDto documentacionDto = null;
-        List<Documentacion> docs = documentacionRepository.findByAsignacionId(asignacion.getIdAsignacion());
-        if (!docs.isEmpty()) {
-            documentacionDto = mapToDocumentacionDto(docs.get(0));
+        Optional<Documentacion> docOpt = documentacionRepository.findByAsignacionId(asignacion.getIdAsignacion());
+        if (docOpt.isPresent()) {
+            documentacionDto = mapToDocumentacionDto(docOpt.get());
         }
 
         return AssignmentDto.builder()
@@ -396,24 +394,20 @@ public class TicketService {
      * Mapea Documentacion a DocumentacionDto
      */
     private DocumentacionDto mapToDocumentacionDto(Documentacion doc) {
+        // Obtener el empleado desde la asignación
         EmployeeDto autorDto = null;
-        if (doc.getEmpleado() != null) {
-            autorDto = mapToEmployeeDto(doc.getEmpleado());
+        if (doc.getAsignacion() != null && doc.getAsignacion().getEmpleado() != null) {
+            autorDto = mapToEmployeeDto(doc.getAsignacion().getEmpleado());
         }
 
+        // Por ahora no hay relación con artículos KB en Documentacion
         ArticuloVersionDto articuloDto = null;
-        if (doc.getIdArticuloKB() != null) {
-            articuloDto = ArticuloVersionDto.builder()
-                    .idArticuloKB(doc.getIdArticuloKB())
-                    .titulo("Artículo KB-" + doc.getIdArticuloKB())
-                    .contenido("Contenido del artículo KB")
-                    .build();
-        }
+        // TODO: Agregar relación con base de conocimientos si es necesario
 
         return DocumentacionDto.builder()
-                .idDocumentacion(doc.getIdDocumentacion())
+                .idDocumentacion(doc.getIdDocumentacion().intValue()) // Convertir Long a Integer
                 .problema(doc.getProblema())
-                .articulo(doc.getSolucion())
+                .articulo(doc.getSolucion()) // En Documentacion, 'solucion' es el contenido
                 .fechaCreacion(doc.getFechaCreacion())
                 .autor(autorDto)
                 .articuloKB(articuloDto)

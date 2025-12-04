@@ -5,21 +5,24 @@ import lombok.*;
 import java.time.LocalDateTime;
 
 @Entity
-@Table(name = "correo")
+@Table(name = "notificaciones_externas")
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-public class Correo {
+public class NotificacionExterna {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    @Column(name = "id_correo")
-    private Long idCorreo;
+    @Column(name = "id_notificacion")
+    private Long idNotificacion;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "asignacion_id", nullable = false)
-    private Asignacion asignacion;
+    @JoinColumn(name = "ticket_id", nullable = false)
+    private Ticket ticket;
+
+    @Column(name = "area_destino_id")
+    private Long areaDestinoId;
 
     @Column(name = "asunto")
     private String asunto;
@@ -28,9 +31,8 @@ public class Correo {
     @Column(name = "cuerpo", columnDefinition = "TEXT")
     private String cuerpo;
 
-    @Enumerated(EnumType.STRING)
-    @Column(name = "tipo_correo")
-    private TipoCorreo tipoCorreo;
+    @Column(name = "destinatario_email")
+    private String destinatarioEmail;
 
     @Column(name = "fecha_envio")
     private LocalDateTime fechaEnvio;

@@ -1,11 +1,7 @@
 package com.sqrc.module.backendsqrc.ticket.model;
 
 import jakarta.persistence.*;
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Data;
-import lombok.NoArgsConstructor;
-
+import lombok.*;
 import java.time.LocalDateTime;
 
 @Entity
@@ -19,26 +15,21 @@ public class Documentacion {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "id_documentacion")
-    private Integer idDocumentacion;
+    private Long idDocumentacion;
 
+    @OneToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "asignacion_id", nullable = false)
+    private Asignacion asignacion;
+
+    @Lob
     @Column(name = "problema", columnDefinition = "TEXT")
     private String problema;
 
-    @Column(name = "id_articuloKB")
-    private Integer idArticuloKB;
-
+    @Lob
     @Column(name = "solucion", columnDefinition = "TEXT")
     private String solucion;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "empleado_id")
-    private Empleado empleado;
-
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "id_asignacion")
-    private Asignacion asignacion;
-
-    @Column(name = "fecha_creacion", nullable = false)
+    @Column(name = "fecha_creacion")
     private LocalDateTime fechaCreacion;
 
     @PrePersist
@@ -48,3 +39,4 @@ public class Documentacion {
         }
     }
 }
+
