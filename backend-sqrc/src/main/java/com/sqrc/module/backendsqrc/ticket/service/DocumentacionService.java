@@ -41,6 +41,7 @@ public class DocumentacionService {
      * Crea una nueva documentación para un ticket.
      * 
      * La documentación se asocia a la asignación activa del ticket.
+     * Si no existe asignación activa, crea una automáticamente.
      * 
      * @param request DTO con los datos de la documentación
      * @return DocumentacionCreatedResponse con el resultado
@@ -58,14 +59,21 @@ public class DocumentacionService {
             throw new InvalidStateTransitionException("No se puede documentar un ticket cerrado");
         }
 
-        // Obtener la asignación activa del ticket
-        Asignacion asignacionActiva = asignacionRepository.findAsignacionActiva(request.getTicketId())
-                .orElseThrow(() -> new AsignacionNotFoundException(
-                        "No hay asignación activa para el ticket " + request.getTicketId()));
-
         // Validar empleado
         Empleado empleado = empleadoRepository.findById(request.getEmpleadoId())
                 .orElseThrow(() -> new EmpleadoNotFoundException(request.getEmpleadoId()));
+
+        // Obtener o crear la asignación activa del ticket
+        Asignacion asignacionActiva = asignacionRepository.findAsignacionActiva(request.getTicketId())
+                .orElseGet(() -> {
+                    // Si no hay asignación activa, crear una nueva
+                    log.info("No hay asignación activa para ticket {}. Creando asignación automática.", request.getTicketId());
+                    Asignacion nuevaAsignacion = Asignacion.builder()
+                            .ticket(ticket)
+                            .empleado(empleado)
+                            .build();
+                    return asignacionRepository.save(nuevaAsignacion);
+                });
 
         // Crear documentación
         Documentacion documentacion = Documentacion.builder()

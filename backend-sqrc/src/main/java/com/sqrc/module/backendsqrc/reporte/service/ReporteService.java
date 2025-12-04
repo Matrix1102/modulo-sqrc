@@ -45,23 +45,32 @@ public class ReporteService {
         if (start == null) start = LocalDate.now().minusDays(30);
         if (end == null) end = LocalDate.now();
 
-        // B. Obtener datos de las tablas rápidas en paralelo (la BD lo maneja eficientemente)
+        // B. Calcular el período anterior (mismo rango de días pero hacia atrás)
+        long diasEnRango = java.time.temporal.ChronoUnit.DAYS.between(start, end) + 1;
+        LocalDate startAnterior = start.minusDays(diasEnRango);
+        LocalDate endAnterior = start.minusDays(1);
+
+        // C. Obtener datos del período actual
         List<KpiResumenDiario> resumenes = resumenRepo.findByFechaBetween(start, end);
         List<KpiTiemposResolucion> tiempos = tiemposRepo.findByFechaBetween(start, end);
         List<KpiMotivosFrecuentes> motivos = motivosRepo.findByFechaBetween(start, end);
         List<KpiRendimientoAgenteDiario> agentes = agentesRepo.findByFechaBetween(start, end);
 
-        // C. Obtener una nueva instancia limpia del Builder
+        // D. Obtener datos del período anterior (para comparación)
+        List<KpiResumenDiario> resumenesAnterior = resumenRepo.findByFechaBetween(startAnterior, endAnterior);
+        List<KpiTiemposResolucion> tiemposAnterior = tiemposRepo.findByFechaBetween(startAnterior, endAnterior);
+
+        // E. Obtener una nueva instancia limpia del Builder
         DashboardBuilder builder = dashboardBuilderFactory.getObject();
 
-        // D. Construcción paso a paso (El Servicio actúa como Director)
+        // F. Construcción paso a paso (El Servicio actúa como Director)
         builder.reset();
         builder.construirKpisGlobales(resumenes);
-        builder.construirResumenOperativo(resumenes, tiempos);
+        builder.construirResumenOperativo(resumenes, tiempos, resumenesAnterior, tiemposAnterior);
         builder.construirMotivosFrecuentes(motivos);
         builder.construirRankingAgentes(agentes);
 
-        // E. Retornar el producto final ensamblado
+        // G. Retornar el producto final ensamblado
         return builder.getResultado();
     }
 
@@ -74,13 +83,13 @@ public class ReporteService {
         if (start == null) start = LocalDate.now().minusDays(30);
         if (end == null) end = LocalDate.now();
 
-        // 1. Traer los datos diarios de todos los agentes en el rango
-        List<KpiRendimientoAgenteDiario> datosDiarios = agentesRepo.findByFechaBetween(start, end);
+        // 1. Traer los datos diarios de todos los agentes en el rango (con JOIN FETCH para cargar nombres)
+        List<KpiRendimientoAgenteDiario> datosDiarios = agentesRepo.findByFechaBetweenWithAgente(start, end);
 
         // 2. Agrupar por ID de Agente para sumarizar sus estadísticas
         // (Un agente tiene N registros, uno por día)
         Map<Long, List<KpiRendimientoAgenteDiario>> porAgente = datosDiarios.stream()
-                .collect(Collectors.groupingBy(KpiRendimientoAgenteDiario::getAgenteId));
+                .collect(Collectors.groupingBy(kpi -> kpi.getAgente().getIdEmpleado()));
 
         List<AgenteDetailDTO> resultado = new ArrayList<>();
 
@@ -96,12 +105,18 @@ public class ReporteService {
                     .mapToInt(KpiRendimientoAgenteDiario::getTiempoPromedioResolucionMinutos)
                     .average().orElse(0.0);
 
+            // Obtener el nombre real del agente desde la entidad relacionada
+            String nombreAgente = registros.stream()
+                    .findFirst()
+                    .map(kpi -> kpi.getAgente().getNombreCompleto())
+                    .orElse("Agente " + agenteId);
+
             // Construir el DTO
                 double slaPct = slaService.computeCumplimientoFromDailyKpis(registros, null);
 
                 resultado.add(AgenteDetailDTO.builder()
                     .agenteId(agenteId.toString())
-                    .nombre("Agente " + agenteId) // TODO: Podrías llamar a un UsuarioService.obtenerNombre(id) si quieres el nombre real
+                    .nombre(nombreAgente)
                     .volumenTotalAtendido(totalTickets)
                     .csatPromedio(Math.round(csatPromedio * 10.0) / 10.0) // Redondear a 1 decimal
                     .tiempoPromedioResolucion(formatMinutosAHoras(tiempoPromedioMin))

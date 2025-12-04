@@ -328,6 +328,7 @@ public class ArticuloService {
      * Calcula un score de relevancia para un artículo basado en las palabras clave.
      * Método de respaldo para ordenamiento adicional si es necesario.
      */
+    @SuppressWarnings("unused") // Método de respaldo disponible para uso futuro
     private int calcularScoreRelevancia(Articulo articulo, String[] palabras) {
         int score = 0;
         String titulo = articulo.getTitulo() != null ? articulo.getTitulo().toLowerCase() : "";

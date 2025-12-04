@@ -37,6 +37,6 @@ public interface EncuestaRepository extends JpaRepository<Encuesta, Long>, JpaSp
            "WHERE e.idEncuesta = :id")
     Optional<Encuesta> findByIdWithPlantillaAndPreguntas(@Param("id") Long id);
 
-    @Query("SELECT AVG(r.calificacion) FROM Encuesta e JOIN e.respuestaEncuesta r WHERE e.cliente.idCliente = :clienteId")
+    @Query(value = "SELECT AVG(re.calificacion) FROM encuestas e JOIN respuestas_encuesta re ON e.id_encuesta = re.encuesta_id WHERE e.cliente_id = :clienteId", nativeQuery = true)
     Double findPromedioCalificacionByClienteId(@Param("clienteId") Integer clienteId);
 }

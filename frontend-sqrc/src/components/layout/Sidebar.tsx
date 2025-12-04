@@ -8,6 +8,7 @@ import {
   BookOpen,
   UserCircle,
   Search,
+  Notebook,
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 
@@ -50,6 +51,11 @@ export const Sidebar: React.FC<SidebarProps> = ({ role = "AGENT" }) => {
         label: "Base de Conocimiento",
         path: "/base-conocimiento",
       },
+      {
+        icon: Notebook,
+        label: "Plantillas",
+        path: "/supervisor/plantillas",
+      },
     ],
     AGENT: [
       { icon: PlusCircle, label: "Nuevo Ticket", path: "/nuevo-ticket" },
@@ -59,6 +65,11 @@ export const Sidebar: React.FC<SidebarProps> = ({ role = "AGENT" }) => {
         icon: BookOpen,
         label: "Base de Conocimiento",
         path: "/base-conocimiento",
+      },
+      {
+        icon: Notebook,
+        label: "Plantillas",
+        path: "/plantillas",
       },
       { icon: UserCircle, label: "Mi Perfil", path: "/perfil" },
     ],

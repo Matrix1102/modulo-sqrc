@@ -2,7 +2,7 @@ package com.sqrc.module.backendsqrc.encuesta.listener;
 
 import com.sqrc.module.backendsqrc.encuesta.event.EncuestaRespondidaEvent;
 import org.springframework.context.event.EventListener;
-import org.springframework.scheduling.annotation.Async;
+
 import org.springframework.stereotype.Component;
 
 @Component

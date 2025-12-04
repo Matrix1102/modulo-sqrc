@@ -42,6 +42,7 @@ public class Plantilla {
     @Column(name = "activo")
     private boolean activo;
 
+    @Builder.Default
     @Column(name = "fecha_creacion")
     private LocalDateTime fechaCreacion = LocalDateTime.now();
 

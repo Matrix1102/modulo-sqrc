@@ -306,6 +306,8 @@ public class Vista360Service {
          */
         private MetricaKPI_DTO calcularCalificacionAtencion(Integer idCliente) {
                 Double promedioCalificacion = encuestaRepository.findPromedioCalificacionByClienteId(idCliente);
+                
+                log.info("Calificación para cliente {}: {}", idCliente, promedioCalificacion);
 
                 String valorPrincipal;
                 String subtitulo;

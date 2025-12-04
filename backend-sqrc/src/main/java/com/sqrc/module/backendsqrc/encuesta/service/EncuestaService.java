@@ -442,15 +442,109 @@ public class EncuestaService {
 
         // Mapeamos los resultados a DTOs para la vista
         return resultados.stream()
-            .map(r -> EncuestaResultadoDTO.builder()
-                    .responseId(r.getIdRespuestaEncuesta().toString())
-                    .ticketId("T-" + r.getEncuesta().getIdEncuesta()) // Simulación de ID Ticket
-                    .fechaRespuesta(r.getFechaRespuesta().toString())
-                    // Aquí podrías agregar lógica para calcular el puntaje promedio de esta respuesta
-                    .puntaje("N/A") 
-                    .comentario("Respuesta completada")
-                    .build())
+            .map(this::mapToEncuestaResultadoDTO)
             .collect(Collectors.toList());
+    }
+
+    private EncuestaResultadoDTO mapToEncuestaResultadoDTO(RespuestaEncuesta r) {
+        Encuesta encuesta = r.getEncuesta();
+        
+        // Obtener nombre del agente si existe
+        String nombreAgente = null;
+        if (encuesta.getAgente() != null) {
+            nombreAgente = encuesta.getAgente().getNombreCompleto();
+        }
+        
+        // Obtener email/nombre del cliente
+        String cliente = null;
+        if (encuesta.getCliente() != null) {
+            cliente = encuesta.getCliente().getCorreo();
+        }
+        
+        // Obtener ticket ID real si existe
+        String ticketId = encuesta.getTicket() != null 
+            ? "T-" + encuesta.getTicket().getIdTicket()
+            : "T-" + encuesta.getIdEncuesta();
+        
+        // Calcular puntaje (usar calificacion de la respuesta o promedio de respuestas numéricas)
+        String puntaje = "N/A";
+        if (r.getCalificacion() != null) {
+            puntaje = r.getCalificacion() + "/5";
+        } else if (r.getRespuestas() != null && !r.getRespuestas().isEmpty()) {
+            // Intentar parsear valores numéricos de las respuestas
+            double sum = 0;
+            int count = 0;
+            for (RespuestaPregunta rp : r.getRespuestas()) {
+                if (rp.getValor() != null) {
+                    try {
+                        double val = Double.parseDouble(rp.getValor());
+                        sum += val;
+                        count++;
+                    } catch (NumberFormatException e) {
+                        // No es número, ignorar para el promedio
+                    }
+                }
+            }
+            if (count > 0) {
+                double avg = sum / count;
+                puntaje = String.format("%.1f/5", avg);
+            }
+        }
+        
+        // Buscar comentario en las respuestas de texto (respuestas que no son números)
+        String comentario = "Sin comentarios";
+        if (r.getRespuestas() != null) {
+            for (RespuestaPregunta rp : r.getRespuestas()) {
+                String val = rp.getValor();
+                if (val != null && !val.trim().isEmpty()) {
+                    // Verificar si NO es un número para considerar como comentario
+                    try {
+                        Double.parseDouble(val);
+                        // Es número, continuar buscando
+                    } catch (NumberFormatException e) {
+                        // No es número, puede ser comentario si es largo
+                        if (val.length() > 10) {
+                            comentario = val;
+                            break;
+                        }
+                    }
+                }
+            }
+        }
+        
+        // Calcular tiempo relativo
+        String tiempo = calcularTiempoRelativo(r.getFechaRespuesta());
+        
+        return EncuestaResultadoDTO.builder()
+                .responseId(r.getIdRespuestaEncuesta().toString())
+                .ticketId(ticketId)
+                .agente(nombreAgente)
+                .cliente(cliente)
+                .puntaje(puntaje)
+                .comentario(comentario)
+                .tiempo(tiempo)
+                .fechaRespuesta(r.getFechaRespuesta() != null ? r.getFechaRespuesta().toString() : null)
+                .build();
+    }
+
+    private String calcularTiempoRelativo(LocalDateTime fecha) {
+        if (fecha == null) return "-";
+        
+        LocalDateTime ahora = LocalDateTime.now();
+        long minutos = java.time.Duration.between(fecha, ahora).toMinutes();
+        
+        if (minutos < 1) return "Hace un momento";
+        if (minutos < 60) return "Hace " + minutos + " min";
+        
+        long horas = minutos / 60;
+        if (horas < 24) return "Hace " + horas + " h";
+        
+        long dias = horas / 24;
+        if (dias == 1) return "Ayer";
+        if (dias < 7) return "Hace " + dias + " días";
+        if (dias < 30) return "Hace " + (dias / 7) + " sem";
+        
+        return fecha.toLocalDate().toString();
     }
 
             @Transactional(readOnly = true)
@@ -527,35 +621,64 @@ public class EncuestaService {
         RespuestaEncuesta respuestaDB = respuestaEncuestaRepository.findById(id)
             .orElseThrow(() -> new org.springframework.web.server.ResponseStatusException(org.springframework.http.HttpStatus.NOT_FOUND, "Respuesta no encontrada"));
 
+        // Obtener datos de la encuesta (cliente, agente)
+        Encuesta encuesta = respuestaDB.getEncuesta();
+        String clienteEmail = encuesta.getCliente() != null ? encuesta.getCliente().getCorreo() : "N/A";
+        String agenteNombre = encuesta.getAgente() != null ? encuesta.getAgente().getNombreCompleto() : "N/A";
+
         // Transformamos las respuestas para el detalle
         List<ResultadoPreguntaDTO> detalles = respuestaDB.getRespuestas().stream().map(resp -> {
             String valorMostrar = resp.getValor();
             Pregunta p = resp.getPregunta();
+            String tipo = "TEXT"; // Default
 
-            // Si es Radio, el valor guardado es un ID ("52"). Hay que buscar el texto ("Excelente").
-            if (p instanceof PreguntaRadio) {
+            // Determinar el tipo según la clase de pregunta
+            if (p instanceof PreguntaBooleana) {
+                tipo = "BOOLEAN";
+                // Convertir true/false a Sí/No
+                if ("true".equalsIgnoreCase(valorMostrar)) {
+                    valorMostrar = "Sí";
+                } else if ("false".equalsIgnoreCase(valorMostrar)) {
+                    valorMostrar = "No";
+                }
+            } else if (p instanceof PreguntaRadio) {
+                tipo = "RATING";
                 try {
                     Long idOpcion = Long.parseLong(valorMostrar);
                     // Buscamos en la lista de opciones de la pregunta
-                    valorMostrar = ((PreguntaRadio) p).getOpciones().stream()
+                    OpcionPregunta opcionEncontrada = ((PreguntaRadio) p).getOpciones().stream()
                             .filter(op -> op.getIdOpcion().equals(idOpcion))
                             .findFirst()
-                            .map(OpcionPregunta::getTexto)
-                            .orElse(valorMostrar + " (Opción no encontrada)");
+                            .orElse(null);
+                    
+                    if (opcionEncontrada != null && opcionEncontrada.getOrden() != null) {
+                        // Devolver el orden (1-5) para que el frontend muestre la calificación
+                        valorMostrar = String.valueOf(opcionEncontrada.getOrden());
+                    } else if (opcionEncontrada != null) {
+                        valorMostrar = opcionEncontrada.getTexto();
+                    } else {
+                        valorMostrar = valorMostrar + " (Opción no encontrada)";
+                    }
                 } catch (NumberFormatException e) {
                     // Si no era un número, lo mostramos tal cual
                 }
             }
+            // else TEXT ya está por default
 
             return ResultadoPreguntaDTO.builder()
-                    .pregunta(p.getTexto())
-                    .respuesta(valorMostrar)
+                    .question(p.getTexto())
+                    .answer(valorMostrar)
+                    .type(tipo)
                     .build();
         }).collect(Collectors.toList());
 
         return EncuestaResultadoDTO.builder()
                 .responseId(respuestaDB.getIdRespuestaEncuesta().toString())
-                .ticketId("T-" + respuestaDB.getEncuesta().getIdEncuesta())
+                .ticketId("T-" + encuesta.getIdEncuesta())
+                .agente(agenteNombre)
+                .agenteName(agenteNombre)
+                .cliente(clienteEmail)
+                .clientEmail(clienteEmail)
                 .fechaRespuesta(respuestaDB.getFechaRespuesta().toString())
                 .resultados(detalles)
                 .build();

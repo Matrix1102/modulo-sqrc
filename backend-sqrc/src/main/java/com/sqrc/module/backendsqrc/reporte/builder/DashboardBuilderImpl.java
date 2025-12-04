@@ -2,7 +2,11 @@ package com.sqrc.module.backendsqrc.reporte.builder;
 
 import com.sqrc.module.backendsqrc.reporte.dto.DashboardKpisDTO;
 import com.sqrc.module.backendsqrc.reporte.model.*;
-import com.sqrc.module.backendsqrc.plantillaRespuesta.model.TipoCaso;
+import com.sqrc.module.backendsqrc.ticket.model.Motivo;
+import com.sqrc.module.backendsqrc.ticket.model.Agente;
+import com.sqrc.module.backendsqrc.ticket.repository.MotivoRepository;
+import com.sqrc.module.backendsqrc.ticket.repository.AgenteRepository;
+import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Scope;
 import org.springframework.stereotype.Component;
 
@@ -13,8 +17,12 @@ import java.util.stream.Collectors;
 
 @Component
 @Scope("prototype")
+@RequiredArgsConstructor
 public class DashboardBuilderImpl implements DashboardBuilder {
 
+    private final MotivoRepository motivoRepository;
+    private final AgenteRepository agenteRepository;
+    
     private DashboardKpisDTO reporte;
 
     @Override
@@ -84,27 +92,59 @@ public class DashboardBuilderImpl implements DashboardBuilder {
     }
 
     @Override
-    public void construirResumenOperativo(List<KpiResumenDiario> resumenes, List<KpiTiemposResolucion> tiempos) {
-        // Calcular totales: creados y resueltos sumando la columna de la tabla KPI
-        // Totales por canal y global
+    public void construirResumenOperativo(List<KpiResumenDiario> resumenes, List<KpiTiemposResolucion> tiempos,
+                                          List<KpiResumenDiario> resumenesAnterior, List<KpiTiemposResolucion> tiemposAnterior) {
+        // ========== PERÍODO ACTUAL ==========
         Map<String, Integer> totalCreadosPorCanal = resumenes.stream()
-                .collect(Collectors.groupingBy(r -> r.getCanal() != null ? r.getCanal().toUpperCase() : "GLOBAL", Collectors.summingInt(KpiResumenDiario::getTotalCasosCreados)));
+                .collect(Collectors.groupingBy(r -> r.getCanal() != null ? r.getCanal().toUpperCase() : "OTRO", Collectors.summingInt(KpiResumenDiario::getTotalCasosCreados)));
 
         Map<String, Integer> totalResueltosPorCanal = resumenes.stream()
-                .collect(Collectors.groupingBy(r -> r.getCanal() != null ? r.getCanal().toUpperCase() : "GLOBAL", Collectors.summingInt(KpiResumenDiario::getTotalCasosResueltos)));
+                .collect(Collectors.groupingBy(r -> r.getCanal() != null ? r.getCanal().toUpperCase() : "OTRO", Collectors.summingInt(KpiResumenDiario::getTotalCasosResueltos)));
 
-        // Promedio de tiempo por canal (en minutos)
         Map<String, Double> tiempoPromedioPorCanal = tiempos.stream()
-                .collect(Collectors.groupingBy(r -> r.getCanal() != null ? r.getCanal().toUpperCase() : "GLOBAL", Collectors.averagingDouble(KpiTiemposResolucion::getTiempoPromedioResolucionTotalMin)));
+                .collect(Collectors.groupingBy(r -> r.getCanal() != null ? r.getCanal().toUpperCase() : "OTRO", Collectors.averagingDouble(KpiTiemposResolucion::getTiempoPromedioResolucionTotalMin)));
+
+        // ========== PERÍODO ANTERIOR (para comparación) ==========
+        Map<String, Integer> totalCreadosAnteriorPorCanal = resumenesAnterior.stream()
+                .collect(Collectors.groupingBy(r -> r.getCanal() != null ? r.getCanal().toUpperCase() : "OTRO", Collectors.summingInt(KpiResumenDiario::getTotalCasosCreados)));
+
+        Map<String, Integer> totalResueltosAnteriorPorCanal = resumenesAnterior.stream()
+                .collect(Collectors.groupingBy(r -> r.getCanal() != null ? r.getCanal().toUpperCase() : "OTRO", Collectors.summingInt(KpiResumenDiario::getTotalCasosResueltos)));
+
+        Map<String, Double> tiempoPromedioAnteriorPorCanal = tiemposAnterior.stream()
+                .collect(Collectors.groupingBy(r -> r.getCanal() != null ? r.getCanal().toUpperCase() : "OTRO", Collectors.averagingDouble(KpiTiemposResolucion::getTiempoPromedioResolucionTotalMin)));
 
         java.util.Map<String, DashboardKpisDTO.KpisResumenDTO> resumenMap = new java.util.HashMap<>();
 
-        // Collect keys union of channels plus GLOBAL
+        // ========== GLOBAL ACTUAL ==========
+        int totalCreadosGlobal = totalCreadosPorCanal.values().stream().mapToInt(Integer::intValue).sum();
+        int totalResueltosGlobal = totalResueltosPorCanal.values().stream().mapToInt(Integer::intValue).sum();
+        double tiempoPromedioGlobal = tiempos.stream()
+                .mapToDouble(KpiTiemposResolucion::getTiempoPromedioResolucionTotalMin)
+                .average().orElse(0.0);
+
+        // ========== GLOBAL ANTERIOR ==========
+        int totalCreadosGlobalAnterior = totalCreadosAnteriorPorCanal.values().stream().mapToInt(Integer::intValue).sum();
+        int totalResueltosGlobalAnterior = totalResueltosAnteriorPorCanal.values().stream().mapToInt(Integer::intValue).sum();
+        double tiempoPromedioGlobalAnterior = tiemposAnterior.stream()
+                .mapToDouble(KpiTiemposResolucion::getTiempoPromedioResolucionTotalMin)
+                .average().orElse(0.0);
+
+        int abiertosGlobal = Math.max(0, totalCreadosGlobal - totalResueltosGlobal);
+        int abiertosGlobalAnterior = Math.max(0, totalCreadosGlobalAnterior - totalResueltosGlobalAnterior);
+
+        // Calcular comparaciones GLOBAL
+        resumenMap.put("GLOBAL", DashboardKpisDTO.KpisResumenDTO.builder()
+                .ticketsAbiertos(crearKpiValor(abiertosGlobal, abiertosGlobalAnterior))
+                .ticketsResueltos(crearKpiValor(totalResueltosGlobal, totalResueltosGlobalAnterior))
+                .tiempoPromedio(crearKpiValorTiempo(tiempoPromedioGlobal, tiempoPromedioGlobalAnterior))
+                .build());
+
+        // ========== POR CANAL ==========
         java.util.Set<String> canales = new java.util.HashSet<>();
         canales.addAll(totalCreadosPorCanal.keySet());
         canales.addAll(totalResueltosPorCanal.keySet());
         canales.addAll(tiempoPromedioPorCanal.keySet());
-        canales.add("GLOBAL");
 
         for (String canal : canales) {
             int creados = totalCreadosPorCanal.getOrDefault(canal, 0);
@@ -112,16 +152,64 @@ public class DashboardBuilderImpl implements DashboardBuilder {
             int abiertos = Math.max(0, creados - resueltos);
             double tiempoMin = tiempoPromedioPorCanal.getOrDefault(canal, 0.0);
 
+            int creadosAnt = totalCreadosAnteriorPorCanal.getOrDefault(canal, 0);
+            int resueltosAnt = totalResueltosAnteriorPorCanal.getOrDefault(canal, 0);
+            int abiertosAnt = Math.max(0, creadosAnt - resueltosAnt);
+            double tiempoMinAnt = tiempoPromedioAnteriorPorCanal.getOrDefault(canal, 0.0);
+
             DashboardKpisDTO.KpisResumenDTO grupo = DashboardKpisDTO.KpisResumenDTO.builder()
-                    .ticketsAbiertos(DashboardKpisDTO.KpiValorDTO.builder().valor(abiertos).comparativoPeriodo(null).comparativoPeriodoPct(null).build())
-                    .ticketsResueltos(DashboardKpisDTO.KpiValorDTO.builder().valor(resueltos).comparativoPeriodo(null).comparativoPeriodoPct(null).build())
-                    .tiempoPromedio(DashboardKpisDTO.KpiValorDTO.builder().valor(String.format("%.1f hrs", tiempoMin / 60.0)).comparativoPeriodo(null).comparativoPeriodoPct(null).build())
+                    .ticketsAbiertos(crearKpiValor(abiertos, abiertosAnt))
+                    .ticketsResueltos(crearKpiValor(resueltos, resueltosAnt))
+                    .tiempoPromedio(crearKpiValorTiempo(tiempoMin, tiempoMinAnt))
                     .build();
 
             resumenMap.put(canal, grupo);
         }
 
         this.reporte.setKpisResumen(resumenMap);
+    }
+
+    /**
+     * Crea un KpiValorDTO con el valor actual y la comparación porcentual vs período anterior
+     */
+    private DashboardKpisDTO.KpiValorDTO crearKpiValor(int valorActual, int valorAnterior) {
+        Integer diferencia = valorActual - valorAnterior;
+        Integer porcentaje = null;
+        
+        if (valorAnterior > 0) {
+            porcentaje = (int) Math.round(((double)(valorActual - valorAnterior) / valorAnterior) * 100.0);
+        } else if (valorActual > 0) {
+            porcentaje = 100; // Si antes era 0 y ahora hay, es +100%
+        } else {
+            porcentaje = 0;
+        }
+        
+        return DashboardKpisDTO.KpiValorDTO.builder()
+                .valor(valorActual)
+                .comparativoPeriodo(diferencia)
+                .comparativoPeriodoPct(porcentaje)
+                .build();
+    }
+
+    /**
+     * Crea un KpiValorDTO para tiempo (en formato string) con comparación
+     */
+    private DashboardKpisDTO.KpiValorDTO crearKpiValorTiempo(double tiempoMinActual, double tiempoMinAnterior) {
+        Integer porcentaje = null;
+        
+        if (tiempoMinAnterior > 0) {
+            porcentaje = (int) Math.round(((tiempoMinActual - tiempoMinAnterior) / tiempoMinAnterior) * 100.0);
+        } else if (tiempoMinActual > 0) {
+            porcentaje = 100;
+        } else {
+            porcentaje = 0;
+        }
+        
+        return DashboardKpisDTO.KpiValorDTO.builder()
+                .valor(String.format("%.1f hrs", tiempoMinActual / 60.0))
+                .comparativoPeriodo(null) // Para tiempo no mostramos diferencia absoluta
+                .comparativoPeriodoPct(porcentaje)
+                .build();
     }
 
     @Override
@@ -134,12 +222,16 @@ public class DashboardBuilderImpl implements DashboardBuilder {
                         Collectors.summingInt(KpiMotivosFrecuentes::getConteoTotal)
                 ));
 
+        // Obtener todos los motivos de la BD para mapear ID -> Nombre
+        Map<Long, String> motivosMap = motivoRepository.findAll().stream()
+                .collect(Collectors.toMap(Motivo::getIdMotivo, Motivo::getNombre));
+
         List<DashboardKpisDTO.MotivoFrecuenteDTO> listaFinal = new ArrayList<>();
         
-        // Aquí necesitarías un map de ID -> NombreMotivo (o haber guardado el nombre en la tabla KPI)
         agrupado.forEach((id, total) -> {
+            String nombreMotivo = motivosMap.getOrDefault(id, "Motivo desconocido");
             listaFinal.add(DashboardKpisDTO.MotivoFrecuenteDTO.builder()
-                    .motivo("Motivo ID " + id) // Idealmente usarías el nombre real
+                    .motivo(nombreMotivo)
                     .cantidad(total)
                     .build());
         });
@@ -155,24 +247,32 @@ public class DashboardBuilderImpl implements DashboardBuilder {
         // Similar: Agrupar por agente y promediar su CSAT / Sumar sus tickets
         Map<Long, Double> csatPorAgente = ranking.stream()
                 .collect(Collectors.groupingBy(
-                        KpiRendimientoAgenteDiario::getAgenteId,
+                        kpi -> kpi.getAgente().getIdEmpleado(),
                         Collectors.averagingDouble(KpiRendimientoAgenteDiario::getCsatPromedioAgente)
                 ));
 
         // Sumar tickets por agente
         Map<Long, Integer> ticketsPorAgente = ranking.stream()
                 .collect(Collectors.groupingBy(
-                        KpiRendimientoAgenteDiario::getAgenteId,
+                        kpi -> kpi.getAgente().getIdEmpleado(),
                         Collectors.summingInt(KpiRendimientoAgenteDiario::getTicketsResueltosTotal)
+                ));
+
+        // Obtener todos los agentes de la BD para mapear ID -> Nombre completo
+        Map<Long, String> agentesMap = agenteRepository.findAll().stream()
+                .collect(Collectors.toMap(
+                        Agente::getIdEmpleado, 
+                        a -> a.getNombre() + " " + a.getApellido()
                 ));
 
         List<DashboardKpisDTO.AgenteRankingDTO> topAgentes = new ArrayList<>();
         
         csatPorAgente.forEach((id, csat) -> {
             Integer tickets = ticketsPorAgente.getOrDefault(id, 0);
+            String nombreAgente = agentesMap.getOrDefault(id, "Agente " + id);
             topAgentes.add(DashboardKpisDTO.AgenteRankingDTO.builder()
                     .agenteId(id)
-                    .nombre("Agente " + id) // O buscar nombre real
+                    .nombre(nombreAgente)
                     .rating(Math.round(csat * 10.0) / 10.0)
                     .tickets(tickets)
                     .build());

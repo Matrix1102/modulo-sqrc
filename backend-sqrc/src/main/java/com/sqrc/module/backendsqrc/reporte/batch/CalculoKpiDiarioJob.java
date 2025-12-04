@@ -41,7 +41,9 @@ public class CalculoKpiDiarioJob {
 
     // --- Repositorios de Reportes (Escritura - Tablas KPI) ---
     private final KpiResumenDiarioRepository resumenRepo;
+    @SuppressWarnings("unused") // TODO: usar cuando se implemente rendimiento de agentes
     private final KpiRendimientoAgenteDiarioRepository agentesRepo;
+    @SuppressWarnings("unused") // TODO: usar cuando se implemente motivos frecuentes
     private final KpiMotivosFrecuentesRepository motivosRepo;
     private final KpiTiemposResolucionRepository tiemposRepo;
     private final KpiDashboardEncuestasRepository dashboardEncuestasRepo;

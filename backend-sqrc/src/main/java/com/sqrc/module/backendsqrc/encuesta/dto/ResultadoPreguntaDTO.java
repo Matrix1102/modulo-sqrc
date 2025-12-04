@@ -6,6 +6,7 @@ import lombok.Data;
 @Data
 @Builder
 public class ResultadoPreguntaDTO {
-    private String pregunta;
-    private Object respuesta; // Puede ser String ("Sí") o Integer (4)
+    private String question;
+    private String answer;
+    private String type; // RATING, BOOLEAN, TEXT
 }

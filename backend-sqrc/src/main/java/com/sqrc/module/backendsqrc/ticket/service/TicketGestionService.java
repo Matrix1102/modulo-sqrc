@@ -5,6 +5,7 @@ import com.sqrc.module.backendsqrc.encuesta.model.Encuesta;
 import com.sqrc.module.backendsqrc.encuesta.model.PlantillaEncuesta;
 import com.sqrc.module.backendsqrc.encuesta.repository.PlantillaEncuestaRepository;
 import com.sqrc.module.backendsqrc.encuesta.service.EncuestaService;
+import com.sqrc.module.backendsqrc.plantillaRespuesta.Service.RespuestaService;
 import com.sqrc.module.backendsqrc.ticket.dto.request.*;
 import com.sqrc.module.backendsqrc.ticket.dto.response.*;
 import com.sqrc.module.backendsqrc.ticket.exception.*;
@@ -65,6 +66,8 @@ public class TicketGestionService {
     private final ApplicationEventPublisher eventPublisher;
     private final EncuestaService encuestaService;
     private final PlantillaEncuestaRepository plantillaEncuestaRepository;
+
+    private final RespuestaService respuestaService;
 
     // ==================== CREAR TICKET ====================
 
@@ -128,6 +131,9 @@ public class TicketGestionService {
             ((Agente) empleado).setEstaOcupado(true);
             empleadoRepository.save(empleado);
         }
+
+        // envia correo de confirmacion
+        respuestaService.enviarConfirmacionRegistro(asignacion);
 
         // 9. Construir respuesta
         return TicketCreatedResponse.builder()

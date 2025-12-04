@@ -2,7 +2,6 @@ package com.sqrc.module.backendsqrc.encuesta.model;
 
 import jakarta.persistence.*;
 import lombok.Data;
-import java.time.LocalDateTime;
 import java.util.List;
 
 @Data
@@ -21,18 +20,8 @@ public class PlantillaEncuesta {
     @Enumerated(EnumType.STRING)
     private AlcanceEvaluacion alcanceEvaluacion;
 
-    @Column(name = "fecha_creacion", nullable = false, updatable = false)
-    private LocalDateTime fechaCreacion;
-
     // Esta es la otra cara de la moneda: Una plantilla tiene muchas preguntas
     // 'mappedBy = "plantilla"' le dice a JPA: "La dueña de la relación es el campo 'plantilla' en la clase Pregunta"
     @OneToMany(mappedBy = "plantilla", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     private List<Pregunta> preguntas;
-
-    @PrePersist
-    public void prePersist() {
-        if (this.fechaCreacion == null) {
-            this.fechaCreacion = LocalDateTime.now();
-        }
-    }
 }

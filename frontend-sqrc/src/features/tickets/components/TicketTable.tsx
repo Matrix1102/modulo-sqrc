@@ -1,6 +1,5 @@
 import React, { useMemo, useState } from "react";
 import { Filter, Plus, FileQuestion } from "lucide-react";
-import { useNavigate } from "react-router-dom";
 import { Badge } from "../../../components/ui/Badge";
 import SearchBar from "../../../components/ui/SearchBar";
 
@@ -8,7 +7,6 @@ interface TicketTableProps {
   tickets: any[];
   title?: string;
   showToolbar?: boolean;
-  onRowClick?: (id: string) => void;
   loading?: boolean;
   emptyVariant?: "simple" | "rich";
 }
@@ -33,11 +31,9 @@ export const TicketTable: React.FC<TicketTableProps> = ({
   tickets = [],
   title,
   showToolbar = true,
-  onRowClick,
   loading = false,
   emptyVariant = "simple",
 }) => {
-  const navigate = useNavigate();
   const [query, setQuery] = useState("");
 
   const filtered = useMemo(() => {
@@ -54,13 +50,8 @@ export const TicketTable: React.FC<TicketTableProps> = ({
     });
   }, [tickets, query]);
 
-  const handleRowClick = (id: string) => {
-    if (onRowClick) onRowClick(id);
-    else navigate(`/supervisor/ticketing/detalle/${id}`);
-  };
-
   return (
-    <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100 h-full flex flex-col transition-all">
+    <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100 h-full flex flex-col transition-all overflow-hidden">
       {/* Título */}
       {title && (
         <div className="flex justify-between items-center mb-6">
@@ -93,7 +84,7 @@ export const TicketTable: React.FC<TicketTableProps> = ({
       )}
 
       {/* CONTENIDO PRINCIPAL */}
-      <div className="flex-1 relative flex flex-col">
+      <div className="flex-1 relative flex flex-col min-h-0">
         {loading ? (
           <div className="space-y-3 p-2">
             {Array.from({ length: 6 }).map((_, idx) => (
@@ -149,7 +140,7 @@ export const TicketTable: React.FC<TicketTableProps> = ({
           )
         ) : (
           /* --- TABLA DE DATOS --- */
-          <div className="overflow-x-auto flex-1">
+          <div className="overflow-auto flex-1">
             <table className="w-full text-left border-collapse">
               <thead className="sticky top-0 bg-white z-10">
                 <tr className="text-gray-400 text-xs uppercase tracking-wider border-b border-gray-100">
@@ -164,8 +155,7 @@ export const TicketTable: React.FC<TicketTableProps> = ({
                 {filtered.map((t, idx) => (
                   <tr
                     key={idx}
-                    onClick={() => handleRowClick(t.id)}
-                    className="hover:bg-blue-50/40 transition-colors cursor-pointer group"
+                    className="hover:bg-blue-50/40 transition-colors group"
                   >
                     <td className="py-4 pl-2">
                       <span className="bg-gray-100 text-gray-600 group-hover:bg-blue-100 group-hover:text-blue-700 px-2 py-1 rounded text-xs font-bold transition-colors">

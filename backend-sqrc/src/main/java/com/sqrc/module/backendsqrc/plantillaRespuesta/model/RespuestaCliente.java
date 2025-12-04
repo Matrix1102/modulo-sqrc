@@ -1,6 +1,7 @@
 package com.sqrc.module.backendsqrc.plantillaRespuesta.model;
 
 
+import com.sqrc.module.backendsqrc.ticket.model.Asignacion;
 import jakarta.persistence.*;
 import lombok.*;
 
@@ -20,11 +21,11 @@ public class RespuestaCliente {
     @Column(name = "id_respuesta")
     private Long idRespuesta;
 
-/*
+
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "asignacion_id", nullable = false)
     private Asignacion asignacion; //falta crear la clase Asignacion
- */
+
 
     //relación con la tabla 'plantillas' (FK: plantilla_id)
     @ManyToOne(fetch = FetchType.LAZY)

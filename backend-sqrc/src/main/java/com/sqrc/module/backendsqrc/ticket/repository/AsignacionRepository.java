@@ -5,6 +5,7 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 
@@ -33,9 +34,24 @@ public interface AsignacionRepository extends JpaRepository<Asignacion, Long> {
      */
     @Query("SELECT a FROM Asignacion a " +
            "JOIN FETCH a.ticket t " +
+           "LEFT JOIN FETCH t.motivo " +
+           "LEFT JOIN FETCH t.cliente " +
            "WHERE a.empleado.idEmpleado = :empleadoId " +
            "ORDER BY a.fechaInicio DESC")
     List<Asignacion> findByEmpleadoIdWithTicket(@Param("empleadoId") Long empleadoId);
+
+    /**
+     * Obtiene las asignaciones más recientes con tickets (para lista de tickets recientes).
+     * Incluye agente, motivo y cliente.
+     */
+    @Query("SELECT a FROM Asignacion a " +
+           "JOIN FETCH a.ticket t " +
+           "JOIN FETCH a.empleado e " +
+           "LEFT JOIN FETCH t.motivo " +
+           "LEFT JOIN FETCH t.cliente " +
+           "WHERE t.fechaCreacion BETWEEN :inicio AND :fin " +
+           "ORDER BY t.fechaCreacion DESC")
+    List<Asignacion> findRecentWithDetails(@Param("inicio") LocalDateTime inicio, @Param("fin") LocalDateTime fin);
 }
 
 
