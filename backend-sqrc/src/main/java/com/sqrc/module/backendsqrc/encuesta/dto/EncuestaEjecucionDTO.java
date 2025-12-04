@@ -37,5 +37,6 @@ public class EncuestaEjecucionDTO {
         private Long idOpcion;
         private String texto;
         private Integer orden;
+        private Integer valor; // Valor numérico para cálculos (= orden por defecto)
     }
 }

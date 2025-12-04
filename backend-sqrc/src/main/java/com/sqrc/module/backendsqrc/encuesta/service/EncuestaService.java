@@ -567,7 +567,7 @@ public class EncuestaService {
      */
     @Transactional(readOnly = true)
     public EncuestaEjecucionDTO obtenerEncuestaParaEjecucion(Long encuestaId) {
-        Encuesta encuesta = encuestaRepository.findById(encuestaId)
+        Encuesta encuesta = encuestaRepository.findByIdWithPlantillaAndPreguntas(encuestaId)
             .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Encuesta no encontrada"));
 
         PlantillaEncuesta plantilla = encuesta.getPlantilla();
@@ -580,13 +580,21 @@ public class EncuestaService {
                 
                 if (p instanceof PreguntaRadio) {
                     tipo = "RADIO";
-                    opciones = ((PreguntaRadio) p).getOpciones().stream()
-                        .map(op -> EncuestaEjecucionDTO.OpcionDTO.builder()
-                            .idOpcion(op.getIdOpcion())
-                            .texto(op.getTexto())
-                            .orden(op.getOrden())
-                            .build())
-                        .collect(Collectors.toList());
+                    PreguntaRadio preguntaRadio = (PreguntaRadio) p;
+                    // Forzar inicialización de opciones (lazy)
+                    List<OpcionPregunta> opcionesRadio = preguntaRadio.getOpciones();
+                    if (opcionesRadio != null) {
+                        opcionesRadio.size(); // Inicializar la colección lazy
+                        opciones = opcionesRadio.stream()
+                            .map(op -> EncuestaEjecucionDTO.OpcionDTO.builder()
+                                .idOpcion(op.getIdOpcion())
+                                .texto(op.getTexto())
+                                .orden(op.getOrden())
+                                .valor(op.getOrden()) // Usar orden como valor numérico
+                                .build())
+                            .sorted((a, b) -> (a.getOrden() != null ? a.getOrden() : 0) - (b.getOrden() != null ? b.getOrden() : 0))
+                            .collect(Collectors.toList());
+                    }
                 } else if (p instanceof PreguntaBooleana) {
                     tipo = "BOOLEANA";
                 }
@@ -602,9 +610,10 @@ public class EncuestaService {
                     .build();
             })
             .sorted((a, b) -> {
-                // Ordenar por orden, pero calificación al final
-                if (a.getEsCalificacion() && !b.getEsCalificacion()) return 1;
-                if (!a.getEsCalificacion() && b.getEsCalificacion()) return -1;
+                // La pregunta de calificación siempre va al final (mejor UX)
+                if (Boolean.TRUE.equals(a.getEsCalificacion()) && !Boolean.TRUE.equals(b.getEsCalificacion())) return 1;
+                if (!Boolean.TRUE.equals(a.getEsCalificacion()) && Boolean.TRUE.equals(b.getEsCalificacion())) return -1;
+                // Luego ordenar por el campo 'orden'
                 return (a.getOrden() != null ? a.getOrden() : 0) - (b.getOrden() != null ? b.getOrden() : 0);
             })
             .collect(Collectors.toList());
