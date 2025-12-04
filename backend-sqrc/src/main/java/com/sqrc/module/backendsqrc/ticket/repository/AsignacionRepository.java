@@ -26,6 +26,16 @@ public interface AsignacionRepository extends JpaRepository<Asignacion, Long> {
      */
     @Query("SELECT CASE WHEN COUNT(a) > 0 THEN true ELSE false END FROM Asignacion a WHERE a.ticket.idTicket = :ticketId AND a.fechaFin IS NULL")
     boolean existsAsignacionActiva(@Param("ticketId") Long ticketId);
+
+    /**
+     * Obtiene todas las asignaciones de un empleado ordenadas por fecha de inicio descendente.
+     * Usado para consultas de desempeño desde otros módulos.
+     */
+    @Query("SELECT a FROM Asignacion a " +
+           "JOIN FETCH a.ticket t " +
+           "WHERE a.empleado.idEmpleado = :empleadoId " +
+           "ORDER BY a.fechaInicio DESC")
+    List<Asignacion> findByEmpleadoIdWithTicket(@Param("empleadoId") Long empleadoId);
 }
 
 
