@@ -1,6 +1,6 @@
 package com.sqrc.module.backendsqrc.ticket.listener;
 
-import com.sqrc.module.backendsqrc.plantillaRespuesta.Service.EmailService;
+import com.sqrc.module.backendsqrc.ticket.service.TicketEmailService;
 import com.sqrc.module.backendsqrc.ticket.event.TicketDerivadoEvent;
 import com.sqrc.module.backendsqrc.ticket.event.TicketEscaladoEvent;
 import lombok.RequiredArgsConstructor;
@@ -16,7 +16,7 @@ import org.springframework.stereotype.Component;
 @RequiredArgsConstructor
 public class TicketNotificationListener {
 
-    private final EmailService emailService;
+    private final TicketEmailService emailService;
 
     /**
      * Escucha el evento de ticket escalado.
