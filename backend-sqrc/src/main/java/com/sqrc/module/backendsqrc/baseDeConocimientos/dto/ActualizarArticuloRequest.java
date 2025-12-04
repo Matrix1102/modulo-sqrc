@@ -39,4 +39,7 @@ public class ActualizarArticuloRequest {
     private String modulo;
 
     private Long idUltimoEditor;
+
+    @Size(max = 500, message = "Los tags no pueden exceder 500 caracteres")
+    private String tags;
 }

@@ -148,6 +148,9 @@ public class ArticuloService {
                             "Empleado no encontrado con ID: " + request.getIdUltimoEditor()));
             articulo.setUltimoEditor(editor);
         }
+        if (request.getTags() != null) {
+            articulo.setTags(request.getTags());
+        }
 
         articulo = articuloRepository.save(articulo);
 

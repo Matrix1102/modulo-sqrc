@@ -49,6 +49,7 @@ export interface ActualizarArticuloRequest {
   vigenteDesde?: string;
   vigenteHasta?: string;
   idUltimoEditor?: number;
+  tags?: string;
 }
 
 export interface CrearVersionRequest {

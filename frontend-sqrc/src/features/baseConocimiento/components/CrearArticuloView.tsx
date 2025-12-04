@@ -112,6 +112,7 @@ const CrearArticuloView = forwardRef<
         vigenteDesde: vigenteDesdeDate,
         vigenteHasta: vigenteHastaDate,
         idPropietario: userId,
+        tags: formData.etiquetas || undefined,
         contenidoInicial: formData.contenido || "Contenido pendiente",
         notaCambioInicial: formData.notaCambio || "Borrador automático",
       };
@@ -187,6 +188,7 @@ const CrearArticuloView = forwardRef<
           vigenteDesde: vigenteDesdeDate,
           vigenteHasta: vigenteHastaDate,
           idPropietario: userId,
+          tags: formData.etiquetas || undefined,
           // Campos de la tabla articulo_versiones (primera versión)
           contenidoInicial: formData.contenido,
           notaCambioInicial: formData.notaCambio || "Versión inicial",
