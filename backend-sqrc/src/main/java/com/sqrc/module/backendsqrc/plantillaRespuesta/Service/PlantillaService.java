@@ -177,4 +177,11 @@ public class PlantillaService {
     private boolean esInvalido(String texto) {
         return texto == null || texto.trim().isEmpty();
     }
+
+    @Transactional(readOnly = true)
+    public String obtenerHtmlBase() {
+        // 1. Intentamos buscar el diseño de la Plantilla #1 (Nuestra "Maestra" en la BD)
+        return plantillaRepository.findHtmlModelById(1L)
+                .orElse(PlantillaDefault.HTML_FORMAL); // 2. Fallback: Si borraron la 1, usamos la del código (seguridad)
+    }
 }

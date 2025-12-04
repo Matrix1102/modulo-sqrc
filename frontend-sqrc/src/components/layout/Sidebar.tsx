@@ -66,11 +66,6 @@ export const Sidebar: React.FC<SidebarProps> = ({ role = "AGENT" }) => {
         label: "Base de Conocimiento",
         path: "/base-conocimiento",
       },
-      {
-        icon: Notebook,
-        label: "Plantillas",
-        path: "/plantillas",
-      },
       { icon: UserCircle, label: "Mi Perfil", path: "/perfil" },
     ],
   };

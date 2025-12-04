@@ -86,19 +86,18 @@ public class TicketGestionController {
     }
 
     /**
-     * Obtiene un ticket por ID.
+     * Obtiene un ticket por ID con detalle completo.
      * 
      * @param id ID del ticket
-     * @return Ticket encontrado en formato DTO
+     * @return Ticket encontrado con información completa del cliente
      */
     @GetMapping("/{id}")
-    public ResponseEntity<TicketListItemDTO> obtenerTicket(@PathVariable Long id) {
-        log.info("GET /api/tickets/{} - Obteniendo ticket", id);
+    public ResponseEntity<TicketFullDetailDTO> obtenerTicket(@PathVariable Long id) {
+        log.info("GET /api/tickets/{} - Obteniendo detalle completo del ticket", id);
         
-        Ticket ticket = ticketRepository.findById(id)
-                .orElseThrow(() -> new IllegalArgumentException("Ticket no encontrado con ID: " + id));
+        TicketFullDetailDTO ticketDetail = ticketGestionService.obtenerDetalleCompleto(id);
         
-        return ResponseEntity.ok(convertToListItemDTO(ticket));
+        return ResponseEntity.ok(ticketDetail);
     }
 
     /**

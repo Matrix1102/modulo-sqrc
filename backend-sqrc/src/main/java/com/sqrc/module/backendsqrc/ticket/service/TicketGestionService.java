@@ -634,4 +634,88 @@ public class TicketGestionService {
             asignacionRepository.save(asignacion);
         }
     }
+
+    /**
+     * Obtiene el detalle completo de un ticket incluyendo la información del cliente.
+     * 
+     * @param ticketId ID del ticket
+     * @return TicketFullDetailDTO con toda la información
+     */
+    @Transactional(readOnly = true)
+    public TicketFullDetailDTO obtenerDetalleCompleto(Long ticketId) {
+        log.info("Obteniendo detalle completo del ticket ID: {}", ticketId);
+
+        Ticket ticket = ticketRepository.findById(ticketId)
+                .orElseThrow(() -> new TicketNotFoundException(ticketId));
+
+        TicketFullDetailDTO.TicketFullDetailDTOBuilder builder = TicketFullDetailDTO.builder()
+                .idTicket(ticket.getIdTicket())
+                .asunto(ticket.getAsunto())
+                .descripcion(ticket.getDescripcion())
+                .estado(ticket.getEstado())
+                .tipoTicket(ticket.getTipoTicket())
+                .origen(ticket.getOrigen())
+                .fechaCreacion(ticket.getFechaCreacion())
+                .fechaCierre(ticket.getFechaCierre())
+                .idConstancia(ticket.getIdConstancia());
+
+        // Mapear cliente completo
+        if (ticket.getCliente() != null) {
+            ClienteEntity cliente = ticket.getCliente();
+            builder.cliente(TicketFullDetailDTO.ClienteFullDTO.builder()
+                    .idCliente(cliente.getIdCliente())
+                    .dni(cliente.getDni())
+                    .nombre(cliente.getNombres())
+                    .apellido(cliente.getApellidos())
+                    .fechaNacimiento(cliente.getFechaNacimiento())
+                    .correo(cliente.getCorreo())
+                    .telefono(cliente.getTelefono())
+                    .celular(cliente.getCelular())
+                    .build());
+        }
+
+        // Mapear motivo
+        if (ticket.getMotivo() != null) {
+            builder.motivo(TicketFullDetailDTO.MotivoDTO.builder()
+                    .idMotivo(ticket.getMotivo().getIdMotivo())
+                    .descripcion(ticket.getMotivo().getNombre())
+                    .build());
+        }
+
+        // Mapear información específica por tipo
+        if (ticket.getTipoTicket() != null) {
+            switch (ticket.getTipoTicket()) {
+                case CONSULTA:
+                    consultaRepository.findById(ticketId).ifPresent(consulta ->
+                            builder.consultaInfo(TicketFullDetailDTO.ConsultaInfoDTO.builder()
+                                    .tema(consulta.getTema())
+                                    .build()));
+                    break;
+                case QUEJA:
+                    quejaRepository.findById(ticketId).ifPresent(queja ->
+                            builder.quejaInfo(TicketFullDetailDTO.QuejaInfoDTO.builder()
+                                    .impacto(queja.getImpacto())
+                                    .areaInvolucrada(queja.getAreaInvolucrada())
+                                    .build()));
+                    break;
+                case RECLAMO:
+                    reclamoRepository.findById(ticketId).ifPresent(reclamo ->
+                            builder.reclamoInfo(TicketFullDetailDTO.ReclamoInfoDTO.builder()
+                                    .motivoReclamo(reclamo.getMotivoReclamo())
+                                    .fechaLimiteRespuesta(reclamo.getFechaLimiteRespuesta())
+                                    .fechaLimiteResolucion(reclamo.getFechaLimiteResolucion())
+                                    .resultado(reclamo.getResultado())
+                                    .build()));
+                    break;
+                case SOLICITUD:
+                    solicitudRepository.findById(ticketId).ifPresent(solicitud ->
+                            builder.solicitudInfo(TicketFullDetailDTO.SolicitudInfoDTO.builder()
+                                    .tipoSolicitud(solicitud.getTipoSolicitud())
+                                    .build()));
+                    break;
+            }
+        }
+
+        return builder.build();
+    }
 }
