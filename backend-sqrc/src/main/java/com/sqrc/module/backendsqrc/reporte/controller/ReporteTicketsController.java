@@ -1,6 +1,7 @@
 package com.sqrc.module.backendsqrc.reporte.controller;
 
 import com.sqrc.module.backendsqrc.reporte.dto.AgentTicketsDTO;
+import com.sqrc.module.backendsqrc.reporte.dto.TicketReporteDTO;
 import com.sqrc.module.backendsqrc.reporte.service.ReporteTicketService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
@@ -13,6 +14,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.time.LocalDate;
+import java.util.List;
 
 @RestController
 @RequestMapping("/api/reportes")
@@ -30,5 +32,15 @@ public class ReporteTicketsController {
     ) {
         AgentTicketsDTO dto = reporteTicketService.obtenerTicketsPorAgente(agenteId, startDate, endDate);
         return ResponseEntity.ok(dto);
+    }
+
+    @GetMapping("/tickets/recientes")
+    public ResponseEntity<List<TicketReporteDTO>> obtenerTicketsRecientes(
+            @RequestParam(name = "startDate", required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
+            @RequestParam(name = "endDate", required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate,
+            @RequestParam(name = "limit", required = false) Integer limit
+    ) {
+        List<TicketReporteDTO> tickets = reporteTicketService.obtenerTicketsRecientes(startDate, endDate, limit);
+        return ResponseEntity.ok(tickets);
     }
 }

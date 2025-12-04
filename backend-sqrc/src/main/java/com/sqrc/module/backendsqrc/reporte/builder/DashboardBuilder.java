@@ -10,8 +10,9 @@ public interface DashboardBuilder {
     // Ahora recibe el resumen diario, no las encuestas crudas
     void construirKpisGlobales(List<KpiResumenDiario> resumenes);
 
-    // Recibe los tiempos pre-calculados
-    void construirResumenOperativo(List<KpiResumenDiario> resumenes, List<KpiTiemposResolucion> tiempos);
+    // Recibe los tiempos pre-calculados + datos del período anterior para comparación
+    void construirResumenOperativo(List<KpiResumenDiario> resumenes, List<KpiTiemposResolucion> tiempos,
+                                   List<KpiResumenDiario> resumenesAnterior, List<KpiTiemposResolucion> tiemposAnterior);
 
     // Recibe el top de motivos
     void construirMotivosFrecuentes(List<KpiMotivosFrecuentes> motivos);

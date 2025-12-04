@@ -86,9 +86,9 @@ export const SurveyTable: React.FC<SurveyTableProps> = ({
         ticketId: r.ticketId || `T-${r.responseId || idx}`,
         puntaje: typeof r.puntaje === "number" ? r.puntaje : (parseFloat(r.puntaje) || 0),
         comentario: r.comentario || "",
-        agenteName: r.agenteName || (type === "agents" ? undefined : undefined),
+        agenteName: r.agente || r.agenteName || (type === "agents" ? "-" : undefined),
         tiempo: r.tiempo || "",
-        clientEmail: r.clientEmail || "",
+        clientEmail: r.cliente || r.clientEmail || "",
         responseDate: r.fechaRespuesta || "",
         answers: r.resultados || [],
       })));

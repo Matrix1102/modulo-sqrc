@@ -137,7 +137,6 @@ export default function TicketAgentPage() {
         <TicketTable
           tickets={filtered}
           showToolbar={false} // 👈 Ocultamos el toolbar interno para usar el personalizado de arriba
-          onRowClick={(id) => navigate(`/supervisor/ticketing/detalle/${id}`)}
         />
       </div>
     </div>

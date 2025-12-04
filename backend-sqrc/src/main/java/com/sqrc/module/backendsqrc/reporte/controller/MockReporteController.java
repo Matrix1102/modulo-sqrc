@@ -250,6 +250,44 @@ public class MockReporteController {
                 }
         }
 
+        @GetMapping("/tickets/recientes")
+        public ResponseEntity<List<TicketReporteDTO>> obtenerTicketsRecientesMock(
+                        @RequestParam(name = "startDate", required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
+                        @RequestParam(name = "endDate", required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate,
+                        @RequestParam(name = "limit", required = false) Integer limit
+        ) {
+                try {
+                        int maxItems = limit != null ? limit : 25;
+
+                        String[] sampleMotives = new String[] {
+                                "Cobro doble", "Producto faltante", "Entrega tardía",
+                                "Error en facturación", "Cuenta bloqueada", "Problema con la garantía",
+                                "Cambio de plan", "Solicitud de reembolso", "Incidencia técnica"
+                        };
+
+                        String[] sampleClients = new String[] {
+                                "Juan Pérez", "María Ruiz", "Carlos López", "Ana Gómez",
+                                "Luis Fernández", "Sofía Torres", "Diego Ramírez", "Valeria Díaz"
+                        };
+
+                        List<TicketReporteDTO> tickets = new java.util.ArrayList<>();
+                        for (int i = 0; i < maxItems; i++) {
+                                tickets.add(TicketReporteDTO.builder()
+                                                .id("T-" + (1000 + i))
+                                                .client(sampleClients[i % sampleClients.length])
+                                                .motive(sampleMotives[i % sampleMotives.length])
+                                                .date(LocalDate.now().minusDays(i % 30).format(java.time.format.DateTimeFormatter.ofPattern("dd/MM/yyyy")))
+                                                .status(i % 4 == 0 ? "ABIERTO" : "CERRADO")
+                                                .build());
+                        }
+
+                        return ResponseEntity.ok(tickets);
+                } catch (Exception e) {
+                        logger.error("Error generating mock recent tickets", e);
+                        return ResponseEntity.status(500).body(null);
+                }
+        }
+
         @GetMapping("/agentes")
         public ResponseEntity<List<AgenteDetailDTO>> obtenerAgentesMock(
                         @RequestParam(name = "startDate", required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,

@@ -71,4 +71,14 @@ export const fetchEncuestaDetalle = async (responseId: string) => {
   return resp.data;
 };
 
-export default { fetchDashboard, fetchAgentes, fetchTicketsByAgent, fetchSurveyKpis, fetchEncuestaRespuestas, fetchEncuestaDetalle };
+export const fetchTicketsRecientes = async (params?: { startDate?: string; endDate?: string; limit?: number }) => {
+  const query: Record<string, any> = {};
+  if (params?.startDate) query.startDate = params.startDate;
+  if (params?.endDate) query.endDate = params.endDate;
+  if (params?.limit) query.limit = params.limit;
+
+  const resp = await http.get<any[]>('/api/reportes/tickets/recientes', { params: query });
+  return resp.data;
+};
+
+export default { fetchDashboard, fetchAgentes, fetchTicketsByAgent, fetchSurveyKpis, fetchEncuestaRespuestas, fetchEncuestaDetalle, fetchTicketsRecientes };

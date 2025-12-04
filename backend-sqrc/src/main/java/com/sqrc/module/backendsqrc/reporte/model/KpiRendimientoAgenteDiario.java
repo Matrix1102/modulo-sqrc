@@ -1,5 +1,6 @@
 package com.sqrc.module.backendsqrc.reporte.model;
 
+import com.sqrc.module.backendsqrc.ticket.model.Agente;
 import jakarta.persistence.*;
 import lombok.*;
 import java.time.LocalDate;
@@ -19,9 +20,10 @@ public class KpiRendimientoAgenteDiario {
     @Column(nullable = false)
     private LocalDate fecha;
 
-    // IMPORTANTE: Guardamos solo el ID, sin @ManyToOne a la tabla de Usuarios/Agentes
-    @Column(name = "agente_id", nullable = false)
-    private Long agenteId;
+    // Relación ManyToOne con la tabla agentes
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "agente_id", nullable = false)
+    private Agente agente;
 
     @Column(name = "tickets_resueltos_total")
     private Integer ticketsResueltosTotal;

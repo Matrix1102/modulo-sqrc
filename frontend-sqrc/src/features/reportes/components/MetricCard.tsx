@@ -117,10 +117,10 @@ export const MetricCard: React.FC<MetricCardProps> = ({
               {progress.label} {progress.valueText}
             </span>
           </div>
-          <div className="w-full bg-gray-200 rounded-full h-2.5">
+          <div className="w-full bg-gray-200 rounded-full h-2.5 overflow-hidden">
             <div
-              className={`h-2.5 rounded-full ${progress.barColor}`}
-              style={{ width: `${progress.value}%` }}
+              className={`h-2.5 rounded-full ${progress.barColor} transition-all duration-300`}
+              style={{ width: `${Math.min(Math.max(progress.value, 0), 100)}%` }}
             ></div>
           </div>
         </div>
