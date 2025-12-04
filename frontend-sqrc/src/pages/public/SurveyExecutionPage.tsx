@@ -7,6 +7,7 @@ interface Opcion {
   idOpcion: number;
   texto: string;
   orden: number;
+  valor: number; // Valor numérico para cálculos
 }
 
 interface Pregunta {
@@ -30,6 +31,88 @@ interface EncuestaData {
 }
 
 type RespuestaValue = string | number | null;
+
+/**
+ * Componente de calificación con estrellas interactivas
+ */
+interface RatingStarsProps {
+  opciones: Opcion[];
+  value: RespuestaValue;
+  onChange: (val: string) => void;
+  preguntaId: number;
+}
+
+function RatingStars({ opciones, value, onChange, preguntaId }: RatingStarsProps) {
+  const [hoverIndex, setHoverIndex] = useState<number | null>(null);
+  
+  const sortedOpciones = [...opciones].sort((a, b) => a.orden - b.orden);
+  const selectedIndex = sortedOpciones.findIndex(op => String(op.idOpcion) === String(value));
+  const displayIndex = hoverIndex !== null ? hoverIndex : selectedIndex;
+  
+  // Obtener el texto de la opción actual (hover o seleccionada)
+  const currentLabel = displayIndex >= 0 ? sortedOpciones[displayIndex]?.texto : "Seleccione una calificación";
+
+  return (
+    <div className="flex flex-col items-center gap-4">
+      {/* Estrellas */}
+      <div className="flex gap-2">
+        {sortedOpciones.map((opcion, index) => {
+          const isFilled = index <= displayIndex;
+          const isSelected = index === selectedIndex;
+          
+          return (
+            <button
+              key={opcion.idOpcion}
+              type="button"
+              onClick={() => onChange(String(opcion.idOpcion))}
+              onMouseEnter={() => setHoverIndex(index)}
+              onMouseLeave={() => setHoverIndex(null)}
+              className={`p-1 rounded-lg transition-all duration-200 transform hover:scale-110 focus:outline-none focus:ring-2 focus:ring-yellow-400 focus:ring-offset-2
+                ${isSelected ? 'scale-110' : ''}`}
+              aria-label={opcion.texto}
+            >
+              <Star 
+                className={`w-10 h-10 sm:w-12 sm:h-12 transition-all duration-200
+                  ${isFilled 
+                    ? 'fill-yellow-400 text-yellow-400 drop-shadow-md' 
+                    : 'text-gray-300 hover:text-yellow-200'
+                  }`}
+              />
+            </button>
+          );
+        })}
+      </div>
+      
+      {/* Etiqueta de la calificación */}
+      <div className={`text-center transition-all duration-200 min-h-[3rem] flex flex-col justify-center
+        ${displayIndex >= 0 ? 'opacity-100' : 'opacity-60'}`}>
+        <span className={`text-lg font-semibold
+          ${displayIndex >= 0 
+            ? displayIndex <= 1 
+              ? 'text-red-500' 
+              : displayIndex === 2 
+                ? 'text-yellow-600' 
+                : 'text-green-600'
+            : 'text-gray-400'
+          }`}>
+          {currentLabel}
+        </span>
+        {displayIndex >= 0 && (
+          <span className="text-sm text-gray-500">
+            {displayIndex + 1} de {sortedOpciones.length}
+          </span>
+        )}
+      </div>
+      
+      {/* Input oculto para el formulario */}
+      <input
+        type="hidden"
+        name={`pregunta-${preguntaId}`}
+        value={value || ""}
+      />
+    </div>
+  );
+}
 
 /**
  * Página pública para que el cliente responda una encuesta.
@@ -178,50 +261,63 @@ export default function SurveyExecutionPage() {
 
         {/* Cuerpo con opciones de respuesta */}
         <div className="p-5">
-          {pregunta.tipo === "RADIO" && pregunta.opciones && (
-            <div className={`grid ${isCalificacion ? 'grid-cols-5' : 'grid-cols-1 sm:grid-cols-2'} gap-3`}>
-              {pregunta.opciones
-                .sort((a, b) => a.orden - b.orden)
-                .map((opcion) => (
-                  <label
-                    key={opcion.idOpcion}
-                    className={`flex items-center gap-3 p-3 rounded-lg border-2 cursor-pointer transition-all
-                      ${valor === String(opcion.idOpcion) 
-                        ? isCalificacion 
-                          ? 'border-yellow-500 bg-yellow-50' 
-                          : 'border-blue-500 bg-blue-50' 
-                        : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50'
-                      }`}
-                  >
-                    <input
-                      type="radio"
-                      name={`pregunta-${pregunta.idPregunta}`}
-                      value={opcion.idOpcion}
-                      checked={valor === String(opcion.idOpcion)}
-                      onChange={() => handleRespuestaChange(pregunta.idPregunta, String(opcion.idOpcion))}
-                      className="sr-only"
-                    />
-                    {isCalificacion ? (
-                      <div className="flex flex-col items-center gap-1 w-full">
-                        <Star 
-                          className={`w-8 h-8 ${valor === String(opcion.idOpcion) ? 'fill-yellow-400 text-yellow-400' : 'text-gray-300'}`} 
-                        />
-                        <span className="text-xs text-gray-600 text-center">{opcion.texto}</span>
-                      </div>
-                    ) : (
-                      <>
-                        <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center shrink-0
-                          ${valor === String(opcion.idOpcion) ? 'border-blue-500' : 'border-gray-300'}`}>
-                          {valor === String(opcion.idOpcion) && (
-                            <div className="w-2.5 h-2.5 rounded-full bg-blue-500" />
-                          )}
-                        </div>
-                        <span className="text-gray-700">{opcion.texto}</span>
-                      </>
-                    )}
-                  </label>
-                ))}
-            </div>
+          {pregunta.tipo === "RADIO" && (
+            <>
+              {/* MODO CALIFICACIÓN: Estrellas interactivas */}
+              {isCalificacion ? (
+                <RatingStars
+                  opciones={pregunta.opciones && pregunta.opciones.length > 0 
+                    ? pregunta.opciones 
+                    : [
+                        { idOpcion: -1, texto: "Muy malo", orden: 1, valor: 1 },
+                        { idOpcion: -2, texto: "Malo", orden: 2, valor: 2 },
+                        { idOpcion: -3, texto: "Regular", orden: 3, valor: 3 },
+                        { idOpcion: -4, texto: "Bueno", orden: 4, valor: 4 },
+                        { idOpcion: -5, texto: "Excelente", orden: 5, valor: 5 },
+                      ]
+                  }
+                  value={valor}
+                  onChange={(val) => handleRespuestaChange(pregunta.idPregunta, val)}
+                  preguntaId={pregunta.idPregunta}
+                />
+              ) : (
+                /* MODO NORMAL: Radio buttons estándar */
+                pregunta.opciones && pregunta.opciones.length > 0 ? (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    {pregunta.opciones
+                      .sort((a, b) => a.orden - b.orden)
+                      .map((opcion) => (
+                        <label
+                          key={opcion.idOpcion}
+                          className={`flex items-center gap-3 p-3 rounded-lg border-2 cursor-pointer transition-all
+                            ${valor === String(opcion.idOpcion) 
+                              ? 'border-blue-500 bg-blue-50' 
+                              : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50'
+                            }`}
+                        >
+                          <input
+                            type="radio"
+                            name={`pregunta-${pregunta.idPregunta}`}
+                            value={opcion.idOpcion}
+                            checked={valor === String(opcion.idOpcion)}
+                            onChange={() => handleRespuestaChange(pregunta.idPregunta, String(opcion.idOpcion))}
+                            className="sr-only"
+                          />
+                          <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center shrink-0
+                            ${valor === String(opcion.idOpcion) ? 'border-blue-500' : 'border-gray-300'}`}>
+                            {valor === String(opcion.idOpcion) && (
+                              <div className="w-2.5 h-2.5 rounded-full bg-blue-500" />
+                            )}
+                          </div>
+                          <span className="text-gray-700">{opcion.texto}</span>
+                        </label>
+                      ))}
+                  </div>
+                ) : (
+                  <p className="text-gray-500 italic">No hay opciones configuradas para esta pregunta.</p>
+                )
+              )}
+            </>
           )}
 
           {pregunta.tipo === "BOOLEANA" && (
@@ -315,8 +411,8 @@ export default function SurveyExecutionPage() {
   if (!encuesta) return null;
 
   const isValid = validarRespuestas();
+  // Ordenar: primero por 'orden', pero calificación siempre al final
   const preguntasOrdenadas = [...encuesta.preguntas].sort((a, b) => {
-    // Poner la pregunta de calificación al final
     if (a.esCalificacion && !b.esCalificacion) return 1;
     if (!a.esCalificacion && b.esCalificacion) return -1;
     return a.orden - b.orden;

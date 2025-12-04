@@ -62,9 +62,12 @@ export default function App() {
         <Routes>
           {/* Ruta Pública (Inicio) */}
           <Route path="/" element={<Home />} />
-          
+
           {/* ─── ENCUESTA PÚBLICA (Cliente responde) ─── */}
-          <Route path="/encuestas/exec/:encuestaId" element={<SurveyExecutionPage />} />
+          <Route
+            path="/encuestas/exec/:encuestaId"
+            element={<SurveyExecutionPage />}
+          />
 
           {/* ─── ZONA AGENTE ─── */}
           <Route path="/agente" element={<MainLayout role="AGENT" />}>

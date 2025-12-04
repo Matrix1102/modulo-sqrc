@@ -13,6 +13,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.stream.Collectors;
 
 /**
  * Controlador REST para la gestión del ciclo de vida de tickets.
@@ -42,31 +43,57 @@ public class TicketGestionController {
     /**
      * Lista todos los tickets.
      * 
-     * @return Lista de tickets
+     * @return Lista de tickets en formato DTO
      */
     @GetMapping
-    public ResponseEntity<List<Ticket>> listarTickets() {
+    public ResponseEntity<List<TicketListItemDTO>> listarTickets() {
         log.info("GET /api/tickets - Listando todos los tickets");
         
-        List<Ticket> tickets = ticketRepository.findAll();
+        List<TicketListItemDTO> tickets = ticketRepository.findAll().stream()
+                .map(this::convertToListItemDTO)
+                .collect(Collectors.toList());
         
         return ResponseEntity.ok(tickets);
+    }
+
+    /**
+     * Convierte una entidad Ticket a TicketListItemDTO
+     */
+    private TicketListItemDTO convertToListItemDTO(Ticket ticket) {
+        TicketListItemDTO.ClienteInfoDTO clienteInfo = null;
+        if (ticket.getCliente() != null) {
+            clienteInfo = TicketListItemDTO.ClienteInfoDTO.builder()
+                    .idCliente(ticket.getCliente().getIdCliente())
+                    .nombre(ticket.getCliente().getNombres())
+                    .apellido(ticket.getCliente().getApellidos())
+                    .build();
+        }
+        
+        return TicketListItemDTO.builder()
+                .idTicket(ticket.getIdTicket())
+                .asunto(ticket.getAsunto())
+                .estado(ticket.getEstado())
+                .tipoTicket(ticket.getTipoTicket())
+                .origen(ticket.getOrigen())
+                .fechaCreacion(ticket.getFechaCreacion())
+                .cliente(clienteInfo)
+                .build();
     }
 
     /**
      * Obtiene un ticket por ID.
      * 
      * @param id ID del ticket
-     * @return Ticket encontrado
+     * @return Ticket encontrado en formato DTO
      */
     @GetMapping("/{id}")
-    public ResponseEntity<Ticket> obtenerTicket(@PathVariable Long id) {
+    public ResponseEntity<TicketListItemDTO> obtenerTicket(@PathVariable Long id) {
         log.info("GET /api/tickets/{} - Obteniendo ticket", id);
         
         Ticket ticket = ticketRepository.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("Ticket no encontrado con ID: " + id));
         
-        return ResponseEntity.ok(ticket);
+        return ResponseEntity.ok(convertToListItemDTO(ticket));
     }
 
     /**

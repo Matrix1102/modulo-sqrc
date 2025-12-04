@@ -25,6 +25,18 @@ public interface EncuestaRepository extends JpaRepository<Encuesta, Long>, JpaSp
     @Query("select e from Encuesta e where e.idEncuesta = :id")
     Optional<Encuesta> findByIdForUpdate(@Param("id") Long id);
 
+    /**
+     * Carga la encuesta con su plantilla y preguntas para ejecución.
+     * Usa JOIN FETCH para evitar problemas de lazy loading.
+     */
+    @Query("SELECT e FROM Encuesta e " +
+           "LEFT JOIN FETCH e.plantilla p " +
+           "LEFT JOIN FETCH p.preguntas " +
+           "LEFT JOIN FETCH e.agente " +
+           "LEFT JOIN FETCH e.cliente " +
+           "WHERE e.idEncuesta = :id")
+    Optional<Encuesta> findByIdWithPlantillaAndPreguntas(@Param("id") Long id);
+
     @Query("SELECT AVG(r.calificacion) FROM Encuesta e JOIN e.respuestaEncuesta r WHERE e.cliente.idCliente = :clienteId")
     Double findPromedioCalificacionByClienteId(@Param("clienteId") Integer clienteId);
 }
