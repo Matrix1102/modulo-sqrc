@@ -91,7 +91,7 @@ export const ArticuloDetailPanel: React.FC<ArticuloDetailPanelProps> = ({
         {/* Tags */}
         {articulo.tags && (
           <div className="flex flex-wrap gap-1.5 mb-4">
-            {articulo.tags.split(',').map((tag, index) => (
+            {articulo.tags.split(",").map((tag, index) => (
               <span
                 key={index}
                 className="bg-blue-50 text-blue-600 text-xs px-2 py-0.5 rounded-full border border-blue-100"

@@ -58,27 +58,73 @@ public interface ArticuloRepository extends JpaRepository<Articulo, Integer> {
         List<Articulo> findVigentesEnFecha(@Param("fecha") LocalDateTime fecha);
 
         /**
-         * Búsqueda de artículos por texto en título o resumen.
+         * Búsqueda de artículos por texto en título, resumen o tags (LIKE fallback).
          */
         @Query("SELECT a FROM Articulo a WHERE " +
                         "LOWER(a.titulo) LIKE LOWER(CONCAT('%', :texto, '%')) OR " +
-                        "LOWER(a.resumen) LIKE LOWER(CONCAT('%', :texto, '%'))")
+                        "LOWER(a.resumen) LIKE LOWER(CONCAT('%', :texto, '%')) OR " +
+                        "LOWER(a.tags) LIKE LOWER(CONCAT('%', :texto, '%'))")
         List<Articulo> buscarPorTexto(@Param("texto") String texto);
 
         /**
-         * Búsqueda paginada de artículos con filtros múltiples.
+         * Búsqueda paginada de artículos con filtros múltiples usando FULLTEXT + LIKE.
+         * Usa NATURAL LANGUAGE MODE para búsqueda flexible.
+         * Incluye fallback con LIKE para palabras parciales o cortas.
          */
-        @Query("SELECT DISTINCT a FROM Articulo a " +
-                        "LEFT JOIN a.versiones v " +
-                        "WHERE (:etiqueta IS NULL OR a.etiqueta = :etiqueta) " +
-                        "AND (:visibilidad IS NULL OR a.visibilidad = :visibilidad) " +
-                        "AND (:tipoCaso IS NULL OR a.tipoCaso = :tipoCaso OR a.tipoCaso = 'TODOS') " +
-                        "AND (:texto IS NULL OR LOWER(a.titulo) LIKE LOWER(CONCAT('%', :texto, '%')) " +
-                        "     OR LOWER(a.resumen) LIKE LOWER(CONCAT('%', :texto, '%')))")
+        @Query(value = """
+                        SELECT DISTINCT a.* FROM articulos a
+                        LEFT JOIN articulo_versiones v ON a.id_articulo = v.id_articulo
+                        WHERE (:etiqueta IS NULL OR :etiqueta = '' OR a.etiqueta = :etiqueta)
+                        AND (:visibilidad IS NULL OR :visibilidad = '' OR a.visibilidad = :visibilidad)
+                        AND (:tipoCaso IS NULL OR :tipoCaso = '' OR a.tipo_caso = :tipoCaso OR a.tipo_caso = 'TODOS')
+                        AND (
+                            :texto IS NULL 
+                            OR :texto = ''
+                            OR LOWER(a.titulo) LIKE LOWER(CONCAT('%', :texto, '%'))
+                            OR LOWER(a.resumen) LIKE LOWER(CONCAT('%', :texto, '%'))
+                            OR LOWER(COALESCE(a.tags, '')) LIKE LOWER(CONCAT('%', :texto, '%'))
+                            OR LOWER(a.codigo) LIKE LOWER(CONCAT('%', :texto, '%'))
+                            OR LOWER(COALESCE(v.contenido, '')) LIKE LOWER(CONCAT('%', :texto, '%'))
+                            OR (LENGTH(:texto) >= 3 AND (
+                                MATCH(a.titulo, a.resumen, a.tags) AGAINST(:texto IN NATURAL LANGUAGE MODE)
+                                OR MATCH(v.contenido) AGAINST(:texto IN NATURAL LANGUAGE MODE)
+                            ))
+                        )
+                        ORDER BY 
+                            CASE 
+                                WHEN :texto IS NOT NULL AND :texto != '' AND LOWER(a.titulo) LIKE LOWER(CONCAT('%', :texto, '%')) THEN 100
+                                WHEN :texto IS NOT NULL AND :texto != '' AND LOWER(a.codigo) LIKE LOWER(CONCAT('%', :texto, '%')) THEN 90
+                                WHEN :texto IS NOT NULL AND :texto != '' AND LOWER(COALESCE(a.tags, '')) LIKE LOWER(CONCAT('%', :texto, '%')) THEN 80
+                                WHEN :texto IS NOT NULL AND :texto != '' AND LOWER(a.resumen) LIKE LOWER(CONCAT('%', :texto, '%')) THEN 70
+                                ELSE 0 
+                            END DESC,
+                            COALESCE(a.actualizado_en, a.creado_en) DESC
+                        """,
+                        countQuery = """
+                        SELECT COUNT(DISTINCT a.id_articulo) FROM articulos a
+                        LEFT JOIN articulo_versiones v ON a.id_articulo = v.id_articulo
+                        WHERE (:etiqueta IS NULL OR :etiqueta = '' OR a.etiqueta = :etiqueta)
+                        AND (:visibilidad IS NULL OR :visibilidad = '' OR a.visibilidad = :visibilidad)
+                        AND (:tipoCaso IS NULL OR :tipoCaso = '' OR a.tipo_caso = :tipoCaso OR a.tipo_caso = 'TODOS')
+                        AND (
+                            :texto IS NULL 
+                            OR :texto = ''
+                            OR LOWER(a.titulo) LIKE LOWER(CONCAT('%', :texto, '%'))
+                            OR LOWER(a.resumen) LIKE LOWER(CONCAT('%', :texto, '%'))
+                            OR LOWER(COALESCE(a.tags, '')) LIKE LOWER(CONCAT('%', :texto, '%'))
+                            OR LOWER(a.codigo) LIKE LOWER(CONCAT('%', :texto, '%'))
+                            OR LOWER(COALESCE(v.contenido, '')) LIKE LOWER(CONCAT('%', :texto, '%'))
+                            OR (LENGTH(:texto) >= 3 AND (
+                                MATCH(a.titulo, a.resumen, a.tags) AGAINST(:texto IN NATURAL LANGUAGE MODE)
+                                OR MATCH(v.contenido) AGAINST(:texto IN NATURAL LANGUAGE MODE)
+                            ))
+                        )
+                        """,
+                        nativeQuery = true)
         Page<Articulo> buscarConFiltros(
-                        @Param("etiqueta") Etiqueta etiqueta,
-                        @Param("visibilidad") Visibilidad visibilidad,
-                        @Param("tipoCaso") TipoCaso tipoCaso,
+                        @Param("etiqueta") String etiqueta,
+                        @Param("visibilidad") String visibilidad,
+                        @Param("tipoCaso") String tipoCaso,
                         @Param("texto") String texto,
                         Pageable pageable);
 

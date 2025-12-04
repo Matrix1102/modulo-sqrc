@@ -182,28 +182,34 @@ public class ArticuloService {
     }
 
     /**
-     * Busca artículos con filtros.
+     * Busca artículos con filtros usando FULLTEXT search.
      */
     @Transactional(readOnly = true)
     public PaginaResponse<ArticuloResumenResponse> buscarArticulos(BusquedaArticuloRequest request) {
         log.debug("Buscando artículos con filtros: {}", request);
 
-        Sort sort = Sort.by(
-                request.getDireccion() != null && request.getDireccion().equalsIgnoreCase("ASC")
-                        ? Sort.Direction.ASC
-                        : Sort.Direction.DESC,
-                request.getOrdenarPor() != null ? request.getOrdenarPor() : "actualizadoEn");
-
+        // Para nativeQuery no podemos usar Sort de Spring directamente con nombres de campo Java
+        // El ORDER BY está incluido en la query nativa
         Pageable pageable = PageRequest.of(
                 request.getPagina() != null ? request.getPagina() : 0,
-                request.getTamanoPagina() != null ? request.getTamanoPagina() : 10,
-                sort);
+                request.getTamanoPagina() != null ? request.getTamanoPagina() : 10);
+
+        // Convertir enums a String para la query nativa
+        String etiquetaStr = request.getEtiqueta() != null ? request.getEtiqueta().name() : null;
+        String visibilidadStr = request.getVisibilidad() != null ? request.getVisibilidad().name() : null;
+        String tipoCasoStr = request.getTipoCaso() != null ? request.getTipoCaso().name() : null;
+        
+        // Preparar texto de búsqueda para FULLTEXT (agregar * para búsqueda por prefijo si tiene contenido)
+        String textoSearch = request.getTexto();
+        if (textoSearch != null && !textoSearch.trim().isEmpty()) {
+            textoSearch = textoSearch.trim();
+        }
 
         Page<Articulo> page = articuloRepository.buscarConFiltros(
-                request.getEtiqueta(),
-                request.getVisibilidad(),
-                request.getTipoCaso(),
-                request.getTexto(),
+                etiquetaStr,
+                visibilidadStr,
+                tipoCasoStr,
+                textoSearch,
                 pageable);
 
         List<ArticuloResumenResponse> contenido = page.getContent().stream()

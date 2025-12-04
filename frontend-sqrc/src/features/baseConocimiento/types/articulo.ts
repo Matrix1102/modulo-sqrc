@@ -32,6 +32,7 @@ export interface CrearArticuloRequest {
   etiqueta: Etiqueta;
   tipoCaso?: TipoCaso;
   visibilidad: Visibilidad;
+  modulo?: string;
   vigenteDesde?: string;
   vigenteHasta?: string;
   idPropietario: number;
