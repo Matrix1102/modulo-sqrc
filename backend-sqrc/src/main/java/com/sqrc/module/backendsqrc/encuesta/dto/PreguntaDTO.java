@@ -20,6 +20,12 @@ public class PreguntaDTO {
 
     private boolean obligatoria;
 
+    /**
+     * Indica si esta pregunta es la de calificación general (1-5).
+     * Solo puede haber una por plantilla.
+     */
+    private boolean esCalificacion;
+
     @Size(min = 1, message = "Las preguntas de tipo RADIO deben incluir al menos una opción")
     private List<String> opciones; // Opcional, para tipo RADIO
 }

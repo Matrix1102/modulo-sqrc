@@ -79,12 +79,45 @@ public class EncuestaService {
 
         plantilla = plantillaRepository.save(plantilla);
 
+        // Auto-agregar pregunta de calificación si no viene en las preguntas del DTO
+        boolean tienePreguntaCalificacion = false;
+        if (dto.getPreguntas() != null) {
+            tienePreguntaCalificacion = dto.getPreguntas().stream()
+                .anyMatch(PreguntaDTO::isEsCalificacion);
+        }
+
         if (dto.getPreguntas() != null) {
             for (PreguntaDTO pDto : dto.getPreguntas()) {
                 agregarPreguntaAPlantilla(plantilla.getIdPlantillaEncuesta(), pDto);
             }
         }
+
+        // Si no hay pregunta de calificación, agregar una automáticamente
+        if (!tienePreguntaCalificacion) {
+            agregarPreguntaCalificacionAutomatica(plantilla);
+        }
+
+        // Recargar plantilla para obtener todas las preguntas
+        plantilla = plantillaRepository.findById(plantilla.getIdPlantillaEncuesta()).orElse(plantilla);
+        
         return convertirADTO(plantilla);
+    }
+
+    /**
+     * Agrega automáticamente una pregunta de calificación (1-5) a la plantilla.
+     */
+    private void agregarPreguntaCalificacionAutomatica(PlantillaEncuesta plantilla) {
+        PreguntaDTO calificacionDto = PreguntaDTO.builder()
+            .texto("¿Cómo calificaría su experiencia general? (1-5)")
+            .tipo("RADIO")
+            .obligatoria(true)
+            .esCalificacion(true)
+            .orden(999) // Se coloca al final
+            .opciones(List.of("1 - Muy malo", "2 - Malo", "3 - Regular", "4 - Bueno", "5 - Excelente"))
+            .build();
+        
+        agregarPreguntaAPlantilla(plantilla.getIdPlantillaEncuesta(), calificacionDto);
+        log.info("Pregunta de calificación agregada automáticamente a plantilla {}", plantilla.getIdPlantillaEncuesta());
     }
 
     @Transactional(readOnly = true)
@@ -252,6 +285,17 @@ public class EncuestaService {
         pregunta.setObligatoria(dto.isObligatoria());
         pregunta.setOrden(dto.getOrden() != null ? dto.getOrden() : plantilla.getPreguntas().size() + 1);
         pregunta.setPlantilla(plantilla);
+        pregunta.setEsCalificacion(dto.isEsCalificacion());
+
+        // Validar que no haya más de una pregunta de calificación por plantilla
+        if (dto.isEsCalificacion()) {
+            boolean yaExisteCalificacion = plantilla.getPreguntas().stream()
+                .anyMatch(p -> Boolean.TRUE.equals(p.getEsCalificacion()));
+            if (yaExisteCalificacion) {
+                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, 
+                    "Ya existe una pregunta de calificación en esta plantilla");
+            }
+        }
 
         // Configuración específica según el tipo
         if (pregunta instanceof PreguntaTexto) {
@@ -270,7 +314,7 @@ public class EncuestaService {
     }
 
     // ==========================================
-    // 3. GESTIÓN DE RESPUESTAS (EJECUCIÓN)
+    // 4. GESTIÓN DE RESPUESTAS (EJECUCIÓN)
     // ==========================================
 
     @Transactional
@@ -284,11 +328,7 @@ public class EncuestaService {
         respuestaGlobal.setRespuestas(new ArrayList<>());
 
         boolean esCritica = false; // Bandera para el patrón Observer
-
-        // VALIDACIÓN adicional: calificación general obligatoria (1..5)
-        if (dto.getCalificacion() == null || dto.getCalificacion() < 1 || dto.getCalificacion() > 5) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Calificación general inválida (debe ser 1..5)");
-        }
+        Integer calificacionExtraida = null; // Se extraerá de la pregunta marcada como calificación
 
         if (dto.getRespuestas() != null) {
             for (RespuestaClienteDTO.ItemRespuesta item : dto.getRespuestas()) {
@@ -310,16 +350,32 @@ public class EncuestaService {
                 
                 respuestaGlobal.getRespuestas().add(resp);
 
-                // Ejemplo de lógica de negocio para detectar alertas
-                // Si es una pregunta Radio y el valor es "1" (ID de "Muy Malo"), activamos alerta
-                if (pregunta instanceof PreguntaRadio && "1".equals(item.getValor())) {
-                    esCritica = true;
+                // Si esta pregunta es la de calificación, extraer el valor (1-5)
+                if (Boolean.TRUE.equals(pregunta.getEsCalificacion())) {
+                    calificacionExtraida = extraerCalificacionDeRespuesta(pregunta, item.getValor());
+                    log.info("Calificación extraída de pregunta {}: {}", pregunta.getIdPregunta(), calificacionExtraida);
+                }
+
+                // Lógica de negocio para detectar alertas (calificación baja = crítica)
+                if (pregunta instanceof PreguntaRadio && Boolean.TRUE.equals(pregunta.getEsCalificacion())) {
+                    if (calificacionExtraida != null && calificacionExtraida <= 2) {
+                        esCritica = true;
+                    }
                 }
             }
         }
 
+        // Usar calificación extraída de la pregunta, o la enviada en el DTO como fallback
+        Integer calificacionFinal = calificacionExtraida != null ? calificacionExtraida : dto.getCalificacion();
+        
+        // Validar que tengamos una calificación válida
+        if (calificacionFinal == null || calificacionFinal < 1 || calificacionFinal > 5) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, 
+                "No se encontró una calificación válida (1-5). Asegúrese de responder la pregunta de calificación.");
+        }
+
         // Guardamos la calificación general en la entidad de respuesta
-        respuestaGlobal.setCalificacion(dto.getCalificacion());
+        respuestaGlobal.setCalificacion(calificacionFinal);
 
         encuesta.setEstadoEncuesta(EstadoEncuesta.RESPONDIDA);
         encuesta.setRespuestaEncuesta(respuestaGlobal);
@@ -331,6 +387,40 @@ public class EncuestaService {
                 encuesta.getPlantilla().getIdPlantillaEncuesta(), 
                 esCritica
         ));
+    }
+
+    /**
+     * Extrae el valor de calificación (1-5) de una respuesta.
+     * Para preguntas Radio, busca el orden de la opción seleccionada.
+     * Para otros tipos, intenta parsear el valor directamente.
+     */
+    private Integer extraerCalificacionDeRespuesta(Pregunta pregunta, String valor) {
+        if (pregunta instanceof PreguntaRadio) {
+            PreguntaRadio radio = (PreguntaRadio) pregunta;
+            try {
+                Long idOpcion = Long.parseLong(valor);
+                // Buscar la opción y obtener su orden (1, 2, 3, 4, 5)
+                return radio.getOpciones().stream()
+                    .filter(op -> op.getIdOpcion().equals(idOpcion))
+                    .findFirst()
+                    .map(OpcionPregunta::getOrden)
+                    .orElse(null);
+            } catch (NumberFormatException e) {
+                // Si el valor no es un ID, intentar parsearlo directamente
+                try {
+                    return Integer.parseInt(valor.trim().substring(0, 1)); // "1 - Muy malo" -> 1
+                } catch (Exception ex) {
+                    return null;
+                }
+            }
+        } else {
+            // Para otros tipos de pregunta, intentar parsear directamente
+            try {
+                return Integer.parseInt(valor.trim());
+            } catch (NumberFormatException e) {
+                return null;
+            }
+        }
     }
 
     @Transactional(readOnly = true)
@@ -471,6 +561,78 @@ public class EncuestaService {
                 .build();
     }
 
+    /**
+     * Obtiene los datos de una encuesta para que el cliente la responda.
+     * Incluye las preguntas de la plantilla con sus opciones.
+     */
+    @Transactional(readOnly = true)
+    public EncuestaEjecucionDTO obtenerEncuestaParaEjecucion(Long encuestaId) {
+        Encuesta encuesta = encuestaRepository.findById(encuestaId)
+            .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Encuesta no encontrada"));
+
+        PlantillaEncuesta plantilla = encuesta.getPlantilla();
+        
+        // Mapear preguntas
+        List<EncuestaEjecucionDTO.PreguntaEjecucionDTO> preguntasDTO = plantilla.getPreguntas().stream()
+            .map(p -> {
+                List<EncuestaEjecucionDTO.OpcionDTO> opciones = null;
+                String tipo = "TEXTO";
+                
+                if (p instanceof PreguntaRadio) {
+                    tipo = "RADIO";
+                    opciones = ((PreguntaRadio) p).getOpciones().stream()
+                        .map(op -> EncuestaEjecucionDTO.OpcionDTO.builder()
+                            .idOpcion(op.getIdOpcion())
+                            .texto(op.getTexto())
+                            .orden(op.getOrden())
+                            .build())
+                        .collect(Collectors.toList());
+                } else if (p instanceof PreguntaBooleana) {
+                    tipo = "BOOLEANA";
+                }
+                
+                return EncuestaEjecucionDTO.PreguntaEjecucionDTO.builder()
+                    .idPregunta(p.getIdPregunta())
+                    .texto(p.getTexto())
+                    .tipo(tipo)
+                    .obligatoria(p.getObligatoria())
+                    .orden(p.getOrden())
+                    .esCalificacion(Boolean.TRUE.equals(p.getEsCalificacion()))
+                    .opciones(opciones)
+                    .build();
+            })
+            .sorted((a, b) -> {
+                // Ordenar por orden, pero calificación al final
+                if (a.getEsCalificacion() && !b.getEsCalificacion()) return 1;
+                if (!a.getEsCalificacion() && b.getEsCalificacion()) return -1;
+                return (a.getOrden() != null ? a.getOrden() : 0) - (b.getOrden() != null ? b.getOrden() : 0);
+            })
+            .collect(Collectors.toList());
+
+        // Obtener nombre del agente si aplica
+        String agenteNombre = null;
+        if (encuesta.getAgente() != null) {
+            agenteNombre = encuesta.getAgente().getNombre() + " " + encuesta.getAgente().getApellido();
+        }
+
+        // Obtener nombre del cliente
+        String clienteNombre = null;
+        if (encuesta.getCliente() != null) {
+            clienteNombre = encuesta.getCliente().getNombres() + " " + encuesta.getCliente().getApellidos();
+        }
+
+        return EncuestaEjecucionDTO.builder()
+            .idEncuesta(encuesta.getIdEncuesta())
+            .plantillaNombre(plantilla.getNombre())
+            .plantillaDescripcion(plantilla.getDescripcion())
+            .estado(encuesta.getEstadoEncuesta() != null ? encuesta.getEstadoEncuesta().name() : null)
+            .alcanceEvaluacion(encuesta.getAlcanceEvaluacion() != null ? encuesta.getAlcanceEvaluacion().name() : null)
+            .agenteNombre(agenteNombre)
+            .clienteNombre(clienteNombre)
+            .preguntas(preguntasDTO)
+            .build();
+    }
+
     @Transactional
     public void reenviarEncuesta(String idStr) {
         Long id = Long.parseLong(idStr);
@@ -593,6 +755,7 @@ public class EncuestaService {
                     .tipo(tipo)
                     .orden(p.getOrden())
                     .obligatoria(p.getObligatoria())
+                    .esCalificacion(Boolean.TRUE.equals(p.getEsCalificacion()))
                     .opciones(opciones)
                     .build();
         }).collect(Collectors.toList());

@@ -67,6 +67,20 @@ public class EncuestaController {
         return ResponseEntity.status(HttpStatus.CREATED).build();
     }
 
+    // Endpoint alternativo para responder (usado por el frontend público)
+    @PostMapping("/responder")
+    public ResponseEntity<Void> responderEncuesta(@Valid @RequestBody com.sqrc.module.backendsqrc.encuesta.dto.RespuestaClienteDTO request) {
+        encuestaService.guardarRespuesta(request);
+        return ResponseEntity.status(HttpStatus.CREATED).build();
+    }
+
+    // Endpoint para obtener la encuesta para ejecución (cliente responde)
+    @GetMapping("/{encuestaId}/ejecutar")
+    public ResponseEntity<com.sqrc.module.backendsqrc.encuesta.dto.EncuestaEjecucionDTO> obtenerEncuestaParaEjecucion(
+            @PathVariable Long encuestaId) {
+        return ResponseEntity.ok(encuestaService.obtenerEncuestaParaEjecucion(encuestaId));
+    }
+
     // ==========================================
     // 2. GESTIÓN DE RESPUESTAS (LO NUEVO QUE PEDISTE)
     // ==========================================
