@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from "react";
-import { useParams, useNavigate } from "react-router-dom";
+import { useState, useEffect } from "react";
+import { useParams } from "react-router-dom";
 import { CheckCircle, AlertCircle, Loader2, Star, Send } from "lucide-react";
 import http from "../../services/http";
 
@@ -37,7 +37,6 @@ type RespuestaValue = string | number | null;
  */
 export default function SurveyExecutionPage() {
   const { encuestaId } = useParams<{ encuestaId: string }>();
-  const navigate = useNavigate();
 
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);

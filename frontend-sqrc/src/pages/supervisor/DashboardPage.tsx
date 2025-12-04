@@ -3,7 +3,6 @@ import DateRangeFilter from "../../components/DateRangeFilter";
 import { MetricCard } from "../../features/reportes/components/MetricCard";
 import { FrequentReasons } from "../../features/reportes/components/FrequentReasons";
 import { TopAgents } from "../../features/reportes/components/TopAgents";
-import ChannelDistribution from "../../features/reportes/components/ChannelDistribution";
 import ChannelMenu from "../../features/reportes/components/ChannelMenu";
 import useDashboard from "../../features/reportes/hooks/useDashboard";
 

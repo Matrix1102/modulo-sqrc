@@ -2,6 +2,8 @@ import React, { useState, useEffect, useCallback } from "react";
 import { X, Search, FileClock, Eye, RotateCcw } from "lucide-react";
 import { Badge } from "../../../components/ui/Badge"; // Reutilizamos tu Badge existente
 import showToast from "../../../services/notification";
+import showConfirm from "../../../services/confirm";
+import { encuestaService } from "../services/encuestaService";
 
 
 interface TemplateHistoryModalProps {
@@ -23,8 +25,7 @@ export const TemplateHistoryModal: React.FC<TemplateHistoryModalProps> = ({
   const load = useCallback(async () => {
     setLoading(true);
     try {
-      const svc = (await import("../services/encuestaService")).encuestaService;
-      const data = await svc.plantillasList();
+      const data = await encuestaService.plantillasList();
       setItems(data || []);
     } catch (err) {
       setItems([]);
@@ -50,8 +51,7 @@ export const TemplateHistoryModal: React.FC<TemplateHistoryModalProps> = ({
     const id = item.templateId || item.id;
     setReactivatingId(id);
     try {
-      const svc = (await import("../services/encuestaService")).encuestaService;
-      await svc.plantillaReactivate(id);
+      await encuestaService.plantillaReactivate(id);
       // refresh list after successful reactivation
       await load();
       showToast('Plantilla reactivada', 'success');
@@ -65,15 +65,14 @@ export const TemplateHistoryModal: React.FC<TemplateHistoryModalProps> = ({
 
   const [previewOpen, setPreviewOpen] = useState(false);
   const [previewItem, setPreviewItem] = useState<any | null>(null);
-  const [previewLoading, setPreviewLoading] = useState(false);
+  const [_previewLoading, setPreviewLoading] = useState(false);
 
   const handleViewDesign = async (item: any) => {
     const id = item.templateId || item.id;
     setPreviewLoading(true);
     try {
-      const svc = (await import('../services/encuestaService')).encuestaService;
       // try to fetch full plantilla detail; fallback to item if endpoint missing
-      const detail = await svc.plantillaGet(id).catch(() => item);
+      const detail = await encuestaService.plantillaGet(id).catch(() => item);
       setPreviewItem(detail || item);
       setPreviewOpen(true);
     } catch (err) {
@@ -255,7 +254,7 @@ export const TemplateHistoryModal: React.FC<TemplateHistoryModalProps> = ({
                             title="Restaurar esta versión"
                             className="p-2 text-gray-400 hover:text-green-600 hover:bg-green-50 rounded-lg transition-colors border border-transparent hover:border-green-100 disabled:opacity-60"
                             onClick={async () => {
-                              const ok = await import('../../../services/confirm').then(m => m.default ? m.default(`¿Deseas restaurar la versión ${item.version || item.templateId || "?"}?`, 'Confirmar') : m.showConfirm(`¿Deseas restaurar la versión ${item.version || item.templateId || "?"}?`, 'Confirmar'));
+                              const ok = await showConfirm(`¿Deseas restaurar la versión ${item.version || item.templateId || "?"}?`, 'Confirmar');
                               if (ok) {
                                 void handleReactivate(item);
                               }

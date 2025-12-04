@@ -35,7 +35,7 @@ export default function useRecentTickets(
         const agentList = agentes || [];
         // Limit concurrency: fetch tickets for up to first 10 agents to avoid flooding
         const limited = agentList.slice(0, 10);
-        const promises = limited.map((a) => reportService.fetchTicketsByAgent(a.agenteId, params).catch((e) => ({ agenteId: a.agenteId, tickets: [] })));
+        const promises = limited.map((a) => reportService.fetchTicketsByAgent(a.agenteId, params).catch(() => ({ agenteId: a.agenteId, tickets: [] })));
         const results = await Promise.all(promises);
         // results may be AgentTickets shape
         const all: TicketReporte[] = [];
