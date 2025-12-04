@@ -1,8 +1,6 @@
 package com.sqrc.module.backendsqrc.vista360.service;
 
-import com.sqrc.module.backendsqrc.reporte.model.KpiDashboardEncuestas;
-
-import com.sqrc.module.backendsqrc.reporte.repository.KpiDashboardEncuestasRepository;
+import com.sqrc.module.backendsqrc.encuesta.repository.EncuestaRepository;
 
 import com.sqrc.module.backendsqrc.ticket.model.EstadoTicket;
 import com.sqrc.module.backendsqrc.ticket.model.Ticket;
@@ -38,7 +36,7 @@ public class Vista360Service {
         private final ClienteRepository clienteRepository;
         private final TicketRepository ticketRepository;
 
-        private final KpiDashboardEncuestasRepository kpiDashboardEncuestasRepository;
+        private final EncuestaRepository encuestaRepository;
 
         // Estados que se consideran "abiertos" (no resueltos)
         private static final Set<EstadoTicket> ESTADOS_ABIERTOS = Set.of(
@@ -304,55 +302,38 @@ public class Vista360Service {
 
         /**
          * Calcula la métrica de Calificación de la Atención.
-         * Basado en datos de CSAT de encuestas (kpi_dashboard_encuestas).
+         * Basado en el promedio de calificaciones de encuestas del cliente.
          */
         private MetricaKPI_DTO calcularCalificacionAtencion(Integer idCliente) {
-                LocalDate hace30Dias = LocalDate.now().minusDays(30);
-                LocalDate hace60Dias = LocalDate.now().minusDays(60);
+                Double promedioCalificacion = encuestaRepository.findPromedioCalificacionByClienteId(idCliente);
 
-                // Obtener CSAT del último mes
-                List<KpiDashboardEncuestas> kpiMesActual = kpiDashboardEncuestasRepository
-                                .findByFechaBetween(hace30Dias, LocalDate.now());
+                String valorPrincipal;
+                String subtitulo;
+                MetricaKPI_DTO.EstadoTendencia tendencia;
 
-                // Obtener CSAT del mes anterior
-                List<KpiDashboardEncuestas> kpiMesAnterior = kpiDashboardEncuestasRepository
-                                .findByFechaBetween(hace60Dias, hace30Dias);
+                if (promedioCalificacion != null && promedioCalificacion > 0) {
+                        valorPrincipal = String.format("%.1f", promedioCalificacion);
+                        subtitulo = "Promedio histórico";
 
-                // Calcular promedios CSAT (usar csatPromedioServicioGlobal como referencia
-                // general)
-                double csatActual = kpiMesActual.stream()
-                                .filter(k -> k.getCsatPromedioServicioGlobal() != null)
-                                .mapToDouble(KpiDashboardEncuestas::getCsatPromedioServicioGlobal)
-                                .average()
-                                .orElse(0);
-
-                double csatAnterior = kpiMesAnterior.stream()
-                                .filter(k -> k.getCsatPromedioServicioGlobal() != null)
-                                .mapToDouble(KpiDashboardEncuestas::getCsatPromedioServicioGlobal)
-                                .average()
-                                .orElse(0);
-
-                // Escalar CSAT a escala de 5 (si viene en porcentaje 0-100, convertir)
-                double calificacion = csatActual > 5 ? csatActual / 20.0 : csatActual; // Asumiendo escala 0-100 → 0-5
-                if (calificacion == 0) {
-                        calificacion = 4.2; // Valor por defecto si no hay datos
+                        // Determinar tendencia/estado basado en la calificación
+                        if (promedioCalificacion >= 4.0) {
+                                tendencia = MetricaKPI_DTO.EstadoTendencia.POSITIVO;
+                        } else if (promedioCalificacion >= 3.0) {
+                                tendencia = MetricaKPI_DTO.EstadoTendencia.NEUTRO;
+                        } else {
+                                tendencia = MetricaKPI_DTO.EstadoTendencia.NEGATIVO;
+                        }
+                } else {
+                        valorPrincipal = "No evaluado";
+                        subtitulo = "Sin encuestas";
+                        tendencia = MetricaKPI_DTO.EstadoTendencia.NEUTRO;
                 }
-
-                double diferencia = csatAnterior > 0 ? (csatActual - csatAnterior) / 20.0 : 0;
-
-                MetricaKPI_DTO.EstadoTendencia tendencia = calificacion >= 4.0
-                                ? MetricaKPI_DTO.EstadoTendencia.POSITIVO
-                                : calificacion >= 3.5
-                                                ? MetricaKPI_DTO.EstadoTendencia.NEUTRO
-                                                : MetricaKPI_DTO.EstadoTendencia.NEGATIVO;
 
                 return MetricaKPI_DTO.builder()
                                 .titulo("Calificación de la Atención")
-                                .valorPrincipal(String.format("%.1f", calificacion))
-                                .unidad("/5")
-                                .subtituloTendencia(csatAnterior > 0
-                                                ? String.format("%+.1f vs mes anterior", diferencia)
-                                                : "Promedio del servicio")
+                                .valorPrincipal(valorPrincipal)
+                                .unidad(promedioCalificacion != null && promedioCalificacion > 0 ? "/5" : "")
+                                .subtituloTendencia(subtitulo)
                                 .estadoTendencia(tendencia)
                                 .build();
         }
