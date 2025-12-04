@@ -1,6 +1,11 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import reportService from "../../reportes/services/reportService";
 import type { AgenteDetail, TicketReporte } from "../../reportes/types/reporte";
+
+interface AgentTicketsResult {
+  agenteId: string;
+  tickets: TicketReporte[];
+}
 
 function parseDateString(d?: string): Date | null {
   if (!d) return null;
@@ -26,43 +31,49 @@ export default function useRecentTickets(
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<Error | null>(null);
 
-  useEffect(() => {
-    let mounted = true;
-    async function load() {
-      setLoading(true);
-      setError(null);
-      try {
-        const agentList = agentes || [];
-        // Limit concurrency: fetch tickets for up to first 10 agents to avoid flooding
-        const limited = agentList.slice(0, 10);
-        const promises = limited.map((a) => reportService.fetchTicketsByAgent(a.agenteId, params).catch((e) => ({ agenteId: a.agenteId, tickets: [] })));
-        const results = await Promise.all(promises);
-        // results may be AgentTickets shape
-        const all: TicketReporte[] = [];
-        for (const r of results) {
-          if (!r) continue;
-          const list = (r as any).tickets || [];
-          for (const t of list) all.push(t as TicketReporte);
-        }
-        // sort by parsed date desc
-        all.sort((a, b) => {
-          const da = parseDateString(a.date)?.getTime() ?? 0;
-          const db = parseDateString(b.date)?.getTime() ?? 0;
-          return db - da;
-        });
-        const max = options?.maxItems ?? 30;
-        if (mounted) setTickets(all.slice(0, max));
-      } catch (err: any) {
-        if (mounted) setError(err);
-      } finally {
-        if (mounted) setLoading(false);
+  const maxItems = options?.maxItems ?? 30;
+
+  const loadTickets = useCallback(async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const agentList = agentes || [];
+      // Limit concurrency: fetch tickets for up to first 10 agents to avoid flooding
+      const limited = agentList.slice(0, 10);
+      const promises = limited.map((a) => 
+        reportService.fetchTicketsByAgent(a.agenteId, params)
+          .catch(() => ({ agenteId: a.agenteId, tickets: [] }))
+      );
+      const results = await Promise.all(promises);
+      // results may be AgentTickets shape
+      const all: TicketReporte[] = [];
+      for (const r of results) {
+        if (!r) continue;
+        const result = r as AgentTicketsResult;
+        const list = result.tickets || [];
+        for (const t of list) all.push(t);
       }
+      // sort by parsed date desc
+      all.sort((a, b) => {
+        const da = parseDateString(a.date)?.getTime() ?? 0;
+        const db = parseDateString(b.date)?.getTime() ?? 0;
+        return db - da;
+      });
+      setTickets(all.slice(0, maxItems));
+    } catch (err: unknown) {
+      if (err instanceof Error) {
+        setError(err);
+      } else {
+        setError(new Error(String(err)));
+      }
+    } finally {
+      setLoading(false);
     }
-    load();
-    return () => {
-      mounted = false;
-    };
-  }, [agentes?.length, params?.startDate, params?.endDate]);
+  }, [agentes, params, maxItems]);
+
+  useEffect(() => {
+    loadTickets();
+  }, [loadTickets]);
 
   return { tickets, loading, error };
 }
