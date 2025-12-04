@@ -9,6 +9,7 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 
 /**
@@ -32,11 +33,47 @@ public class ActualizarArticuloRequest {
 
     private Visibilidad visibilidad;
 
-    private LocalDateTime vigenteDesde;
+    private String vigenteDesde;
 
-    private LocalDateTime vigenteHasta;
+    private String vigenteHasta;
 
     private String modulo;
 
     private Long idUltimoEditor;
+
+    /**
+     * Convierte vigenteDesde string a LocalDateTime.
+     */
+    public LocalDateTime getVigenteDesdeAsDateTime() {
+        if (vigenteDesde == null || vigenteDesde.isBlank()) {
+            return null;
+        }
+        try {
+            if (vigenteDesde.contains("T")) {
+                return LocalDateTime.parse(vigenteDesde);
+            } else {
+                return LocalDate.parse(vigenteDesde).atStartOfDay();
+            }
+        } catch (Exception e) {
+            return null;
+        }
+    }
+
+    /**
+     * Convierte vigenteHasta string a LocalDateTime.
+     */
+    public LocalDateTime getVigenteHastaAsDateTime() {
+        if (vigenteHasta == null || vigenteHasta.isBlank()) {
+            return null;
+        }
+        try {
+            if (vigenteHasta.contains("T")) {
+                return LocalDateTime.parse(vigenteHasta);
+            } else {
+                return LocalDate.parse(vigenteHasta).atTime(23, 59, 59);
+            }
+        } catch (Exception e) {
+            return null;
+        }
+    }
 }

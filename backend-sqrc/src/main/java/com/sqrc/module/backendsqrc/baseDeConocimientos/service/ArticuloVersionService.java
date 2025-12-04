@@ -165,16 +165,17 @@ public class ArticuloVersionService {
         versionRepository.desmarcarVersionesVigentes(idArticulo);
 
         // Publicar la versión
-        version.publicar(request.getVigenteDesde() != null ? request.getVigenteDesde() : LocalDateTime.now());
+        LocalDateTime fechaDesde = request.getVigenteDesdeAsDateTime();
+        version.publicar(fechaDesde != null ? fechaDesde : LocalDateTime.now());
         versionRepository.save(version);
 
         // Actualizar el artículo
         articulo.setVisibilidad(request.getVisibilidad());
-        if (request.getVigenteDesde() != null) {
-            articulo.setVigenteDesde(request.getVigenteDesde());
+        if (request.getVigenteDesdeAsDateTime() != null) {
+            articulo.setVigenteDesde(request.getVigenteDesdeAsDateTime());
         }
-        if (request.getVigenteHasta() != null) {
-            articulo.setVigenteHasta(request.getVigenteHasta());
+        if (request.getVigenteHastaAsDateTime() != null) {
+            articulo.setVigenteHasta(request.getVigenteHastaAsDateTime());
         }
         articuloRepository.save(articulo);
 

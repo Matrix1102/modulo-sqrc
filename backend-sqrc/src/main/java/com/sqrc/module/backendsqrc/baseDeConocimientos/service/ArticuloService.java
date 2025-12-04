@@ -63,8 +63,9 @@ public class ArticuloService {
                 .etiqueta(request.getEtiqueta())
                 .tipoCaso(request.getTipoCaso() != null ? request.getTipoCaso() : TipoCaso.TODOS)
                 .visibilidad(request.getVisibilidad())
-                .vigenteDesde(request.getVigenteDesde())
-                .vigenteHasta(request.getVigenteHasta())
+                .vigenteDesde(request.getVigenteDesdeAsDateTime())
+                .vigenteHasta(request.getVigenteHastaAsDateTime())
+                .tags(request.getTags())
                 .propietario(propietario)
                 .ultimoEditor(propietario)
                 .build();
@@ -135,11 +136,11 @@ public class ArticuloService {
         if (request.getVisibilidad() != null) {
             articulo.setVisibilidad(request.getVisibilidad());
         }
-        if (request.getVigenteDesde() != null) {
-            articulo.setVigenteDesde(request.getVigenteDesde());
+        if (request.getVigenteDesde() != null && !request.getVigenteDesde().isBlank()) {
+            articulo.setVigenteDesde(request.getVigenteDesdeAsDateTime());
         }
-        if (request.getVigenteHasta() != null) {
-            articulo.setVigenteHasta(request.getVigenteHasta());
+        if (request.getVigenteHasta() != null && !request.getVigenteHasta().isBlank()) {
+            articulo.setVigenteHasta(request.getVigenteHastaAsDateTime());
         }
         if (request.getIdUltimoEditor() != null) {
             Empleado editor = empleadoRepository.findById(request.getIdUltimoEditor())
@@ -303,7 +304,8 @@ public class ArticuloService {
             return List.of();
         }
 
-        // Obtener los IDs de los artículos encontrados (mantienen el orden por relevancia)
+        // Obtener los IDs de los artículos encontrados (mantienen el orden por
+        // relevancia)
         List<Integer> idsOrdenados = resultadosFulltext.stream()
                 .map(row -> ((Number) row[0]).intValue())
                 .collect(Collectors.toList());
@@ -385,14 +387,19 @@ public class ArticuloService {
 
     private ArticuloResponse mapToResponse(Articulo articulo) {
         ArticuloVersion versionVigente = articulo.getVersionVigente();
+        // Si no hay versión vigente, usar la última versión disponible (para borradores)
+        ArticuloVersion versionMostrar = versionVigente;
+        if (versionMostrar == null && articulo.getVersiones() != null && !articulo.getVersiones().isEmpty()) {
+            versionMostrar = articulo.getVersiones().get(0);
+        }
 
         Long feedbacksPositivos = 0L;
         Double calificacionPromedio = 0.0;
 
-        if (versionVigente != null) {
-            feedbacksPositivos = feedbackRepository.contarFeedbacksUtiles(versionVigente.getIdArticuloVersion());
+        if (versionMostrar != null) {
+            feedbacksPositivos = feedbackRepository.contarFeedbacksUtiles(versionMostrar.getIdArticuloVersion());
             calificacionPromedio = feedbackRepository
-                    .calcularCalificacionPromedio(versionVigente.getIdArticuloVersion());
+                    .calcularCalificacionPromedio(versionMostrar.getIdArticuloVersion());
         }
 
         return ArticuloResponse.builder()
@@ -412,9 +419,9 @@ public class ArticuloService {
                 .nombrePropietario(articulo.getPropietario() != null ? articulo.getPropietario().getNombre() : null)
                 .idUltimoEditor(articulo.getUltimoEditor() != null ? articulo.getUltimoEditor().getIdEmpleado() : null)
                 .nombreUltimoEditor(articulo.getUltimoEditor() != null ? articulo.getUltimoEditor().getNombre() : null)
-                .versionVigente(versionVigente != null ? versionVigente.getNumeroVersion() : null)
-                .estadoVersionVigente(versionVigente != null ? versionVigente.getEstadoPropuesta() : null)
-                .contenidoVersionVigente(versionVigente != null ? versionVigente.getContenido() : null)
+                .versionVigente(versionMostrar != null ? versionMostrar.getNumeroVersion() : null)
+                .estadoVersionVigente(versionMostrar != null ? versionMostrar.getEstadoPropuesta() : null)
+                .contenidoVersionVigente(versionMostrar != null ? versionMostrar.getContenido() : null)
                 .totalVersiones(articulo.getVersiones() != null ? articulo.getVersiones().size() : 0)
                 .feedbacksPositivos(feedbacksPositivos)
                 .calificacionPromedio(calificacionPromedio != null ? calificacionPromedio : 0.0)
