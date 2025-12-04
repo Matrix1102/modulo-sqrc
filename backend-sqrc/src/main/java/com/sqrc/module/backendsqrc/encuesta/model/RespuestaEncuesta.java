@@ -25,6 +25,10 @@ public class RespuestaEncuesta {
     @OneToMany(mappedBy = "respuestaEncuesta", cascade = CascadeType.ALL)
     private List<RespuestaPregunta> respuestas;
 
+    // Calificación obligatoria de 1 a 5 asociada a esta respuesta de encuesta
+    @Column(name = "calificacion")
+    private Integer calificacion;
+
     @PrePersist
     public void prePersist() {
         if (this.fechaRespuesta == null) {

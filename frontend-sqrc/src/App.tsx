@@ -8,6 +8,7 @@ import TicketAgentPage from "./pages/supervisor/TicketAgentPage";
 import DashboardPage from "./pages/supervisor/DashboardPage";
 import EncuestasPage from "./pages/supervisor/SurveyPage";
 import SurveyCategoryPage from "./pages/supervisor/SurveyCategoryPage";
+import SurveyExecutionPage from "./pages/public/SurveyExecutionPage";
 
 // Base de Conocimiento
 import {
@@ -61,6 +62,12 @@ export default function App() {
         <Routes>
           {/* Ruta Pública (Inicio) */}
           <Route path="/" element={<Home />} />
+
+          {/* ─── ENCUESTA PÚBLICA (Cliente responde) ─── */}
+          <Route
+            path="/encuestas/exec/:encuestaId"
+            element={<SurveyExecutionPage />}
+          />
 
           {/* ─── ZONA AGENTE ─── */}
           <Route path="/agente" element={<MainLayout role="AGENT" />}>

@@ -16,6 +16,14 @@ public class RespuestaClienteDTO {
     @NotEmpty(message = "La lista de respuestas no puede estar vacía")
     private List<ItemRespuesta> respuestas;
 
+    /**
+     * Calificación general (1-5). Opcional si la encuesta tiene una pregunta de calificación.
+     * Si se proporciona, se usa como fallback en caso de que no se pueda extraer de las respuestas.
+     */
+    @jakarta.validation.constraints.Min(value = 1, message = "La calificación mínima es 1")
+    @jakarta.validation.constraints.Max(value = 5, message = "La calificación máxima es 5")
+    private Integer calificacion;
+
     @Data
     public static class ItemRespuesta {
         @NotNull(message = "El idPregunta es obligatorio")
