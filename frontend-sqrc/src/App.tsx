@@ -17,6 +17,7 @@ import { TicketDetailPage as AgenteTicketDetailPage } from "./features/tickets";
 // Base de Conocimiento
 import {
   BaseConocimientoPage,
+  BackofficeBaseConocimientoPage,
   SupervisorBaseConocimientoPage,
   ArticuloExpandidoPage,
   EditarArticuloPage,
@@ -217,9 +218,8 @@ export default function App() {
             path="/backoffice/base-conocimiento"
             element={<MainLayout role="BACKOFFICE" />}
           >
-            <Route index element={<BaseConocimientoPage />} />
+            <Route index element={<BackofficeBaseConocimientoPage />} />
             <Route path="articulo/:id" element={<ArticuloExpandidoPage />} />
-            <Route path="editar/:id" element={<EditarArticuloPage />} />
           </Route>
 
           {/* ─── BASE DE CONOCIMIENTO - SUPERVISOR ─── */}
