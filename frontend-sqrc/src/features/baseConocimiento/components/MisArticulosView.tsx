@@ -2,6 +2,7 @@ import React, { useMemo, useState, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { ChevronDown, Database, User } from "lucide-react";
 import { useMisArticulos, useArticulo } from "../hooks/useArticulos";
+import { useBasePath } from "../hooks/useBasePath";
 import { useUserId } from "../../../context";
 import articuloService from "../services/articuloService";
 import showToast from "../../../services/notification";
@@ -127,6 +128,7 @@ const KanbanColumn: React.FC<ColumnProps> = ({
 const MisArticulosView: React.FC = () => {
   const userId = useUserId();
   const navigate = useNavigate();
+  const { buildPath } = useBasePath();
 
   // Estado del modal
   const [showModal, setShowModal] = useState(false);
@@ -172,15 +174,15 @@ const MisArticulosView: React.FC = () => {
 
   const handleExpand = useCallback(() => {
     if (selectedArticuloId) {
-      navigate(`/base-conocimiento/articulo/${selectedArticuloId}`);
+      navigate(buildPath(`/articulo/${selectedArticuloId}`));
     }
-  }, [selectedArticuloId, navigate]);
+  }, [selectedArticuloId, navigate, buildPath]);
 
   const handleEdit = useCallback(() => {
     if (selectedArticuloId) {
-      navigate(`/base-conocimiento/editar/${selectedArticuloId}`);
+      navigate(buildPath(`/editar/${selectedArticuloId}`));
     }
-  }, [selectedArticuloId, navigate]);
+  }, [selectedArticuloId, navigate, buildPath]);
 
   const handleFeedback = useCallback(
     async (esUtil: boolean) => {

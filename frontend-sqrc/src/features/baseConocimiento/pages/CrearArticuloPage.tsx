@@ -2,6 +2,7 @@ import React, { useCallback, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { ArrowLeft } from "lucide-react";
 import { ArticuloForm } from "../components/ArticuloForm";
+import { useBasePath } from "../hooks/useBasePath";
 import articuloService from "../services/articuloService";
 import { useUserId } from "../../../context";
 import showToast from "../../../services/notification";
@@ -9,6 +10,7 @@ import type { CrearArticuloRequest } from "../types/articulo";
 
 export const CrearArticuloPage: React.FC = () => {
   const navigate = useNavigate();
+  const { buildPath } = useBasePath();
   const userId = useUserId();
   const [loading, setLoading] = useState(false);
 
@@ -45,7 +47,7 @@ export const CrearArticuloPage: React.FC = () => {
         }
 
         // Navegar a la página de detalle o a la lista
-        navigate(`/base-conocimiento`);
+        navigate(buildPath(""));
       } catch (error) {
         console.error("Error al crear artículo:", error);
         showToast("Error al crear el artículo", "error");
@@ -53,7 +55,7 @@ export const CrearArticuloPage: React.FC = () => {
         setLoading(false);
       }
     },
-    [navigate, userId]
+    [navigate, buildPath, userId]
   );
 
   const handleCancel = useCallback(() => {

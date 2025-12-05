@@ -23,6 +23,7 @@ import {
   RotateCw,
 } from "lucide-react";
 import { useArticulo } from "../hooks/useArticulos";
+import { useBasePath } from "../hooks/useBasePath";
 import articuloService from "../services/articuloService";
 import { useUserId } from "../../../context";
 import showToast from "../../../services/notification";
@@ -42,6 +43,7 @@ import {
 const EditarArticuloPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const { buildPath } = useBasePath();
   const userId = useUserId();
   const articuloId = id ? parseInt(id, 10) : null;
 
@@ -162,7 +164,7 @@ const EditarArticuloPage: React.FC = () => {
         }
 
         // Navegar de vuelta
-        navigate(`/base-conocimiento/articulo/${articuloId}`);
+        navigate(buildPath(`/articulo/${articuloId}`));
       } catch (error) {
         console.error("Error al actualizar artículo:", error);
         showToast("Error al guardar los cambios", "error");
@@ -170,7 +172,7 @@ const EditarArticuloPage: React.FC = () => {
         setLoading(false);
       }
     },
-    [articuloId, formData, userId, navigate]
+    [articuloId, formData, userId, navigate, buildPath]
   );
 
   // Toolbar button component

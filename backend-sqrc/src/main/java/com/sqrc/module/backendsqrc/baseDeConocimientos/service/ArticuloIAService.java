@@ -2,9 +2,9 @@ package com.sqrc.module.backendsqrc.baseDeConocimientos.service;
 
 import com.sqrc.module.backendsqrc.baseDeConocimientos.dto.*;
 import com.sqrc.module.backendsqrc.baseDeConocimientos.exception.OperacionInvalidaException;
+import com.sqrc.module.backendsqrc.baseDeConocimientos.factory.ArticuloCreationContext;
+import com.sqrc.module.backendsqrc.baseDeConocimientos.factory.ArticuloFactory;
 import com.sqrc.module.backendsqrc.baseDeConocimientos.model.*;
-import com.sqrc.module.backendsqrc.baseDeConocimientos.repository.ArticuloRepository;
-import com.sqrc.module.backendsqrc.baseDeConocimientos.repository.ArticuloVersionRepository;
 import com.sqrc.module.backendsqrc.baseDeConocimientos.strategy.DocumentoUploadStrategy;
 import com.sqrc.module.backendsqrc.baseDeConocimientos.strategy.GeneracionArticuloContext;
 import com.sqrc.module.backendsqrc.ticket.model.*;
@@ -16,20 +16,21 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
-import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
-import java.util.UUID;
 
 /**
  * Servicio para generar artículos de conocimiento usando IA (Gemini).
  * 
- * Implementa el Patrón Strategy para soportar múltiples fuentes de datos:
- * - Documentación de tickets existentes
- * - Documentos subidos (PDF, Word, TXT)
- * - Tema libre especificado por el usuario
+ * <p><b>Patrones implementados:</b></p>
+ * <ul>
+ *   <li><b>Strategy Pattern:</b> Para soportar múltiples fuentes de datos</li>
+ *   <li><b>Factory Pattern:</b> Para la creación de artículos y versiones</li>
+ * </ul>
+ * 
+ * @see ArticuloFactory
+ * @see GeneracionArticuloContext
  */
 @Service
 @RequiredArgsConstructor
@@ -40,19 +41,17 @@ public class ArticuloIAService {
     private static final DateTimeFormatter FECHA_FORMATTER = DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm");
 
     private final GeminiService geminiService;
-    private final ArticuloRepository articuloRepository;
-    private final ArticuloVersionRepository versionRepository;
     private final DocumentacionRepository documentacionRepository;
     private final EmpleadoRepository empleadoRepository;
     private final GeneracionArticuloContext generacionContext;
     private final DocumentoUploadStrategy documentoUploadStrategy;
+    private final ArticuloFactory articuloFactory; // Factory Pattern
 
-    // ===================== MÉTODO UNIFICADO CON PATRÓN STRATEGY
-    // =====================
+    // ===================== MÉTODO UNIFICADO CON PATRÓN STRATEGY + FACTORY =====================
 
     /**
-     * Genera un artículo usando el patrón Strategy.
-     * Selecciona automáticamente la estrategia correcta según el tipo de fuente.
+     * Genera un artículo usando el patrón Strategy para la generación de contenido
+     * y el patrón Factory para la creación de la entidad.
      * 
      * @param request Solicitud unificada de generación
      * @return Respuesta con el artículo generado
@@ -60,7 +59,7 @@ public class ArticuloIAService {
     public GenerarArticuloIAResponse generarArticulo(GeneracionArticuloRequest request) {
         long startTime = System.currentTimeMillis();
 
-        log.info("Generando artículo con Strategy. Tipo: {}", request.getTipoFuente());
+        log.info("Generando artículo con Strategy + Factory. Tipo: {}", request.getTipoFuente());
 
         // Validar configuración de Gemini
         if (!geminiService.estaConfigurado()) {
@@ -68,16 +67,17 @@ public class ArticuloIAService {
         }
 
         try {
-            // Usar el Context para seleccionar y ejecutar la estrategia correcta
+            // Strategy Pattern: Generar contenido con la estrategia apropiada
             ArticuloGeneradoIA contenidoGenerado = generacionContext.generarArticulo(request);
 
-            // Si hay creador, crear el artículo en BD
+            // Si hay creador, crear el artículo usando Factory Pattern
             if (request.getIdCreador() != null) {
                 Empleado creador = empleadoRepository.findById(request.getIdCreador())
                         .orElseThrow(() -> new OperacionInvalidaException(
                                 "Empleado no encontrado con ID: " + request.getIdCreador()));
 
-                Articulo articulo = crearArticuloDesdeIAUnificado(contenidoGenerado, creador, request);
+                // Factory Pattern: Crear artículo usando el contexto de creación
+                Articulo articulo = crearArticuloConFactory(contenidoGenerado, creador, request);
 
                 return GenerarArticuloIAResponse.builder()
                         .exito(true)
@@ -372,65 +372,60 @@ public class ArticuloIAService {
     }
 
     /**
-     * Crea el artículo y su versión inicial desde el contenido generado por IA.
+     * Crea un artículo usando el Factory Pattern.
+     * Encapsula la lógica de creación y vinculación con documentación.
+     * 
+     * @param contenido Contenido generado por IA
+     * @param creador Empleado creador
+     * @param request Request original con metadatos
+     * @return Artículo creado y persistido
      */
-    private Articulo crearArticuloDesdeIA(ArticuloGeneradoIA contenido, Empleado creador,
-            Documentacion documentacion) {
-        // Generar código único
-        String codigo = generarCodigoUnico();
-
-        // Crear el artículo
-        Articulo articulo = Articulo.builder()
-                .codigo(codigo)
-                .titulo(contenido.getTitulo())
-                .resumen(contenido.getResumen())
-                .etiqueta(contenido.getEtiqueta())
-                .tipoCaso(contenido.getTipoCaso())
-                .visibilidad(contenido.getVisibilidad())
-                .tags(contenido.getTags())
-                .propietario(creador)
-                .ultimoEditor(creador)
-                .vigenteDesde(LocalDateTime.now())
-                .build();
-
-        articulo = articuloRepository.save(articulo);
-
-        // Crear la versión inicial
-        ArticuloVersion version = ArticuloVersion.builder()
-                .articulo(articulo)
-                .numeroVersion(1)
-                .contenido(contenido.getContenido())
-                .notaCambio(contenido.getNotaCambio() != null
-                        ? contenido.getNotaCambio()
-                        : "Artículo generado automáticamente con IA desde documentación del ticket #"
-                                + documentacion.getAsignacion().getTicket().getIdTicket())
-                .creadoPor(creador)
-                .creadoEn(LocalDateTime.now())
-                .esVigente(false) // Se publica manualmente después de revisión
-                .estadoPropuesta(EstadoArticulo.BORRADOR)
-                .origen(OrigenVersion.DERIVADO_DE_DOCUMENTACION)
-                .ticketOrigen(documentacion.getAsignacion().getTicket())
-                .build();
-
-        versionRepository.save(version);
-
-        // Actualizar la documentación con el ID del artículo generado
-        documentacion.setIdArticuloKB(articulo.getIdArticulo());
-        documentacionRepository.save(documentacion);
-
-        log.info("Artículo creado: {} con versión inicial", articulo.getCodigo());
-
+    private Articulo crearArticuloConFactory(ArticuloGeneradoIA contenido,
+            Empleado creador,
+            GeneracionArticuloRequest request) {
+        
+        // Obtener ticket de origen si viene de documentación
+        Ticket ticketOrigen = null;
+        Documentacion documentacion = null;
+        
+        if (request.getIdDocumentacion() != null) {
+            documentacion = documentacionRepository.findById(request.getIdDocumentacion())
+                    .orElse(null);
+            if (documentacion != null && documentacion.getAsignacion() != null) {
+                ticketOrigen = documentacion.getAsignacion().getTicket();
+            }
+        }
+        
+        // Factory Pattern: Crear contexto y delegar creación
+        ArticuloCreationContext context = ArticuloCreationContext.desdeRequest(
+                contenido, creador, request);
+        
+        // Si hay ticket, enriquecemos el contexto
+        if (ticketOrigen != null) {
+            context = ArticuloCreationContext.builder()
+                    .contenidoGenerado(contenido)
+                    .creador(creador)
+                    .tipoFuente(request.getTipoFuente())
+                    .origenVersion(context.getOrigenVersion())
+                    .notaCambio(context.getNotaCambio())
+                    .ticketOrigen(ticketOrigen)
+                    .idDocumentacion(request.getIdDocumentacion())
+                    .nombreDocumento(request.getNombreDocumento())
+                    .tema(request.getTema())
+                    .requestOriginal(request)
+                    .build();
+        }
+        
+        // Usar la Factory para crear el artículo
+        Articulo articulo = articuloFactory.crearArticulo(context);
+        
+        // Vincular documentación con el artículo creado
+        if (documentacion != null) {
+            documentacion.setIdArticuloKB(articulo.getIdArticulo());
+            documentacionRepository.save(documentacion);
+        }
+        
         return articulo;
-    }
-
-    /**
-     * Genera un código único para el artículo.
-     */
-    private String generarCodigoUnico() {
-        String prefijo = "KB-IA-";
-        String timestamp = String.valueOf(System.currentTimeMillis()).substring(6);
-        String uuid = UUID.randomUUID().toString().substring(0, 4).toUpperCase();
-        return prefijo + timestamp + "-" + uuid;
     }
 
     /**
@@ -480,100 +475,5 @@ public class ArticuloIAService {
                 .tiempoProcesamiento(System.currentTimeMillis() - startTime)
                 .build();
     }
-
-    /**
-     * Crea un artículo desde el contenido generado por IA (versión unificada).
-     * Soporta cualquier tipo de fuente (documentación, documento upload, tema
-     * libre).
-     */
-    private Articulo crearArticuloDesdeIAUnificado(ArticuloGeneradoIA contenido,
-            Empleado creador,
-            GeneracionArticuloRequest request) {
-        String codigo = generarCodigoUnico();
-
-        // Crear el artículo
-        Articulo articulo = Articulo.builder()
-                .codigo(codigo)
-                .titulo(contenido.getTitulo())
-                .resumen(contenido.getResumen())
-                .etiqueta(contenido.getEtiqueta())
-                .tipoCaso(contenido.getTipoCaso())
-                .visibilidad(contenido.getVisibilidad())
-                .tags(contenido.getTags())
-                .propietario(creador)
-                .ultimoEditor(creador)
-                .vigenteDesde(LocalDateTime.now())
-                .build();
-
-        articulo = articuloRepository.save(articulo);
-
-        // Determinar origen y nota de cambio según el tipo de fuente
-        OrigenVersion origen = determinarOrigen(request.getTipoFuente());
-        String notaCambio = generarNotaCambio(contenido, request);
-
-        // Crear la versión inicial
-        ArticuloVersion version = ArticuloVersion.builder()
-                .articulo(articulo)
-                .numeroVersion(1)
-                .contenido(contenido.getContenido())
-                .notaCambio(notaCambio)
-                .creadoPor(creador)
-                .creadoEn(LocalDateTime.now())
-                .esVigente(false)
-                .estadoPropuesta(EstadoArticulo.BORRADOR)
-                .origen(origen)
-                .build();
-
-        // Si viene de documentación, vincular el ticket
-        if (request.getIdDocumentacion() != null) {
-            Documentacion documentacion = documentacionRepository.findById(request.getIdDocumentacion())
-                    .orElse(null);
-            if (documentacion != null && documentacion.getAsignacion() != null) {
-                version.setTicketOrigen(documentacion.getAsignacion().getTicket());
-                documentacion.setIdArticuloKB(articulo.getIdArticulo());
-                documentacionRepository.save(documentacion);
-            }
-        }
-
-        versionRepository.save(version);
-
-        log.info("Artículo creado: {} con origen: {}", articulo.getCodigo(), origen);
-
-        return articulo;
-    }
-
-    /**
-     * Determina el origen de la versión según el tipo de fuente.
-     */
-    private OrigenVersion determinarOrigen(GeneracionArticuloRequest.TipoFuente tipoFuente) {
-        if (tipoFuente == null) {
-            return OrigenVersion.MANUAL;
-        }
-        return switch (tipoFuente) {
-            case DOCUMENTACION -> OrigenVersion.DERIVADO_DE_DOCUMENTACION;
-            case DOCUMENTO_UPLOAD -> OrigenVersion.DOCUMENTO_SUBIDO;
-            case TEMA_LIBRE -> OrigenVersion.TEMA_LIBRE;
-        };
-    }
-
-    /**
-     * Genera la nota de cambio según el tipo de fuente.
-     */
-    private String generarNotaCambio(ArticuloGeneradoIA contenido, GeneracionArticuloRequest request) {
-        if (contenido.getNotaCambio() != null && !contenido.getNotaCambio().isBlank()) {
-            return contenido.getNotaCambio();
-        }
-
-        if (request.getTipoFuente() == null) {
-            return "Artículo generado automáticamente con IA";
-        }
-
-        return switch (request.getTipoFuente()) {
-            case DOCUMENTACION -> "Artículo generado con IA desde documentación de ticket";
-            case DOCUMENTO_UPLOAD -> "Artículo generado con IA desde documento: " +
-                    (request.getNombreDocumento() != null ? request.getNombreDocumento() : "documento");
-            case TEMA_LIBRE -> "Artículo generado con IA sobre tema: " +
-                    (request.getTema() != null ? request.getTema() : "tema libre");
-        };
-    }
 }
+

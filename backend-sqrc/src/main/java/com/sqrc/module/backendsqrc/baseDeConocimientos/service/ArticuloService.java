@@ -6,6 +6,9 @@ import com.sqrc.module.backendsqrc.baseDeConocimientos.model.*;
 import com.sqrc.module.backendsqrc.baseDeConocimientos.repository.ArticuloRepository;
 import com.sqrc.module.backendsqrc.baseDeConocimientos.repository.ArticuloVersionRepository;
 import com.sqrc.module.backendsqrc.baseDeConocimientos.repository.FeedbackArticuloRepository;
+import com.sqrc.module.backendsqrc.baseDeConocimientos.specification.ArticuloSpecificationBuilder;
+import com.sqrc.module.backendsqrc.baseDeConocimientos.specification.ArticuloSpecifications;
+import com.sqrc.module.backendsqrc.baseDeConocimientos.specification.Specification;
 import com.sqrc.module.backendsqrc.ticket.model.Documentacion;
 import com.sqrc.module.backendsqrc.ticket.model.Empleado;
 import com.sqrc.module.backendsqrc.ticket.model.Ticket;
@@ -274,6 +277,89 @@ public class ArticuloService {
         return articuloRepository.findArticulosDeprecados(LocalDateTime.now()).stream()
                 .map(this::mapToResumen)
                 .collect(Collectors.toList());
+    }
+
+    // ===================== MÉTODOS CON SPECIFICATION PATTERN =====================
+    
+    /**
+     * Busca artículos usando el patrón Specification para filtrado flexible.
+     * Permite combinar múltiples criterios de filtrado de forma dinámica.
+     * 
+     * @param request Parámetros de búsqueda
+     * @return Lista de artículos que cumplen todas las especificaciones
+     */
+    @Transactional(readOnly = true)
+    public List<ArticuloResumenResponse> buscarConSpecification(BusquedaArticuloRequest request) {
+        log.debug("Buscando artículos con Specification Pattern: {}", request);
+        
+        // Construir especificación desde el request
+        Specification<Articulo> specification = ArticuloSpecificationBuilder
+                .desdeRequest(request)
+                .build();
+        
+        // Cargar todos los artículos y filtrar con la especificación
+        List<Articulo> articulos = articuloRepository.findAll();
+        
+        return articulos.stream()
+                .filter(specification::isSatisfiedBy)
+                .map(this::mapToResumen)
+                .collect(Collectors.toList());
+    }
+    
+    /**
+     * Obtiene artículos disponibles para agentes usando Specification Pattern.
+     * (Publicados, vigentes, y con visibilidad para agentes)
+     */
+    @Transactional(readOnly = true)
+    public List<ArticuloResumenResponse> obtenerDisponiblesParaAgentesConSpec() {
+        Specification<Articulo> spec = ArticuloSpecifications.disponibleParaAgentes();
+        
+        return articuloRepository.findAll().stream()
+                .filter(spec::isSatisfiedBy)
+                .map(this::mapToResumen)
+                .collect(Collectors.toList());
+    }
+    
+    /**
+     * Obtiene artículos que requieren atención usando Specification Pattern.
+     * (Tienen versiones en borrador o propuestas pendientes)
+     */
+    @Transactional(readOnly = true)
+    public List<ArticuloResumenResponse> obtenerRequierenAtencionConSpec() {
+        Specification<Articulo> spec = ArticuloSpecifications.requiereAtencion();
+        
+        return articuloRepository.findAll().stream()
+                .filter(spec::isSatisfiedBy)
+                .map(this::mapToResumen)
+                .collect(Collectors.toList());
+    }
+    
+    /**
+     * Filtra artículos con especificación personalizada.
+     * Permite a los controladores pasar especificaciones construidas dinámicamente.
+     * 
+     * @param specification Especificación a aplicar
+     * @return Lista de artículos filtrados
+     */
+    @Transactional(readOnly = true)
+    public List<ArticuloResumenResponse> filtrarConSpecification(Specification<Articulo> specification) {
+        log.debug("Filtrando artículos con especificación personalizada");
+        
+        return articuloRepository.findAll().stream()
+                .filter(specification::isSatisfiedBy)
+                .map(this::mapToResumen)
+                .collect(Collectors.toList());
+    }
+    
+    /**
+     * Cuenta artículos que cumplen una especificación.
+     * Útil para dashboards y reportes.
+     */
+    @Transactional(readOnly = true)
+    public long contarConSpecification(Specification<Articulo> specification) {
+        return articuloRepository.findAll().stream()
+                .filter(specification::isSatisfiedBy)
+                .count();
     }
 
     /**

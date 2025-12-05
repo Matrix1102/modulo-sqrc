@@ -16,6 +16,7 @@ import {
   History,
 } from "lucide-react";
 import { useArticulo } from "../hooks/useArticulos";
+import { useBasePath } from "../hooks/useBasePath";
 import articuloService from "../services/articuloService";
 import { useUserId } from "../../../context";
 import showToast from "../../../services/notification";
@@ -29,6 +30,7 @@ import {
 const ArticuloExpandidoPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const { buildPath } = useBasePath();
   const userId = useUserId();
   const articuloId = id ? parseInt(id, 10) : null;
 
@@ -49,9 +51,9 @@ const ArticuloExpandidoPage: React.FC = () => {
 
   const handleEdit = useCallback(() => {
     if (articulo) {
-      navigate(`/base-conocimiento/editar/${articulo.idArticulo}`);
+      navigate(buildPath(`/editar/${articulo.idArticulo}`));
     }
-  }, [articulo, navigate]);
+  }, [articulo, navigate, buildPath]);
 
   const handleFeedback = useCallback(
     async (util: boolean) => {

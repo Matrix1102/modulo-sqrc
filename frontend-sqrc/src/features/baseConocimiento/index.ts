@@ -9,6 +9,7 @@ export * from "./components";
 
 // Hooks
 export * from "./hooks/useArticulos";
+export * from "./hooks/useBasePath";
 
 // Tipos
 export * from "./types/articulo";

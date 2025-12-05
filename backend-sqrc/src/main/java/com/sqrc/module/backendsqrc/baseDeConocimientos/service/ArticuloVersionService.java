@@ -3,6 +3,8 @@ package com.sqrc.module.backendsqrc.baseDeConocimientos.service;
 import com.sqrc.module.backendsqrc.baseDeConocimientos.dto.*;
 import com.sqrc.module.backendsqrc.baseDeConocimientos.exception.*;
 import com.sqrc.module.backendsqrc.baseDeConocimientos.model.*;
+import com.sqrc.module.backendsqrc.baseDeConocimientos.observer.ArticuloEventPublisher;
+import com.sqrc.module.backendsqrc.baseDeConocimientos.observer.event.ArticuloEvent;
 import com.sqrc.module.backendsqrc.baseDeConocimientos.repository.ArticuloRepository;
 import com.sqrc.module.backendsqrc.baseDeConocimientos.repository.ArticuloVersionRepository;
 import com.sqrc.module.backendsqrc.baseDeConocimientos.repository.FeedbackArticuloRepository;
@@ -23,8 +25,14 @@ import java.util.stream.Collectors;
 
 /**
  * Servicio para la gestión de versiones de artículos.
- * Utiliza el patrón State para manejar las transiciones de estado de manera
- * limpia.
+ * 
+ * <p><b>Patrones implementados:</b></p>
+ * <ul>
+ *   <li><b>State Pattern:</b> Manejo de transiciones de estado de versiones</li>
+ *   <li><b>Observer Pattern:</b> Notificación de eventos de versiones</li>
+ * </ul>
+ * 
+ * @see ArticuloEventPublisher
  */
 @Service
 @RequiredArgsConstructor
@@ -37,6 +45,7 @@ public class ArticuloVersionService {
         private final FeedbackArticuloRepository feedbackRepository;
         private final EmpleadoRepository empleadoRepository;
         private final TicketRepository ticketRepository;
+        private final ArticuloEventPublisher eventPublisher; // Observer Pattern
 
         /**
          * Crea una nueva versión de un artículo.
@@ -194,6 +203,9 @@ public class ArticuloVersionService {
                 }
                 articuloRepository.save(articulo);
 
+                // Observer Pattern: Publicar evento de versión publicada
+                eventPublisher.publicar(ArticuloEvent.versionPublicada(articulo, version, null));
+
                 log.info("Artículo ID: {} publicado exitosamente con versión {} (estado: {})",
                                 idArticulo, version.getNumeroVersion(), version.getEstadoPropuesta());
 
@@ -218,6 +230,10 @@ public class ArticuloVersionService {
                 }
 
                 version = versionRepository.save(version);
+
+                // Observer Pattern: Publicar evento de versión propuesta
+                eventPublisher.publicar(ArticuloEvent.versionPropuesta(
+                        version.getArticulo(), version, version.getCreadoPor()));
 
                 log.info("Versión ID: {} propuesta para revisión (estado: {})",
                                 idVersion, version.getEstadoPropuesta());
@@ -254,7 +270,7 @@ public class ArticuloVersionService {
          * Rechaza una versión propuesta.
          * Utiliza el patrón State: PROPUESTO → RECHAZADO
          */
-        public ArticuloVersionResponse rechazarVersion(Integer idVersion) {
+        public ArticuloVersionResponse rechazarVersion(Integer idVersion, String motivo) {
                 log.info("Rechazando versión ID: {}", idVersion);
 
                 ArticuloVersion version = versionRepository.findById(idVersion)
@@ -269,10 +285,21 @@ public class ArticuloVersionService {
 
                 version = versionRepository.save(version);
 
+                // Observer Pattern: Publicar evento de versión rechazada
+                eventPublisher.publicar(ArticuloEvent.versionRechazada(
+                        version.getArticulo(), version, null, motivo));
+
                 log.info("Versión ID: {} rechazada (estado: {})",
                                 idVersion, version.getEstadoPropuesta());
 
                 return mapToResponse(version);
+        }
+
+        /**
+         * Rechaza una versión propuesta (sin motivo - compatibilidad).
+         */
+        public ArticuloVersionResponse rechazarVersion(Integer idVersion) {
+                return rechazarVersion(idVersion, null);
         }
 
         /**

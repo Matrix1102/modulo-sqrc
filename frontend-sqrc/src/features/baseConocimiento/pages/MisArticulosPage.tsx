@@ -10,6 +10,7 @@ import {
   Search,
 } from "lucide-react";
 import { useMisArticulos } from "../hooks/useArticulos";
+import { useBasePath } from "../hooks/useBasePath";
 import { ArticuloColumn } from "../components/ArticuloColumnCard";
 import { useUserId } from "../../../context";
 import type {
@@ -20,6 +21,7 @@ import { mapToArticuloResumen } from "../types/articulo";
 
 export const MisArticulosPage: React.FC = () => {
   const navigate = useNavigate();
+  const { buildPath } = useBasePath();
   const [searchTerm, setSearchTerm] = useState("");
 
   // Obtener el ID del usuario actual desde el contexto de autenticación
@@ -94,14 +96,14 @@ export const MisArticulosPage: React.FC = () => {
   );
 
   const handleNuevoArticulo = useCallback(() => {
-    navigate("/base-conocimiento/crear");
-  }, [navigate]);
+    navigate(buildPath("/crear"));
+  }, [navigate, buildPath]);
 
   const handleArticuloClick = useCallback(
     (articulo: ArticuloResumen) => {
-      navigate(`/base-conocimiento/${articulo.id}`);
+      navigate(buildPath(`/${articulo.id}`));
     },
-    [navigate]
+    [navigate, buildPath]
   );
 
   return (

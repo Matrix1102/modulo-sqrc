@@ -1,11 +1,12 @@
-import React, { useState, useEffect } from "react";
-import { Search, ChevronDown, X } from "lucide-react";
+import React, { useState, useEffect, useCallback } from "react";
+import { Search, ChevronDown, X, Filter, RotateCcw } from "lucide-react";
 import type {
   Etiqueta,
   Visibilidad,
+  TipoCaso,
   BusquedaArticuloRequest,
 } from "../types/articulo";
-import { ETIQUETA_OPTIONS, VISIBILIDAD_OPTIONS } from "../types/articulo";
+import { ETIQUETA_OPTIONS, VISIBILIDAD_OPTIONS, TIPO_CASO_OPTIONS } from "../types/articulo";
 import useDebouncedValue from "../../../components/ui/useDebouncedValue";
 
 interface ArticuloSearchPanelProps {
@@ -13,6 +14,7 @@ interface ArticuloSearchPanelProps {
   onFiltrosChange: (filtros: Partial<BusquedaArticuloRequest>) => void;
   resultados: number;
   loading?: boolean;
+  mostrarFiltrosAvanzados?: boolean;
 }
 
 export const ArticuloSearchPanel: React.FC<ArticuloSearchPanelProps> = ({
@@ -20,9 +22,12 @@ export const ArticuloSearchPanel: React.FC<ArticuloSearchPanelProps> = ({
   onFiltrosChange,
   resultados,
   loading = false,
+  mostrarFiltrosAvanzados = true,
 }) => {
   // Estado local para el input de búsqueda (sin debounce)
   const [searchText, setSearchText] = useState(filtros.texto || "");
+  // Estado para mostrar/ocultar filtros avanzados
+  const [showAdvanced, setShowAdvanced] = useState(false);
 
   // Valor con debounce que dispara la búsqueda
   const debouncedSearchText = useDebouncedValue(searchText, 400);
@@ -46,8 +51,32 @@ export const ArticuloSearchPanel: React.FC<ArticuloSearchPanelProps> = ({
     onFiltrosChange({ texto: undefined });
   };
 
+  // Contar filtros activos
+  const filtrosActivos = [
+    filtros.etiqueta,
+    filtros.visibilidad,
+    filtros.tipoCaso,
+    filtros.soloVigentes,
+    filtros.soloPublicados === false, // Si explícitamente es false
+  ].filter(Boolean).length;
+
+  // Limpiar todos los filtros
+  const handleClearAllFilters = useCallback(() => {
+    setSearchText("");
+    onFiltrosChange({
+      texto: undefined,
+      etiqueta: undefined,
+      visibilidad: undefined,
+      tipoCaso: undefined,
+      soloVigentes: undefined,
+      soloPublicados: true, // Mantener solo publicados por defecto
+      ordenarPor: "actualizadoEn",
+      direccion: "DESC",
+    });
+  }, [onFiltrosChange]);
+
   return (
-    <div className="bg-white rounded-xl border border-gray-100 p-4 mb-6">
+    <div className="bg-white rounded-xl border border-gray-100 p-4 mb-6 shadow-sm">
       {/* Search input */}
       <div className="relative mb-4">
         <Search
@@ -86,6 +115,30 @@ export const ArticuloSearchPanel: React.FC<ArticuloSearchPanelProps> = ({
           >
             <option value="">Todas las categorías</option>
             {ETIQUETA_OPTIONS.map((opt) => (
+              <option key={opt.value} value={opt.value}>
+                {opt.label}
+              </option>
+            ))}
+          </select>
+          <ChevronDown
+            size={16}
+            className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none"
+          />
+        </div>
+
+        {/* Tipo de Caso */}
+        <div className="relative">
+          <select
+            value={filtros.tipoCaso || ""}
+            onChange={(e) =>
+              onFiltrosChange({
+                tipoCaso: (e.target.value as TipoCaso) || undefined,
+              })
+            }
+            className="appearance-none bg-gray-50 border border-gray-200 rounded-lg px-4 py-2 pr-8 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-primary-100 cursor-pointer"
+          >
+            <option value="">Todos los tipos</option>
+            {TIPO_CASO_OPTIONS.map((opt) => (
               <option key={opt.value} value={opt.value}>
                 {opt.label}
               </option>
@@ -138,6 +191,37 @@ export const ArticuloSearchPanel: React.FC<ArticuloSearchPanelProps> = ({
           />
         </div>
 
+        {/* Botón filtros avanzados */}
+        {mostrarFiltrosAvanzados && (
+          <button
+            onClick={() => setShowAdvanced(!showAdvanced)}
+            className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
+              showAdvanced || filtrosActivos > 0
+                ? "bg-primary-100 text-primary-700"
+                : "bg-gray-50 text-gray-600 hover:bg-gray-100"
+            }`}
+          >
+            <Filter size={16} />
+            Más filtros
+            {filtrosActivos > 0 && (
+              <span className="bg-primary-600 text-white text-xs px-1.5 py-0.5 rounded-full">
+                {filtrosActivos}
+              </span>
+            )}
+          </button>
+        )}
+
+        {/* Limpiar filtros */}
+        {(filtrosActivos > 0 || searchText) && (
+          <button
+            onClick={handleClearAllFilters}
+            className="flex items-center gap-1.5 px-3 py-2 text-sm text-gray-500 hover:text-gray-700 transition-colors"
+          >
+            <RotateCcw size={14} />
+            Limpiar
+          </button>
+        )}
+
         {/* Results count */}
         <div className="ml-auto text-sm text-gray-500">
           {loading ? (
@@ -149,6 +233,58 @@ export const ArticuloSearchPanel: React.FC<ArticuloSearchPanelProps> = ({
           )}
         </div>
       </div>
+
+      {/* Filtros avanzados expandibles */}
+      {showAdvanced && mostrarFiltrosAvanzados && (
+        <div className="mt-4 pt-4 border-t border-gray-100">
+          <div className="flex flex-wrap gap-4 items-center">
+            {/* Solo vigentes */}
+            <label className="flex items-center gap-2 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={filtros.soloVigentes || false}
+                onChange={(e) =>
+                  onFiltrosChange({ soloVigentes: e.target.checked || undefined })
+                }
+                className="w-4 h-4 text-primary-600 border-gray-300 rounded focus:ring-primary-500"
+              />
+              <span className="text-sm text-gray-700">Solo vigentes</span>
+            </label>
+
+            {/* Solo publicados */}
+            <label className="flex items-center gap-2 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={filtros.soloPublicados !== false}
+                onChange={(e) =>
+                  onFiltrosChange({ soloPublicados: e.target.checked })
+                }
+                className="w-4 h-4 text-primary-600 border-gray-300 rounded focus:ring-primary-500"
+              />
+              <span className="text-sm text-gray-700">Solo publicados</span>
+            </label>
+
+            {/* Dirección de ordenamiento */}
+            <div className="flex items-center gap-2">
+              <span className="text-sm text-gray-500">Orden:</span>
+              <button
+                onClick={() =>
+                  onFiltrosChange({
+                    direccion: filtros.direccion === "ASC" ? "DESC" : "ASC",
+                  })
+                }
+                className={`px-3 py-1.5 text-sm rounded-lg transition-colors ${
+                  filtros.direccion === "ASC"
+                    ? "bg-primary-100 text-primary-700"
+                    : "bg-gray-100 text-gray-600"
+                }`}
+              >
+                {filtros.direccion === "ASC" ? "↑ Ascendente" : "↓ Descendente"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

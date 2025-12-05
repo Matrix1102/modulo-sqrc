@@ -2,6 +2,7 @@ export { ArticuloCard } from "./ArticuloCard";
 export { ArticuloList } from "./ArticuloList";
 export { ArticuloDetailPanel } from "./ArticuloDetailPanel";
 export { ArticuloSearchPanel } from "./ArticuloSearchPanel";
+export { ActiveFiltersChips } from "./ActiveFiltersChips";
 export { ArticuloColumnCard, ArticuloColumn } from "./ArticuloColumnCard";
 export { ArticuloForm } from "./ArticuloForm";
 export { default as KBLayout } from "./KBLayout";

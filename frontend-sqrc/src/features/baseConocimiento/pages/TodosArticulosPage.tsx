@@ -2,9 +2,11 @@ import React, { useState, useCallback, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { Plus, BookOpen, X } from "lucide-react";
 import { useArticulos, useArticulo } from "../hooks/useArticulos";
+import { useBasePath } from "../hooks/useBasePath";
 import { ArticuloSearchPanel } from "../components/ArticuloSearchPanel";
 import { ArticuloList } from "../components/ArticuloList";
 import { ArticuloDetailPanel } from "../components/ArticuloDetailPanel";
+import { ActiveFiltersChips } from "../components/ActiveFiltersChips";
 import articuloService from "../services/articuloService";
 import { useUserId } from "../../../context";
 import showToast from "../../../services/notification";
@@ -15,6 +17,7 @@ import type {
 
 export const TodosArticulosPage: React.FC = () => {
   const navigate = useNavigate();
+  const { buildPath } = useBasePath();
   const userId = useUserId();
   const [selectedArticuloId, setSelectedArticuloId] = useState<number | null>(
     null
@@ -46,6 +49,19 @@ export const TodosArticulosPage: React.FC = () => {
     []
   );
 
+  // Remover un filtro específico
+  const handleRemoveFilter = useCallback(
+    (key: keyof BusquedaArticuloRequest) => {
+      const resetValue = key === "soloPublicados" ? true : undefined;
+      setFiltros((prev) => ({
+        ...prev,
+        [key]: resetValue,
+        pagina: 0,
+      }));
+    },
+    []
+  );
+
   const handleArticuloClick = useCallback(
     (articulo: ArticuloResumenResponse) => {
       setSelectedArticuloId(articulo.idArticulo);
@@ -59,8 +75,8 @@ export const TodosArticulosPage: React.FC = () => {
   }, []);
 
   const handleNuevoArticulo = useCallback(() => {
-    navigate("/base-conocimiento/crear");
-  }, [navigate]);
+    navigate(buildPath("/crear"));
+  }, [navigate, buildPath]);
 
   const handleFeedback = useCallback(
     async (util: boolean) => {
@@ -141,6 +157,12 @@ export const TodosArticulosPage: React.FC = () => {
               onFiltrosChange={handleFiltrosChange}
               resultados={totalResultados}
               loading={loading}
+            />
+
+            {/* Chips de filtros activos */}
+            <ActiveFiltersChips
+              filtros={filtros}
+              onRemoveFilter={handleRemoveFilter}
             />
 
             {error ? (

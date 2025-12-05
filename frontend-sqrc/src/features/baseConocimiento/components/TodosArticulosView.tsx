@@ -1,7 +1,8 @@
 import React, { useState, useCallback, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
-import { ThumbsUp, ThumbsDown, Eye, ChevronDown } from "lucide-react";
+import { ThumbsUp, ThumbsDown, Eye, ChevronDown, X, Filter, RotateCcw } from "lucide-react";
 import { useArticulos, useArticulo } from "../hooks/useArticulos";
+import { useBasePath } from "../hooks/useBasePath";
 import articuloService from "../services/articuloService";
 import { useUserId } from "../../../context";
 import showToast from "../../../services/notification";
@@ -10,20 +11,33 @@ import BuscadorArticulos from "./BuscadorArticulos";
 import type {
   BusquedaArticuloRequest,
   ArticuloResumenResponse,
+  Etiqueta,
+  TipoCaso,
+  Visibilidad,
 } from "../types/articulo";
-import { VISIBILIDAD_LABELS } from "../types/articulo";
+import { 
+  VISIBILIDAD_LABELS, 
+  ETIQUETA_OPTIONS, 
+  TIPO_CASO_OPTIONS, 
+  VISIBILIDAD_OPTIONS,
+  ETIQUETA_LABELS,
+  TIPO_CASO_LABELS,
+} from "../types/articulo";
 
 const TodosArticulosView: React.FC = () => {
   const navigate = useNavigate();
+  const { buildPath } = useBasePath();
   const userId = useUserId();
+  
   const [selectedArticuloId, setSelectedArticuloId] = useState<number | null>(
     null
   );
   const [showModal, setShowModal] = useState(false);
   const [feedbackGiven, setFeedbackGiven] = useState<boolean | null>(null);
-  const [ordenarPor] = useState("Relevancia");
+  const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
 
-  const [filtros] = useState<BusquedaArticuloRequest>({
+  // Estado de filtros
+  const [filtros, setFiltros] = useState<BusquedaArticuloRequest>({
     soloPublicados: true,
     ordenarPor: "actualizadoEn",
     direccion: "DESC",
@@ -37,6 +51,39 @@ const TodosArticulosView: React.FC = () => {
 
   const articulos = useMemo(() => data?.contenido || [], [data]);
   const totalResultados = data?.totalElementos || 0;
+
+  // Handler para cambiar filtros
+  const handleFiltroChange = useCallback(
+    (key: keyof BusquedaArticuloRequest, value: any) => {
+      setFiltros(prev => ({
+        ...prev,
+        [key]: value || undefined,
+        pagina: 0,
+      }));
+    },
+    []
+  );
+
+  // Limpiar todos los filtros
+  const handleClearFilters = useCallback(() => {
+    setFiltros({
+      soloPublicados: true,
+      ordenarPor: "actualizadoEn",
+      direccion: "DESC",
+      pagina: 0,
+      tamanoPagina: 20,
+    });
+  }, []);
+
+  // Contar filtros activos
+  const activeFiltersCount = useMemo(() => {
+    let count = 0;
+    if (filtros.etiqueta) count++;
+    if (filtros.tipoCaso) count++;
+    if (filtros.visibilidad) count++;
+    if (filtros.soloVigentes) count++;
+    return count;
+  }, [filtros]);
 
   const handleArticuloClick = useCallback(
     (articulo: ArticuloResumenResponse) => {
@@ -53,15 +100,15 @@ const TodosArticulosView: React.FC = () => {
 
   const handleExpand = useCallback(() => {
     if (selectedArticuloId) {
-      navigate(`/base-conocimiento/articulo/${selectedArticuloId}`);
+      navigate(buildPath(`/articulo/${selectedArticuloId}`));
     }
-  }, [selectedArticuloId, navigate]);
+  }, [selectedArticuloId, navigate, buildPath]);
 
   const handleEdit = useCallback(() => {
     if (selectedArticuloId) {
-      navigate(`/base-conocimiento/editar/${selectedArticuloId}`);
+      navigate(buildPath(`/editar/${selectedArticuloId}`));
     }
-  }, [selectedArticuloId, navigate]);
+  }, [selectedArticuloId, navigate, buildPath]);
 
   const handleFeedback = useCallback(
     async (util: boolean) => {
@@ -109,12 +156,12 @@ const TodosArticulosView: React.FC = () => {
   return (
     <div className="flex gap-6 min-h-[600px]">
       {/* Left Panel - Search & Results */}
-      <div className="w-80 shrink-0 flex flex-col">
-        {/* Buscador con sugerencias rankeadas */}
-        <div className="mb-4">
+      <div className="w-96 shrink-0 flex flex-col">
+        {/* Buscador con sugerencias rankeadas por eficacia */}
+        <div className="mb-3">
           <BuscadorArticulos
             placeholder="Buscar por palabras clave..."
-            limite={4}
+            limite={5}
             visibilidad="AGENTE"
             onArticuloSeleccionado={(articulo) => {
               handleArticuloClick(articulo);
@@ -123,20 +170,187 @@ const TodosArticulosView: React.FC = () => {
           />
         </div>
 
-        {/* Results count & Sort */}
-        <div className="flex items-center justify-between mb-4 text-sm">
-          <span className="text-gray-500">
-            {loading
-              ? "Buscando..."
-              : `${totalResultados} resultados encontrados`}
-          </span>
-          <div className="flex items-center gap-1 text-gray-600">
-            <span>Ordenado por:</span>
-            <button className="text-blue-600 font-medium flex items-center gap-1">
-              {ordenarPor}
-              <ChevronDown size={14} />
-            </button>
+        {/* Filter Row */}
+        <div className="flex flex-wrap gap-2 mb-3">
+          {/* Categoría */}
+          <div className="relative">
+            <select
+              value={filtros.etiqueta || ""}
+              onChange={(e) => handleFiltroChange("etiqueta", e.target.value as Etiqueta)}
+              className="appearance-none bg-white border border-gray-200 rounded-lg px-3 py-1.5 pr-7 text-xs text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-100 cursor-pointer"
+            >
+              <option value="">Categoría</option>
+              {ETIQUETA_OPTIONS.map((opt) => (
+                <option key={opt.value} value={opt.value}>
+                  {opt.label}
+                </option>
+              ))}
+            </select>
+            <ChevronDown
+              size={12}
+              className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none"
+            />
           </div>
+
+          {/* Tipo de Caso */}
+          <div className="relative">
+            <select
+              value={filtros.tipoCaso || ""}
+              onChange={(e) => handleFiltroChange("tipoCaso", e.target.value as TipoCaso)}
+              className="appearance-none bg-white border border-gray-200 rounded-lg px-3 py-1.5 pr-7 text-xs text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-100 cursor-pointer"
+            >
+              <option value="">Tipo caso</option>
+              {TIPO_CASO_OPTIONS.map((opt) => (
+                <option key={opt.value} value={opt.value}>
+                  {opt.label}
+                </option>
+              ))}
+            </select>
+            <ChevronDown
+              size={12}
+              className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none"
+            />
+          </div>
+
+          {/* Visibilidad */}
+          <div className="relative">
+            <select
+              value={filtros.visibilidad || ""}
+              onChange={(e) => handleFiltroChange("visibilidad", e.target.value as Visibilidad)}
+              className="appearance-none bg-white border border-gray-200 rounded-lg px-3 py-1.5 pr-7 text-xs text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-100 cursor-pointer"
+            >
+              <option value="">Visibilidad</option>
+              {VISIBILIDAD_OPTIONS.map((opt) => (
+                <option key={opt.value} value={opt.value}>
+                  {opt.label}
+                </option>
+              ))}
+            </select>
+            <ChevronDown
+              size={12}
+              className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none"
+            />
+          </div>
+
+          {/* Más filtros */}
+          <button
+            onClick={() => setShowAdvancedFilters(!showAdvancedFilters)}
+            className={`flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${
+              showAdvancedFilters || activeFiltersCount > 0
+                ? "bg-blue-100 text-blue-700"
+                : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+            }`}
+          >
+            <Filter size={12} />
+            Más
+            {activeFiltersCount > 0 && (
+              <span className="bg-blue-600 text-white text-[10px] px-1.5 py-0.5 rounded-full ml-1">
+                {activeFiltersCount}
+              </span>
+            )}
+          </button>
+
+          {/* Limpiar */}
+          {activeFiltersCount > 0 && (
+            <button
+              onClick={handleClearFilters}
+              className="flex items-center gap-1 px-2 py-1.5 text-xs text-gray-500 hover:text-gray-700"
+            >
+              <RotateCcw size={12} />
+              Limpiar
+            </button>
+          )}
+        </div>
+
+        {/* Advanced Filters Panel */}
+        {showAdvancedFilters && (
+          <div className="bg-gray-50 rounded-lg p-3 mb-3 border border-gray-100">
+            <div className="flex flex-wrap gap-4 items-center">
+              <label className="flex items-center gap-2 cursor-pointer text-xs">
+                <input
+                  type="checkbox"
+                  checked={filtros.soloVigentes || false}
+                  onChange={(e) => handleFiltroChange("soloVigentes", e.target.checked || undefined)}
+                  className="w-3.5 h-3.5 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                />
+                <span className="text-gray-700">Solo vigentes</span>
+              </label>
+
+              <label className="flex items-center gap-2 cursor-pointer text-xs">
+                <input
+                  type="checkbox"
+                  checked={filtros.soloPublicados !== false}
+                  onChange={(e) => handleFiltroChange("soloPublicados", e.target.checked)}
+                  className="w-3.5 h-3.5 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                />
+                <span className="text-gray-700">Solo publicados</span>
+              </label>
+
+              {/* Ordenamiento */}
+              <div className="flex items-center gap-2 ml-auto">
+                <select
+                  value={filtros.ordenarPor || "actualizadoEn"}
+                  onChange={(e) => handleFiltroChange("ordenarPor", e.target.value)}
+                  className="appearance-none bg-white border border-gray-200 rounded px-2 py-1 text-xs"
+                >
+                  <option value="actualizadoEn">Recientes</option>
+                  <option value="titulo">Alfabético</option>
+                  <option value="feedbacksPositivos">Más útiles</option>
+                </select>
+                <button
+                  onClick={() => handleFiltroChange("direccion", filtros.direccion === "ASC" ? "DESC" : "ASC")}
+                  className="px-2 py-1 text-xs bg-white border border-gray-200 rounded hover:bg-gray-50"
+                >
+                  {filtros.direccion === "ASC" ? "↑" : "↓"}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Active Filter Chips */}
+        {(filtros.etiqueta || filtros.tipoCaso || filtros.visibilidad || filtros.soloVigentes) && (
+          <div className="flex flex-wrap gap-1.5 mb-3">
+            {filtros.etiqueta && (
+              <span className="inline-flex items-center gap-1 px-2 py-1 bg-purple-100 text-purple-700 rounded-full text-xs">
+                {ETIQUETA_LABELS[filtros.etiqueta]}
+                <button onClick={() => handleFiltroChange("etiqueta", undefined)} className="hover:opacity-70">
+                  <X size={12} />
+                </button>
+              </span>
+            )}
+            {filtros.tipoCaso && (
+              <span className="inline-flex items-center gap-1 px-2 py-1 bg-orange-100 text-orange-700 rounded-full text-xs">
+                {TIPO_CASO_LABELS[filtros.tipoCaso]}
+                <button onClick={() => handleFiltroChange("tipoCaso", undefined)} className="hover:opacity-70">
+                  <X size={12} />
+                </button>
+              </span>
+            )}
+            {filtros.visibilidad && (
+              <span className="inline-flex items-center gap-1 px-2 py-1 bg-green-100 text-green-700 rounded-full text-xs">
+                {VISIBILIDAD_LABELS[filtros.visibilidad]}
+                <button onClick={() => handleFiltroChange("visibilidad", undefined)} className="hover:opacity-70">
+                  <X size={12} />
+                </button>
+              </span>
+            )}
+            {filtros.soloVigentes && (
+              <span className="inline-flex items-center gap-1 px-2 py-1 bg-teal-100 text-teal-700 rounded-full text-xs">
+                Solo vigentes
+                <button onClick={() => handleFiltroChange("soloVigentes", undefined)} className="hover:opacity-70">
+                  <X size={12} />
+                </button>
+              </span>
+            )}
+          </div>
+        )}
+
+        {/* Results count */}
+        <div className="flex items-center justify-between mb-3 text-xs text-gray-500">
+          <span>
+            {loading ? "Buscando..." : `${totalResultados} resultados`}
+          </span>
         </div>
 
         {/* Results List - Max 3 visible with scroll */}
