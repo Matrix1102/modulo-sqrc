@@ -356,7 +356,7 @@ public class RespuestaService {
         }
 
         String cuerpoEditado = (String) variables.getOrDefault("cuerpo", "");
-        cuerpoEditado = cuerpoEditado.replace("\n", "<br>");
+        cuerpoEditado = cuerpoEditado.replace("\n", "<br />");
 
         String htmlConContenido = htmlLayout.replace("${cuerpo}", cuerpoEditado);
 
