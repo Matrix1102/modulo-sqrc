@@ -23,9 +23,9 @@ import lombok.NoArgsConstructor;
 public class CreateDocumentacionRequest {
 
     /**
-     * ID del ticket al que pertenece la documentación
+     * ID del ticket al que pertenece la documentación.
+     * Se establece automáticamente desde el path del endpoint, no necesita validación @NotNull.
      */
-    @NotNull(message = "El ID del ticket es obligatorio")
     private Long ticketId;
 
     /**

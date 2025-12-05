@@ -107,9 +107,11 @@ export interface DocumentacionDTO {
 }
 
 export interface CreateDocumentacionRequest {
+  ticketId?: number; // Opcional porque el backend lo establece desde el path
   problema: string;
   solucion: string;
   empleadoId: number;
+  articuloKBId?: number; // ID del artículo de base de conocimiento (opcional)
 }
 
 // ==================== Asignaciones ====================
@@ -241,4 +243,18 @@ export interface CorreoDTO {
   empleadoNombre: string;
   empleadoCorreo: string;
   empleadoArea: string;
+}
+
+// ==================== Cierre de Ticket ====================
+
+/**
+ * Respuesta de validación para cerrar ticket.
+ * Indica si el ticket puede cerrarse y el estado de los requisitos.
+ */
+export interface CierreValidacionResponse {
+  puedeCerrar: boolean;
+  tieneRespuestaEnviada: boolean;
+  tieneDocumentacion: boolean;
+  estadoTicket: EstadoTicket;
+  mensaje: string;
 }

@@ -3,6 +3,7 @@
  * Permite documentar la problemática y solución con artículos de base de conocimiento
  */
 import React, { useState } from 'react';
+import { useUserId } from '../../../../context';
 import type { DocumentacionDTO, CreateDocumentacionRequest } from '../../types';
 
 interface DocumentacionTabProps {
@@ -16,6 +17,7 @@ export const DocumentacionTab: React.FC<DocumentacionTabProps> = ({
   onAddDocumentacion,
   loading = false,
 }) => {
+  const empleadoId = useUserId();
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [problema, setProblema] = useState('');
   const [solucion, setSolucion] = useState('');
@@ -48,7 +50,7 @@ export const DocumentacionTab: React.FC<DocumentacionTabProps> = ({
       await onAddDocumentacion({
         problema,
         solucion,
-        empleadoId: 6, // TODO: Obtener del contexto de usuario autenticado
+        empleadoId, // ID del usuario autenticado
       });
       
       // Limpiar formulario

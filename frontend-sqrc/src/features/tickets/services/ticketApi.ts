@@ -14,6 +14,7 @@ import type {
   TicketFilter,
   ClienteDTO,
   CorreoDTO,
+  CierreValidacionResponse,
 } from '../types';
 
 const TICKETS_ENDPOINT = '/api/tickets';
@@ -81,6 +82,15 @@ export async function cerrarTicket(ticketId: number, empleadoId: number): Promis
   await http.post(`${TICKETS_ENDPOINT}/${ticketId}/cerrar`, null, {
     params: { empleadoId },
   });
+}
+
+/**
+ * Verifica si un ticket puede ser cerrado.
+ * Retorna el estado de los requisitos (respuesta enviada, documentación).
+ */
+export async function verificarCierre(ticketId: number): Promise<CierreValidacionResponse> {
+  const response = await http.get<CierreValidacionResponse>(`${TICKETS_ENDPOINT}/${ticketId}/puede-cerrar`);
+  return response.data;
 }
 
 // ==================== Documentación ====================
@@ -157,6 +167,7 @@ export const ticketApi = {
   escalarTicket,
   derivarTicket,
   cerrarTicket,
+  verificarCierre,
   getDocumentacion,
   addDocumentacion,
   getAsignaciones,

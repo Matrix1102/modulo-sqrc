@@ -242,7 +242,27 @@ public class TicketGestionController {
     }
 
     /**
+     * Valida si un ticket puede ser cerrado.
+     * Verifica que exista respuesta enviada y documentación.
+     * 
+     * @param id ID del ticket
+     * @return CierreValidacionResponse con el estado de validación
+     */
+    @GetMapping("/{id}/puede-cerrar")
+    public ResponseEntity<CierreValidacionResponse> validarCierre(@PathVariable Long id) {
+        log.info("GET /api/tickets/{}/puede-cerrar - Validando requisitos de cierre", id);
+        
+        CierreValidacionResponse response = ticketGestionService.validarCierre(id);
+        
+        return ResponseEntity.ok(response);
+    }
+
+    /**
      * Cierra un ticket.
+     * Requisitos:
+     * - El ticket no debe estar ya cerrado
+     * - Debe existir respuesta enviada al cliente
+     * - Debe existir documentación del caso
      * 
      * @param id ID del ticket
      * @param empleadoId ID del empleado que cierra

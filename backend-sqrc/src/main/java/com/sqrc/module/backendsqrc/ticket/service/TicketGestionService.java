@@ -69,6 +69,10 @@ public class TicketGestionService {
 
     private final RespuestaService respuestaService;
 
+    // Dependencias para validación de cierre
+    private final DocumentacionRepository documentacionRepository;
+    private final com.sqrc.module.backendsqrc.plantillaRespuesta.Repository.RespuestaRepository respuestaRepository;
+
     // ==================== CREAR TICKET ====================
 
     /**
@@ -560,6 +564,11 @@ public class TicketGestionService {
      * Cierra un ticket directamente.
      * Implementa el patrón Observer: al cerrar, crea una encuesta y publica TicketClosedEvent.
      * 
+     * Requisitos previos:
+     * - El ticket no debe estar ya cerrado
+     * - Debe existir al menos una respuesta enviada al cliente
+     * - Debe existir documentación del caso
+     * 
      * @param ticketId ID del ticket
      * @param empleadoId ID del empleado que cierra
      * @return TicketOperationResponse con el resultado
@@ -573,6 +582,17 @@ public class TicketGestionService {
 
         if (!transitionValidator.puedeCerrar(ticket.getEstado())) {
             throw new InvalidStateTransitionException("El ticket ya está cerrado");
+        }
+
+        // Validar requisitos de cierre
+        boolean tieneRespuesta = respuestaRepository.existsByTicketId(ticketId);
+        if (!tieneRespuesta) {
+            throw new InvalidStateTransitionException("No se puede cerrar el ticket: falta enviar respuesta al cliente");
+        }
+
+        boolean tieneDocumentacion = documentacionRepository.findByTicketId(ticketId).isPresent();
+        if (!tieneDocumentacion) {
+            throw new InvalidStateTransitionException("No se puede cerrar el ticket: falta documentar el caso");
         }
 
         // Finalizar asignación activa
@@ -613,6 +633,59 @@ public class TicketGestionService {
                 .fechaOperacion(LocalDateTime.now())
                 .mensaje("Ticket cerrado exitosamente" + (encuestaId != null ? ". Encuesta enviada." : ""))
                 .exitoso(true)
+                .build();
+    }
+
+    /**
+     * Valida si un ticket puede ser cerrado.
+     * Requisitos:
+     * 1. El ticket no debe estar ya cerrado
+     * 2. Debe existir al menos una respuesta enviada al cliente
+     * 3. Debe existir documentación para la asignación actual
+     * 
+     * @param ticketId ID del ticket a validar
+     * @return CierreValidacionResponse con el estado de validación
+     */
+    public CierreValidacionResponse validarCierre(Long ticketId) {
+        log.info("Validando cierre para ticket {}", ticketId);
+
+        Ticket ticket = ticketRepository.findById(ticketId)
+                .orElseThrow(() -> new TicketNotFoundException(ticketId));
+
+        // 1. Verificar estado del ticket
+        boolean estadoPermiteCerrar = transitionValidator.puedeCerrar(ticket.getEstado());
+
+        // 2. Verificar si existe respuesta enviada al cliente
+        boolean tieneRespuestaEnviada = respuestaRepository.existsByTicketId(ticketId);
+
+        // 3. Verificar si existe documentación
+        boolean tieneDocumentacion = documentacionRepository.findByTicketId(ticketId).isPresent();
+
+        // Determinar si puede cerrar
+        boolean puedeCerrar = estadoPermiteCerrar && tieneRespuestaEnviada && tieneDocumentacion;
+
+        // Construir mensaje descriptivo
+        StringBuilder mensaje = new StringBuilder();
+        if (!estadoPermiteCerrar) {
+            mensaje.append("El ticket ya está cerrado. ");
+        } else {
+            if (!tieneRespuestaEnviada) {
+                mensaje.append("Falta enviar respuesta al cliente. ");
+            }
+            if (!tieneDocumentacion) {
+                mensaje.append("Falta documentar el caso. ");
+            }
+            if (puedeCerrar) {
+                mensaje.append("El ticket está listo para cerrarse.");
+            }
+        }
+
+        return CierreValidacionResponse.builder()
+                .puedeCerrar(puedeCerrar)
+                .tieneRespuestaEnviada(tieneRespuestaEnviada)
+                .tieneDocumentacion(tieneDocumentacion)
+                .estadoTicket(ticket.getEstado().name())
+                .mensaje(mensaje.toString().trim())
                 .build();
     }
 
