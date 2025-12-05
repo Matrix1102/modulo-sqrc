@@ -128,6 +128,14 @@ public class ReporteService {
         // 1. Traer los datos diarios de todos los agentes en el rango (con JOIN FETCH para cargar nombres)
         List<KpiRendimientoAgenteDiario> datosDiarios = agentesRepo.findByFechaBetweenWithAgente(start, end);
 
+        // Si no hay autenticación, por simplicidad mostramos solo los agentes del supervisor con id=1
+        // (Requerimiento temporal según decisión del equipo)
+        Long defaultSupervisorId = 1L;
+        datosDiarios = datosDiarios.stream()
+            .filter(k -> k.getAgente() != null && k.getAgente().getSupervisor() != null
+                && defaultSupervisorId.equals(k.getAgente().getSupervisor().getIdEmpleado()))
+            .collect(Collectors.toList());
+
         // 2. Agrupar por ID de Agente para sumarizar sus estadísticas
         // (Un agente tiene N registros, uno por día)
         Map<Long, List<KpiRendimientoAgenteDiario>> porAgente = datosDiarios.stream()
