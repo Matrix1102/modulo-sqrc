@@ -32,26 +32,30 @@ public class DashboardBuilderImpl implements DashboardBuilder {
 
     @Override
     public void construirKpisGlobales(List<KpiResumenDiario> resumenes) {
-        // Lógica simple: Sumar los totales de los días consultados
-        int totalCasos = resumenes.stream()
-                .mapToInt(KpiResumenDiario::getTotalCasosCreados)
-                .sum();
+        // totalCasos will be computed from the derived porTipoGlobal (the values we display)
+        int totalCasos;
         // Agrupar por TipoCaso de forma global y por canal para permitir desglose por canal
-        Map<String, Integer> porTipoGlobal = resumenes.stream()
-                .collect(Collectors.groupingBy(
-                        r -> r.getTipoCaso() != null ? r.getTipoCaso().name() : "UNKNOWN",
-                        Collectors.summingInt(KpiResumenDiario::getTotalCasosCreados)
-                ));
-
-        // Agrupar por canal -> tipo -> suma
+        // Agrupar por canal -> tipo -> suma (primero filtramos tipos nulos para que no aparezca "Sin tipo")
+        // Exclude rows with null canal or canal == 'GLOBAL' from per-channel grouping
+        // We'll derive the GLOBAL bucket by summing the real channels (PRESENCIAL, LLAMADA, ...)
         Map<String, Map<String, Integer>> porCanalTipo = resumenes.stream()
+                .filter(r -> r.getTipoCaso() != null && r.getCanal() != null && !"GLOBAL".equalsIgnoreCase(r.getCanal()))
                 .collect(Collectors.groupingBy(
-                        r -> r.getCanal() != null ? r.getCanal().toUpperCase() : "GLOBAL",
+                        r -> r.getCanal().toUpperCase(),
                         Collectors.groupingBy(
-                                r -> r.getTipoCaso() != null ? r.getTipoCaso().name() : "UNKNOWN",
+                                r -> mapTipoLabel(r.getTipoCaso().name()),
                                 Collectors.summingInt(KpiResumenDiario::getTotalCasosCreados)
                         )
                 ));
+
+                // Derivar porTipoGlobal sumando los valores por canal para evitar discrepancias
+        Map<String, Integer> porTipoGlobal = new java.util.HashMap<>();
+        porCanalTipo.values().forEach(mapTipo -> {
+            mapTipo.forEach((tipo, cantidad) -> porTipoGlobal.merge(tipo, cantidad, Integer::sum));
+        });
+
+                // Compute totalCasos as the sum of the displayed global breakdown
+                totalCasos = porTipoGlobal.values().stream().mapToInt(Integer::intValue).sum();
 
         java.util.Map<String, List<DashboardKpisDTO.DesgloseTipoDTO>> desglosePorCanal = new java.util.HashMap<>();
 
@@ -59,27 +63,32 @@ public class DashboardBuilderImpl implements DashboardBuilder {
                 List<DashboardKpisDTO.DesgloseTipoDTO> globalList = new ArrayList<>();
                 porTipoGlobal.forEach((tipo, cantidad) -> globalList.add(DashboardKpisDTO.DesgloseTipoDTO.builder().tipo(tipo).cantidad(cantidad).build()));
 
-                // Ensure common categories are present globally
-                if (globalList.stream().noneMatch(d -> d.getTipo() != null && d.getTipo().toLowerCase().contains("solic"))) {
-                        globalList.add(DashboardKpisDTO.DesgloseTipoDTO.builder().tipo("Solicitudes").cantidad(0).build());
-                }
-                if (globalList.stream().noneMatch(d -> d.getTipo() != null && d.getTipo().toLowerCase().contains("consult"))) {
-                        globalList.add(DashboardKpisDTO.DesgloseTipoDTO.builder().tipo("Consultas").cantidad(0).build());
-                }
+                                // Ensure common categories are present globally (add missing with 0)
+                                java.util.List<String> expectedTipos = java.util.Arrays.asList("Solicitudes", "Consultas", "Quejas", "Reclamos");
+                                for (String tipoEsperado : expectedTipos) {
+                                        if (globalList.stream().noneMatch(d -> d.getTipo() != null && d.getTipo().equalsIgnoreCase(tipoEsperado))) {
+                                                globalList.add(DashboardKpisDTO.DesgloseTipoDTO.builder().tipo(tipoEsperado).cantidad(0).build());
+                                        }
+                                }
 
-                desglosePorCanal.put("GLOBAL", globalList);
+                                desglosePorCanal.put("GLOBAL", globalList);
 
                 // Per-canal breakdowns
+                // Ensure expected channels exist even if absent in the KPI rows
+                java.util.List<String> expectedCanales = java.util.Arrays.asList("PRESENCIAL", "LLAMADA");
+                for (String c : expectedCanales) {
+                    porCanalTipo.putIfAbsent(c, new java.util.HashMap<>());
+                }
+
                 porCanalTipo.forEach((canal, mapTipo) -> {
                         List<DashboardKpisDTO.DesgloseTipoDTO> lst = new ArrayList<>();
                         mapTipo.forEach((tipo, cantidad) -> lst.add(DashboardKpisDTO.DesgloseTipoDTO.builder().tipo(tipo).cantidad(cantidad).build()));
 
-                        // Ensure Solicitudes and Consultas appear for each canal even if 0
-                        if (lst.stream().noneMatch(d -> d.getTipo() != null && d.getTipo().toLowerCase().contains("solic"))) {
-                                lst.add(DashboardKpisDTO.DesgloseTipoDTO.builder().tipo("Solicitudes").cantidad(0).build());
-                        }
-                        if (lst.stream().noneMatch(d -> d.getTipo() != null && d.getTipo().toLowerCase().contains("consult"))) {
-                                lst.add(DashboardKpisDTO.DesgloseTipoDTO.builder().tipo("Consultas").cantidad(0).build());
+                        // Ensure common categories appear for each canal even if 0
+                        for (String tipoEsperado : expectedTipos) {
+                            if (lst.stream().noneMatch(d -> d.getTipo() != null && d.getTipo().equalsIgnoreCase(tipoEsperado))) {
+                                lst.add(DashboardKpisDTO.DesgloseTipoDTO.builder().tipo(tipoEsperado).cantidad(0).build());
+                            }
                         }
 
                         desglosePorCanal.put(canal, lst);
@@ -91,18 +100,46 @@ public class DashboardBuilderImpl implements DashboardBuilder {
                 .build());
     }
 
+        // Helper to map raw tipo codes to presentation labels
+        private String mapTipoLabel(String raw) {
+                if (raw == null) return "Sin tipo";
+                String key = raw.trim().toUpperCase();
+                switch (key) {
+                        case "SOLICITUD":
+                        case "SOLICITUDES":
+                                return "Solicitudes";
+                        case "CONSULTA":
+                        case "CONSULTAS":
+                                return "Consultas";
+                        case "QUEJA":
+                        case "QUEJAS":
+                                return "Quejas";
+                        case "RECLAMO":
+                        case "RECLAMOS":
+                                return "Reclamos";
+                        default:
+                                // Capitalize first letter and lowercase the rest for unknown types
+                                String lower = raw.toLowerCase();
+                                return Character.toUpperCase(lower.charAt(0)) + lower.substring(1);
+                }
+        }
+
     @Override
     public void construirResumenOperativo(List<KpiResumenDiario> resumenes, List<KpiTiemposResolucion> tiempos,
                                           List<KpiResumenDiario> resumenesAnterior, List<KpiTiemposResolucion> tiemposAnterior) {
         // ========== PERÍODO ACTUAL ==========
+        // Exclude KPI rows with canal == 'GLOBAL' or null when building per-canal summaries
         Map<String, Integer> totalCreadosPorCanal = resumenes.stream()
-                .collect(Collectors.groupingBy(r -> r.getCanal() != null ? r.getCanal().toUpperCase() : "OTRO", Collectors.summingInt(KpiResumenDiario::getTotalCasosCreados)));
+                .filter(r -> r.getCanal() != null && !"GLOBAL".equalsIgnoreCase(r.getCanal()))
+                .collect(Collectors.groupingBy(r -> r.getCanal().toUpperCase(), Collectors.summingInt(KpiResumenDiario::getTotalCasosCreados)));
 
         Map<String, Integer> totalResueltosPorCanal = resumenes.stream()
-                .collect(Collectors.groupingBy(r -> r.getCanal() != null ? r.getCanal().toUpperCase() : "OTRO", Collectors.summingInt(KpiResumenDiario::getTotalCasosResueltos)));
+                .filter(r -> r.getCanal() != null && !"GLOBAL".equalsIgnoreCase(r.getCanal()))
+                .collect(Collectors.groupingBy(r -> r.getCanal().toUpperCase(), Collectors.summingInt(KpiResumenDiario::getTotalCasosResueltos)));
 
         Map<String, Double> tiempoPromedioPorCanal = tiempos.stream()
-                .collect(Collectors.groupingBy(r -> r.getCanal() != null ? r.getCanal().toUpperCase() : "OTRO", Collectors.averagingDouble(KpiTiemposResolucion::getTiempoPromedioResolucionTotalMin)));
+                .filter(r -> r.getCanal() != null && !"GLOBAL".equalsIgnoreCase(r.getCanal()))
+                .collect(Collectors.groupingBy(r -> r.getCanal().toUpperCase(), Collectors.averagingDouble(KpiTiemposResolucion::getTiempoPromedioResolucionTotalMin)));
 
         // ========== PERÍODO ANTERIOR (para comparación) ==========
         Map<String, Integer> totalCreadosAnteriorPorCanal = resumenesAnterior.stream()
@@ -117,11 +154,10 @@ public class DashboardBuilderImpl implements DashboardBuilder {
         java.util.Map<String, DashboardKpisDTO.KpisResumenDTO> resumenMap = new java.util.HashMap<>();
 
         // ========== GLOBAL ACTUAL ==========
+        // Derive GLOBAL metrics by summing the per-channel results (avoids relying on precomputed GLOBAL rows)
         int totalCreadosGlobal = totalCreadosPorCanal.values().stream().mapToInt(Integer::intValue).sum();
         int totalResueltosGlobal = totalResueltosPorCanal.values().stream().mapToInt(Integer::intValue).sum();
-        double tiempoPromedioGlobal = tiempos.stream()
-                .mapToDouble(KpiTiemposResolucion::getTiempoPromedioResolucionTotalMin)
-                .average().orElse(0.0);
+        double tiempoPromedioGlobal = tiempoPromedioPorCanal.values().stream().mapToDouble(Double::doubleValue).average().orElse(0.0);
 
         // ========== GLOBAL ANTERIOR ==========
         int totalCreadosGlobalAnterior = totalCreadosAnteriorPorCanal.values().stream().mapToInt(Integer::intValue).sum();
@@ -145,6 +181,9 @@ public class DashboardBuilderImpl implements DashboardBuilder {
         canales.addAll(totalCreadosPorCanal.keySet());
         canales.addAll(totalResueltosPorCanal.keySet());
         canales.addAll(tiempoPromedioPorCanal.keySet());
+        // Ensure expected channels exist
+        canales.add("LLAMADA");
+        canales.add("PRESENCIAL");
 
         for (String canal : canales) {
             int creados = totalCreadosPorCanal.getOrDefault(canal, 0);

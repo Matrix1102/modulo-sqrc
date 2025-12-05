@@ -41,14 +41,56 @@ public class ReporteService {
      */
     @Transactional(readOnly = true)
     public DashboardKpisDTO generarDashboard(LocalDate start, LocalDate end) {
-        // A. Validar fechas (por defecto últimos 30 días si vienen nulas)
-        if (start == null) start = LocalDate.now().minusDays(30);
-        if (end == null) end = LocalDate.now();
+        // A. Validar fechas y determinar comportamiento por defecto
+        LocalDate hoy = LocalDate.now();
 
-        // B. Calcular el período anterior (mismo rango de días pero hacia atrás)
-        long diasEnRango = java.time.temporal.ChronoUnit.DAYS.between(start, end) + 1;
-        LocalDate startAnterior = start.minusDays(diasEnRango);
-        LocalDate endAnterior = start.minusDays(1);
+        // Si no vienen fechas: por defecto traer sólo HOY y comparar con AYER
+        if (start == null && end == null) {
+            start = hoy;
+            end = hoy;
+        }
+
+        // Normalize: si solo falta start o end, tratamos como rango puntual
+        if (start == null && end != null) {
+            start = end;
+        }
+        if (end == null && start != null) {
+            end = start;
+        }
+
+        // B. Determinar período anterior según reglas solicitadas:
+        // - Si el rango es exactamente HOY -> comparar con AYER
+        // - Si el rango cubre desde inicio de la semana actual hasta hoy ("esta semana") -> comparar con semana anterior
+        // - Si el rango cubre desde primer día del mes actual hasta hoy ("este mes") -> comparar con mes anterior
+        // - En cualquier otro caso (rango personalizado) -> comparar con periodo anterior de igual duración
+
+        LocalDate startAnterior;
+        LocalDate endAnterior;
+
+        LocalDate inicioSemanaActual = hoy.with(java.time.DayOfWeek.MONDAY);
+        LocalDate primerDiaMesActual = hoy.withDayOfMonth(1);
+
+        boolean isHoy = start.equals(hoy) && end.equals(hoy);
+        boolean isEstaSemana = start.equals(inicioSemanaActual) && (end.equals(hoy) || end.equals(inicioSemanaActual.plusDays(6)));
+        boolean isEsteMes = start.equals(primerDiaMesActual) && (end.equals(hoy) || end.equals(primerDiaMesActual.withDayOfMonth(primerDiaMesActual.lengthOfMonth())));
+
+        if (isHoy) {
+            startAnterior = hoy.minusDays(1);
+            endAnterior = hoy.minusDays(1);
+        } else if (isEstaSemana) {
+            startAnterior = start.minusWeeks(1);
+            endAnterior = end.minusWeeks(1);
+        } else if (isEsteMes) {
+            // Periodo: mes completo anterior
+            LocalDate primerDiaMesPrev = primerDiaMesActual.minusMonths(1).withDayOfMonth(1);
+            LocalDate ultimoDiaMesPrev = primerDiaMesActual.minusMonths(1).withDayOfMonth(primerDiaMesActual.minusMonths(1).lengthOfMonth());
+            startAnterior = primerDiaMesPrev;
+            endAnterior = ultimoDiaMesPrev;
+        } else {
+            long diasEnRango = java.time.temporal.ChronoUnit.DAYS.between(start, end) + 1;
+            startAnterior = start.minusDays(diasEnRango);
+            endAnterior = start.minusDays(1);
+        }
 
         // C. Obtener datos del período actual
         List<KpiResumenDiario> resumenes = resumenRepo.findByFechaBetween(start, end);

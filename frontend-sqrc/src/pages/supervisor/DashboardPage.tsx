@@ -71,6 +71,59 @@ export default function DashboardPage() {
 
   const uiLoading = loading || Boolean(error);
 
+  // Helper to build progress props for metric cards
+  const buildProgress = (kind: "abiertos" | "resueltos") => {
+    const resumen = kpis.kpisResumen?.[cardChannels[kind === "abiertos" ? "abiertos" : "resueltos"]];
+    const key = kind === "abiertos" ? "ticketsAbiertos" : "ticketsResueltos";
+    const item = resumen?.[key];
+
+    // comparativo absolute and percent
+    const compAbs = item?.comparativoPeriodo ?? null;
+    const compPct = item?.comparativoPeriodo_pct ?? null;
+
+    // rawPercent is the real percent we want to show (may be >100)
+    const rawPercent = compPct ?? (kpis.kpisGlobales?.totalCasos && Number(item?.valor) > 0
+      ? (Number(item?.valor) / kpis.kpisGlobales.totalCasos) * 100
+      : 0);
+
+    // Determine color rules:
+    // - Tickets Abiertos: increase is BAD -> red when comp > 0, green when comp < 0
+    // - Tickets Resueltos: increase is GOOD -> green when comp > 0, red when comp < 0
+    let textColor = "text-gray-600";
+    let barColor = "bg-gray-400";
+    // Determine sign from absolute comparativo if available; otherwise unknown (0)
+    const sign = compAbs === null ? 0 : (compAbs > 0 ? 1 : compAbs < 0 ? -1 : 0);
+
+    if (kind === "abiertos") {
+      if (sign > 0) {
+        textColor = "text-red-600";
+        barColor = "bg-red-500";
+      } else if (sign < 0) {
+        textColor = "text-green-600";
+        barColor = "bg-green-500";
+      }
+    } else {
+      // resueltos
+      if (sign > 0) {
+        textColor = "text-green-600";
+        barColor = "bg-green-500";
+      } else if (sign < 0) {
+        textColor = "text-red-600";
+        barColor = "bg-red-500";
+      }
+    }
+
+    return {
+      // bar shows capped magnitude (0..100)
+      value: Math.min(Math.max(Math.abs(rawPercent), 0), 100),
+      // show only the numeric change label in the card (e.g. "+43 tickets")
+      valueText: "tickets",
+      color: textColor,
+      barColor: barColor,
+      label: compAbs === null || compAbs === undefined ? "" : (compAbs > 0 ? "+" : "") + compAbs.toString(),
+    };
+  };
+
   return (
     <div className="space-y-6">
       {error && (
@@ -119,36 +172,7 @@ export default function DashboardPage() {
               }}
             />
           )}
-          progress={{
-            value:
-              kpis.kpisResumen?.[cardChannels.abiertos]?.ticketsAbiertos
-                ?.comparativoPeriodo_pct ??
-              // derive a percent from totalCasos if pct not provided
-              (kpis.kpisGlobales?.totalCasos &&
-              Number(
-                kpis.kpisResumen?.[cardChannels.abiertos]?.ticketsAbiertos
-                  ?.valor
-              ) > 0
-                ? Math.round(
-                    (Number(
-                      kpis.kpisResumen?.[cardChannels.abiertos]?.ticketsAbiertos
-                        ?.valor
-                    ) /
-                      kpis.kpisGlobales!.totalCasos) *
-                      100
-                  )
-                : 0),
-            valueText: "tickets",
-            color: "text-red-600",
-            barColor: "bg-red-500",
-            label: (() => {
-              const comp =
-                kpis.kpisResumen?.[cardChannels.abiertos]?.ticketsAbiertos
-                  ?.comparativoPeriodo;
-              if (comp === null || comp === undefined) return "";
-              return (comp > 0 ? "+" : "") + comp.toString();
-            })(),
-          }}
+          progress={buildProgress("abiertos")}
         />
 
         <MetricCard
@@ -169,35 +193,7 @@ export default function DashboardPage() {
               }}
             />
           )}
-          progress={{
-            value:
-              kpis.kpisResumen?.[cardChannels.resueltos]?.ticketsResueltos
-                ?.comparativoPeriodo_pct ??
-              (kpis.kpisGlobales?.totalCasos &&
-              Number(
-                kpis.kpisResumen?.[cardChannels.resueltos]?.ticketsResueltos
-                  ?.valor
-              ) > 0
-                ? Math.round(
-                    (Number(
-                      kpis.kpisResumen?.[cardChannels.resueltos]
-                        ?.ticketsResueltos?.valor
-                    ) /
-                      kpis.kpisGlobales!.totalCasos) *
-                      100
-                  )
-                : 0),
-            valueText: "tickets",
-            color: "text-success-600",
-            barColor: "bg-success-500",
-            label: (() => {
-              const comp =
-                kpis.kpisResumen?.[cardChannels.resueltos]?.ticketsResueltos
-                  ?.comparativoPeriodo;
-              if (comp === null || comp === undefined) return "";
-              return (comp > 0 ? "+" : "") + comp.toString();
-            })(),
-          }}
+          progress={buildProgress("resueltos")}
         />
 
         <MetricCard
