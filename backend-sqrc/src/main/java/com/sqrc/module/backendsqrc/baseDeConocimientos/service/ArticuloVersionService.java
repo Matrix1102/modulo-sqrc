@@ -26,10 +26,12 @@ import java.util.stream.Collectors;
 /**
  * Servicio para la gestión de versiones de artículos.
  * 
- * <p><b>Patrones implementados:</b></p>
+ * <p>
+ * <b>Patrones implementados:</b>
+ * </p>
  * <ul>
- *   <li><b>State Pattern:</b> Manejo de transiciones de estado de versiones</li>
- *   <li><b>Observer Pattern:</b> Notificación de eventos de versiones</li>
+ * <li><b>State Pattern:</b> Manejo de transiciones de estado de versiones</li>
+ * <li><b>Observer Pattern:</b> Notificación de eventos de versiones</li>
  * </ul>
  * 
  * @see ArticuloEventPublisher
@@ -233,7 +235,7 @@ public class ArticuloVersionService {
 
                 // Observer Pattern: Publicar evento de versión propuesta
                 eventPublisher.publicar(ArticuloEvent.versionPropuesta(
-                        version.getArticulo(), version, version.getCreadoPor()));
+                                version.getArticulo(), version, version.getCreadoPor()));
 
                 log.info("Versión ID: {} propuesta para revisión (estado: {})",
                                 idVersion, version.getEstadoPropuesta());
@@ -287,7 +289,7 @@ public class ArticuloVersionService {
 
                 // Observer Pattern: Publicar evento de versión rechazada
                 eventPublisher.publicar(ArticuloEvent.versionRechazada(
-                        version.getArticulo(), version, null, motivo));
+                                version.getArticulo(), version, null, motivo));
 
                 log.info("Versión ID: {} rechazada (estado: {})",
                                 idVersion, version.getEstadoPropuesta());

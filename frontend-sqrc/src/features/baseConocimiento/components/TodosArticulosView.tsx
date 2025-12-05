@@ -1,6 +1,14 @@
 import React, { useState, useCallback, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
-import { ThumbsUp, ThumbsDown, Eye, ChevronDown, X, Filter, RotateCcw } from "lucide-react";
+import {
+  ThumbsUp,
+  ThumbsDown,
+  Eye,
+  ChevronDown,
+  X,
+  Filter,
+  RotateCcw,
+} from "lucide-react";
 import { useArticulos, useArticulo } from "../hooks/useArticulos";
 import { useBasePath } from "../hooks/useBasePath";
 import articuloService from "../services/articuloService";
@@ -15,10 +23,10 @@ import type {
   TipoCaso,
   Visibilidad,
 } from "../types/articulo";
-import { 
-  VISIBILIDAD_LABELS, 
-  ETIQUETA_OPTIONS, 
-  TIPO_CASO_OPTIONS, 
+import {
+  VISIBILIDAD_LABELS,
+  ETIQUETA_OPTIONS,
+  TIPO_CASO_OPTIONS,
   VISIBILIDAD_OPTIONS,
   ETIQUETA_LABELS,
   TIPO_CASO_LABELS,
@@ -28,7 +36,7 @@ const TodosArticulosView: React.FC = () => {
   const navigate = useNavigate();
   const { buildPath } = useBasePath();
   const userId = useUserId();
-  
+
   const [selectedArticuloId, setSelectedArticuloId] = useState<number | null>(
     null
   );
@@ -55,7 +63,7 @@ const TodosArticulosView: React.FC = () => {
   // Handler para cambiar filtros
   const handleFiltroChange = useCallback(
     (key: keyof BusquedaArticuloRequest, value: any) => {
-      setFiltros(prev => ({
+      setFiltros((prev) => ({
         ...prev,
         [key]: value || undefined,
         pagina: 0,
@@ -176,7 +184,9 @@ const TodosArticulosView: React.FC = () => {
           <div className="relative">
             <select
               value={filtros.etiqueta || ""}
-              onChange={(e) => handleFiltroChange("etiqueta", e.target.value as Etiqueta)}
+              onChange={(e) =>
+                handleFiltroChange("etiqueta", e.target.value as Etiqueta)
+              }
               className="appearance-none bg-white border border-gray-200 rounded-lg px-3 py-1.5 pr-7 text-xs text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-100 cursor-pointer"
             >
               <option value="">Categoría</option>
@@ -196,7 +206,9 @@ const TodosArticulosView: React.FC = () => {
           <div className="relative">
             <select
               value={filtros.tipoCaso || ""}
-              onChange={(e) => handleFiltroChange("tipoCaso", e.target.value as TipoCaso)}
+              onChange={(e) =>
+                handleFiltroChange("tipoCaso", e.target.value as TipoCaso)
+              }
               className="appearance-none bg-white border border-gray-200 rounded-lg px-3 py-1.5 pr-7 text-xs text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-100 cursor-pointer"
             >
               <option value="">Tipo caso</option>
@@ -216,7 +228,9 @@ const TodosArticulosView: React.FC = () => {
           <div className="relative">
             <select
               value={filtros.visibilidad || ""}
-              onChange={(e) => handleFiltroChange("visibilidad", e.target.value as Visibilidad)}
+              onChange={(e) =>
+                handleFiltroChange("visibilidad", e.target.value as Visibilidad)
+              }
               className="appearance-none bg-white border border-gray-200 rounded-lg px-3 py-1.5 pr-7 text-xs text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-100 cursor-pointer"
             >
               <option value="">Visibilidad</option>
@@ -270,7 +284,12 @@ const TodosArticulosView: React.FC = () => {
                 <input
                   type="checkbox"
                   checked={filtros.soloVigentes || false}
-                  onChange={(e) => handleFiltroChange("soloVigentes", e.target.checked || undefined)}
+                  onChange={(e) =>
+                    handleFiltroChange(
+                      "soloVigentes",
+                      e.target.checked || undefined
+                    )
+                  }
                   className="w-3.5 h-3.5 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
                 />
                 <span className="text-gray-700">Solo vigentes</span>
@@ -280,7 +299,9 @@ const TodosArticulosView: React.FC = () => {
                 <input
                   type="checkbox"
                   checked={filtros.soloPublicados !== false}
-                  onChange={(e) => handleFiltroChange("soloPublicados", e.target.checked)}
+                  onChange={(e) =>
+                    handleFiltroChange("soloPublicados", e.target.checked)
+                  }
                   className="w-3.5 h-3.5 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
                 />
                 <span className="text-gray-700">Solo publicados</span>
@@ -290,7 +311,9 @@ const TodosArticulosView: React.FC = () => {
               <div className="flex items-center gap-2 ml-auto">
                 <select
                   value={filtros.ordenarPor || "actualizadoEn"}
-                  onChange={(e) => handleFiltroChange("ordenarPor", e.target.value)}
+                  onChange={(e) =>
+                    handleFiltroChange("ordenarPor", e.target.value)
+                  }
                   className="appearance-none bg-white border border-gray-200 rounded px-2 py-1 text-xs"
                 >
                   <option value="actualizadoEn">Recientes</option>
@@ -298,7 +321,12 @@ const TodosArticulosView: React.FC = () => {
                   <option value="feedbacksPositivos">Más útiles</option>
                 </select>
                 <button
-                  onClick={() => handleFiltroChange("direccion", filtros.direccion === "ASC" ? "DESC" : "ASC")}
+                  onClick={() =>
+                    handleFiltroChange(
+                      "direccion",
+                      filtros.direccion === "ASC" ? "DESC" : "ASC"
+                    )
+                  }
                   className="px-2 py-1 text-xs bg-white border border-gray-200 rounded hover:bg-gray-50"
                 >
                   {filtros.direccion === "ASC" ? "↑" : "↓"}
@@ -309,12 +337,18 @@ const TodosArticulosView: React.FC = () => {
         )}
 
         {/* Active Filter Chips */}
-        {(filtros.etiqueta || filtros.tipoCaso || filtros.visibilidad || filtros.soloVigentes) && (
+        {(filtros.etiqueta ||
+          filtros.tipoCaso ||
+          filtros.visibilidad ||
+          filtros.soloVigentes) && (
           <div className="flex flex-wrap gap-1.5 mb-3">
             {filtros.etiqueta && (
               <span className="inline-flex items-center gap-1 px-2 py-1 bg-purple-100 text-purple-700 rounded-full text-xs">
                 {ETIQUETA_LABELS[filtros.etiqueta]}
-                <button onClick={() => handleFiltroChange("etiqueta", undefined)} className="hover:opacity-70">
+                <button
+                  onClick={() => handleFiltroChange("etiqueta", undefined)}
+                  className="hover:opacity-70"
+                >
                   <X size={12} />
                 </button>
               </span>
@@ -322,7 +356,10 @@ const TodosArticulosView: React.FC = () => {
             {filtros.tipoCaso && (
               <span className="inline-flex items-center gap-1 px-2 py-1 bg-orange-100 text-orange-700 rounded-full text-xs">
                 {TIPO_CASO_LABELS[filtros.tipoCaso]}
-                <button onClick={() => handleFiltroChange("tipoCaso", undefined)} className="hover:opacity-70">
+                <button
+                  onClick={() => handleFiltroChange("tipoCaso", undefined)}
+                  className="hover:opacity-70"
+                >
                   <X size={12} />
                 </button>
               </span>
@@ -330,7 +367,10 @@ const TodosArticulosView: React.FC = () => {
             {filtros.visibilidad && (
               <span className="inline-flex items-center gap-1 px-2 py-1 bg-green-100 text-green-700 rounded-full text-xs">
                 {VISIBILIDAD_LABELS[filtros.visibilidad]}
-                <button onClick={() => handleFiltroChange("visibilidad", undefined)} className="hover:opacity-70">
+                <button
+                  onClick={() => handleFiltroChange("visibilidad", undefined)}
+                  className="hover:opacity-70"
+                >
                   <X size={12} />
                 </button>
               </span>
@@ -338,7 +378,10 @@ const TodosArticulosView: React.FC = () => {
             {filtros.soloVigentes && (
               <span className="inline-flex items-center gap-1 px-2 py-1 bg-teal-100 text-teal-700 rounded-full text-xs">
                 Solo vigentes
-                <button onClick={() => handleFiltroChange("soloVigentes", undefined)} className="hover:opacity-70">
+                <button
+                  onClick={() => handleFiltroChange("soloVigentes", undefined)}
+                  className="hover:opacity-70"
+                >
                   <X size={12} />
                 </button>
               </span>

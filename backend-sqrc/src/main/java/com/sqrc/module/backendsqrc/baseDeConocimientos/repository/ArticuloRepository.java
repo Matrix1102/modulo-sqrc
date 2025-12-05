@@ -67,9 +67,33 @@ public interface ArticuloRepository extends JpaRepository<Articulo, Integer> {
   List<Articulo> buscarPorTexto(@Param("texto") String texto);
 
   /**
-   * Búsqueda paginada de artículos con filtros múltiples usando FULLTEXT + LIKE.
-   * Usa NATURAL LANGUAGE MODE para búsqueda flexible.
-   * Incluye fallback con LIKE para palabras parciales o cortas.
+   * Búsqueda SIMPLE de artículos sin texto - OPTIMIZADA.
+   * Solo aplica filtros básicos, evita JOIN innecesario.
+   */
+  @Query(value = """
+      SELECT a.* FROM articulos a
+      WHERE (:etiqueta IS NULL OR :etiqueta = '' OR a.etiqueta = :etiqueta)
+      AND (:visibilidad IS NULL OR :visibilidad = '' OR a.visibilidad = :visibilidad)
+      AND (:tipoCaso IS NULL OR :tipoCaso = '' OR a.tipo_caso = :tipoCaso OR a.tipo_caso = 'TODOS')
+      AND (:idPropietario IS NULL OR a.id_creador = :idPropietario)
+      ORDER BY COALESCE(a.actualizado_en, a.creado_en) DESC
+      """, countQuery = """
+      SELECT COUNT(*) FROM articulos a
+      WHERE (:etiqueta IS NULL OR :etiqueta = '' OR a.etiqueta = :etiqueta)
+      AND (:visibilidad IS NULL OR :visibilidad = '' OR a.visibilidad = :visibilidad)
+      AND (:tipoCaso IS NULL OR :tipoCaso = '' OR a.tipo_caso = :tipoCaso OR a.tipo_caso = 'TODOS')
+      AND (:idPropietario IS NULL OR a.id_creador = :idPropietario)
+      """, nativeQuery = true)
+  Page<Articulo> buscarSinTexto(
+      @Param("etiqueta") String etiqueta,
+      @Param("visibilidad") String visibilidad,
+      @Param("tipoCaso") String tipoCaso,
+      @Param("idPropietario") Long idPropietario,
+      Pageable pageable);
+
+  /**
+   * Búsqueda paginada de artículos CON TEXTO usando FULLTEXT + LIKE.
+   * Solo se usa cuando hay texto de búsqueda.
    */
   @Query(value = """
       SELECT DISTINCT a.* FROM articulos a
@@ -77,10 +101,9 @@ public interface ArticuloRepository extends JpaRepository<Articulo, Integer> {
       WHERE (:etiqueta IS NULL OR :etiqueta = '' OR a.etiqueta = :etiqueta)
       AND (:visibilidad IS NULL OR :visibilidad = '' OR a.visibilidad = :visibilidad)
       AND (:tipoCaso IS NULL OR :tipoCaso = '' OR a.tipo_caso = :tipoCaso OR a.tipo_caso = 'TODOS')
+      AND (:idPropietario IS NULL OR a.id_creador = :idPropietario)
       AND (
-          :texto IS NULL
-          OR :texto = ''
-          OR LOWER(a.titulo) LIKE LOWER(CONCAT('%', :texto, '%'))
+          LOWER(a.titulo) LIKE LOWER(CONCAT('%', :texto, '%'))
           OR LOWER(a.resumen) LIKE LOWER(CONCAT('%', :texto, '%'))
           OR LOWER(COALESCE(a.tags, '')) LIKE LOWER(CONCAT('%', :texto, '%'))
           OR LOWER(a.codigo) LIKE LOWER(CONCAT('%', :texto, '%'))
@@ -92,10 +115,10 @@ public interface ArticuloRepository extends JpaRepository<Articulo, Integer> {
       )
       ORDER BY
           CASE
-              WHEN :texto IS NOT NULL AND :texto != '' AND LOWER(a.titulo) LIKE LOWER(CONCAT('%', :texto, '%')) THEN 100
-              WHEN :texto IS NOT NULL AND :texto != '' AND LOWER(a.codigo) LIKE LOWER(CONCAT('%', :texto, '%')) THEN 90
-              WHEN :texto IS NOT NULL AND :texto != '' AND LOWER(COALESCE(a.tags, '')) LIKE LOWER(CONCAT('%', :texto, '%')) THEN 80
-              WHEN :texto IS NOT NULL AND :texto != '' AND LOWER(a.resumen) LIKE LOWER(CONCAT('%', :texto, '%')) THEN 70
+              WHEN LOWER(a.titulo) LIKE LOWER(CONCAT('%', :texto, '%')) THEN 100
+              WHEN LOWER(a.codigo) LIKE LOWER(CONCAT('%', :texto, '%')) THEN 90
+              WHEN LOWER(COALESCE(a.tags, '')) LIKE LOWER(CONCAT('%', :texto, '%')) THEN 80
+              WHEN LOWER(a.resumen) LIKE LOWER(CONCAT('%', :texto, '%')) THEN 70
               ELSE 0
           END DESC,
           COALESCE(a.actualizado_en, a.creado_en) DESC
@@ -105,10 +128,9 @@ public interface ArticuloRepository extends JpaRepository<Articulo, Integer> {
       WHERE (:etiqueta IS NULL OR :etiqueta = '' OR a.etiqueta = :etiqueta)
       AND (:visibilidad IS NULL OR :visibilidad = '' OR a.visibilidad = :visibilidad)
       AND (:tipoCaso IS NULL OR :tipoCaso = '' OR a.tipo_caso = :tipoCaso OR a.tipo_caso = 'TODOS')
+      AND (:idPropietario IS NULL OR a.id_creador = :idPropietario)
       AND (
-          :texto IS NULL
-          OR :texto = ''
-          OR LOWER(a.titulo) LIKE LOWER(CONCAT('%', :texto, '%'))
+          LOWER(a.titulo) LIKE LOWER(CONCAT('%', :texto, '%'))
           OR LOWER(a.resumen) LIKE LOWER(CONCAT('%', :texto, '%'))
           OR LOWER(COALESCE(a.tags, '')) LIKE LOWER(CONCAT('%', :texto, '%'))
           OR LOWER(a.codigo) LIKE LOWER(CONCAT('%', :texto, '%'))
@@ -119,10 +141,11 @@ public interface ArticuloRepository extends JpaRepository<Articulo, Integer> {
           ))
       )
       """, nativeQuery = true)
-  Page<Articulo> buscarConFiltros(
+  Page<Articulo> buscarConTexto(
       @Param("etiqueta") String etiqueta,
       @Param("visibilidad") String visibilidad,
       @Param("tipoCaso") String tipoCaso,
+      @Param("idPropietario") Long idPropietario,
       @Param("texto") String texto,
       Pageable pageable);
 

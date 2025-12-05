@@ -190,15 +190,14 @@ public class ArticuloService {
     }
 
     /**
-     * Busca artículos con filtros usando FULLTEXT search.
+     * Busca artículos con filtros - OPTIMIZADO.
+     * Usa query simple cuando no hay texto, query con JOIN solo cuando hay búsqueda
+     * de texto.
      */
     @Transactional(readOnly = true)
     public PaginaResponse<ArticuloResumenResponse> buscarArticulos(BusquedaArticuloRequest request) {
         log.debug("Buscando artículos con filtros: {}", request);
 
-        // Para nativeQuery no podemos usar Sort de Spring directamente con nombres de
-        // campo Java
-        // El ORDER BY está incluido en la query nativa
         Pageable pageable = PageRequest.of(
                 request.getPagina() != null ? request.getPagina() : 0,
                 request.getTamanoPagina() != null ? request.getTamanoPagina() : 10);
@@ -207,20 +206,32 @@ public class ArticuloService {
         String etiquetaStr = request.getEtiqueta() != null ? request.getEtiqueta().name() : null;
         String visibilidadStr = request.getVisibilidad() != null ? request.getVisibilidad().name() : null;
         String tipoCasoStr = request.getTipoCaso() != null ? request.getTipoCaso().name() : null;
+        Long idPropietario = request.getIdPropietario();
 
-        // Preparar texto de búsqueda para FULLTEXT (agregar * para búsqueda por prefijo
-        // si tiene contenido)
+        // Verificar si hay texto de búsqueda
         String textoSearch = request.getTexto();
-        if (textoSearch != null && !textoSearch.trim().isEmpty()) {
-            textoSearch = textoSearch.trim();
-        }
+        boolean hayTexto = textoSearch != null && !textoSearch.trim().isEmpty();
 
-        Page<Articulo> page = articuloRepository.buscarConFiltros(
-                etiquetaStr,
-                visibilidadStr,
-                tipoCasoStr,
-                textoSearch,
-                pageable);
+        Page<Articulo> page;
+
+        if (hayTexto) {
+            // Query CON texto: usa JOIN con versiones para buscar en contenido
+            page = articuloRepository.buscarConTexto(
+                    etiquetaStr,
+                    visibilidadStr,
+                    tipoCasoStr,
+                    idPropietario,
+                    textoSearch.trim(),
+                    pageable);
+        } else {
+            // Query SIN texto: query simple y rápida sin JOIN
+            page = articuloRepository.buscarSinTexto(
+                    etiquetaStr,
+                    visibilidadStr,
+                    tipoCasoStr,
+                    idPropietario,
+                    pageable);
+        }
 
         List<ArticuloResumenResponse> contenido = page.getContent().stream()
                 .map(this::mapToResumen)
@@ -280,7 +291,7 @@ public class ArticuloService {
     }
 
     // ===================== MÉTODOS CON SPECIFICATION PATTERN =====================
-    
+
     /**
      * Busca artículos usando el patrón Specification para filtrado flexible.
      * Permite combinar múltiples criterios de filtrado de forma dinámica.
@@ -291,21 +302,21 @@ public class ArticuloService {
     @Transactional(readOnly = true)
     public List<ArticuloResumenResponse> buscarConSpecification(BusquedaArticuloRequest request) {
         log.debug("Buscando artículos con Specification Pattern: {}", request);
-        
+
         // Construir especificación desde el request
         Specification<Articulo> specification = ArticuloSpecificationBuilder
                 .desdeRequest(request)
                 .build();
-        
+
         // Cargar todos los artículos y filtrar con la especificación
         List<Articulo> articulos = articuloRepository.findAll();
-        
+
         return articulos.stream()
                 .filter(specification::isSatisfiedBy)
                 .map(this::mapToResumen)
                 .collect(Collectors.toList());
     }
-    
+
     /**
      * Obtiene artículos disponibles para agentes usando Specification Pattern.
      * (Publicados, vigentes, y con visibilidad para agentes)
@@ -313,13 +324,13 @@ public class ArticuloService {
     @Transactional(readOnly = true)
     public List<ArticuloResumenResponse> obtenerDisponiblesParaAgentesConSpec() {
         Specification<Articulo> spec = ArticuloSpecifications.disponibleParaAgentes();
-        
+
         return articuloRepository.findAll().stream()
                 .filter(spec::isSatisfiedBy)
                 .map(this::mapToResumen)
                 .collect(Collectors.toList());
     }
-    
+
     /**
      * Obtiene artículos que requieren atención usando Specification Pattern.
      * (Tienen versiones en borrador o propuestas pendientes)
@@ -327,13 +338,13 @@ public class ArticuloService {
     @Transactional(readOnly = true)
     public List<ArticuloResumenResponse> obtenerRequierenAtencionConSpec() {
         Specification<Articulo> spec = ArticuloSpecifications.requiereAtencion();
-        
+
         return articuloRepository.findAll().stream()
                 .filter(spec::isSatisfiedBy)
                 .map(this::mapToResumen)
                 .collect(Collectors.toList());
     }
-    
+
     /**
      * Filtra artículos con especificación personalizada.
      * Permite a los controladores pasar especificaciones construidas dinámicamente.
@@ -344,13 +355,13 @@ public class ArticuloService {
     @Transactional(readOnly = true)
     public List<ArticuloResumenResponse> filtrarConSpecification(Specification<Articulo> specification) {
         log.debug("Filtrando artículos con especificación personalizada");
-        
+
         return articuloRepository.findAll().stream()
                 .filter(specification::isSatisfiedBy)
                 .map(this::mapToResumen)
                 .collect(Collectors.toList());
     }
-    
+
     /**
      * Cuenta artículos que cumplen una especificación.
      * Útil para dashboards y reportes.

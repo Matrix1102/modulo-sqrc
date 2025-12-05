@@ -4,17 +4,21 @@ import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Pattern;
+import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
+import lombok.NoArgsConstructor;
 
 import java.time.LocalDate;
 
 /**
  * DTO para representar los datos básicos del cliente en Vista 360.
- * Mapea los campos mostrados en "Datos personales" y "Datos de contacto".
+ * Adaptado para la integración con el API externo de clientes (mod-ventas).
  */
 @Data
 @Builder
+@NoArgsConstructor
+@AllArgsConstructor
 public class ClienteBasicoDTO {
 
     /**
@@ -31,38 +35,51 @@ public class ClienteBasicoDTO {
     private String dni;
 
     /**
-     * Nombre del cliente
+     * Nombre del cliente (firstName del API externo)
      */
     @NotBlank(message = "El nombre es obligatorio")
     private String nombre;
 
     /**
-     * Apellido del cliente
+     * Apellido del cliente (lastName del API externo)
      */
     @NotBlank(message = "El apellido es obligatorio")
     private String apellido;
 
     /**
-     * Fecha de nacimiento del cliente
+     * Nombre completo (fullName del API externo)
      */
-    @NotNull(message = "La fecha de nacimiento es obligatoria")
-    private LocalDate fechaNacimiento;
+    private String nombreCompleto;
 
     /**
-     * Correo electrónico del cliente
+     * Correo electrónico del cliente (email del API externo)
      */
     @NotBlank(message = "El correo electrónico es obligatorio")
     @Email(message = "El formato del correo electrónico no es válido")
     private String correo;
 
     /**
-     * Teléfono fijo del cliente (formato flexible)
+     * Teléfono del cliente (phoneNumber del API externo)
      */
     private String telefono;
 
     /**
-     * Teléfono celular del cliente
+     * Dirección del cliente (address del API externo)
      */
-    @Pattern(regexp = "^\\d{9}$", message = "El celular debe tener 9 dígitos")
-    private String celular;
+    private String direccion;
+
+    /**
+     * Fecha de registro del cliente (registrationDate del API externo)
+     */
+    private LocalDate fechaRegistro;
+
+    /**
+     * Estado del cliente (ACTIVO, INACTIVO, etc.)
+     */
+    private String estado;
+
+    /**
+     * Categoría del cliente (Estándar, Premium, etc.)
+     */
+    private String categoria;
 }

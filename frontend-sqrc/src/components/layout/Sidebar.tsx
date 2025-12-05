@@ -10,7 +10,11 @@ import {
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 
-type RoleType = "SUPERVISOR" | "BACKOFFICE" | "AGENTE_LLAMADA" | "AGENTE_PRESENCIAL";
+type RoleType =
+  | "SUPERVISOR"
+  | "BACKOFFICE"
+  | "AGENTE_LLAMADA"
+  | "AGENTE_PRESENCIAL";
 
 interface MenuItem {
   icon: React.ComponentType<{ size?: number; className?: string }>;
@@ -22,7 +26,9 @@ interface SidebarProps {
   role?: RoleType;
 }
 
-export const Sidebar: React.FC<SidebarProps> = ({ role = "AGENTE_LLAMADA" }) => {
+export const Sidebar: React.FC<SidebarProps> = ({
+  role = "AGENTE_LLAMADA",
+}) => {
   const navigate = useNavigate();
   const [isCollapsed, setIsCollapsed] = useState<boolean>(false);
   const [activePath, setActivePath] = useState<string>("/dashboard");
@@ -47,7 +53,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ role = "AGENTE_LLAMADA" }) => 
       {
         icon: BookOpen,
         label: "Base de Conocimiento",
-        path: "/base-conocimiento",
+        path: "/supervisor/base-conocimiento",
       },
       {
         icon: Notebook,
@@ -57,7 +63,11 @@ export const Sidebar: React.FC<SidebarProps> = ({ role = "AGENTE_LLAMADA" }) => 
     ],
     AGENTE_LLAMADA: [
       { icon: Ticket, label: "Gestión de Tickets", path: "/agente-llamada" },
-      { icon: Search, label: "Vista 360° Cliente", path: "/agente-llamada/cliente-360" },
+      {
+        icon: Search,
+        label: "Vista 360° Cliente",
+        path: "/agente-llamada/cliente-360",
+      },
       {
         icon: BookOpen,
         label: "Base de Conocimiento",
@@ -66,7 +76,11 @@ export const Sidebar: React.FC<SidebarProps> = ({ role = "AGENTE_LLAMADA" }) => 
     ],
     AGENTE_PRESENCIAL: [
       { icon: Ticket, label: "Gestión de Tickets", path: "/agente-presencial" },
-      { icon: Search, label: "Vista 360° Cliente", path: "/agente-presencial/cliente-360" },
+      {
+        icon: Search,
+        label: "Vista 360° Cliente",
+        path: "/agente-presencial/cliente-360",
+      },
       {
         icon: BookOpen,
         label: "Base de Conocimiento",

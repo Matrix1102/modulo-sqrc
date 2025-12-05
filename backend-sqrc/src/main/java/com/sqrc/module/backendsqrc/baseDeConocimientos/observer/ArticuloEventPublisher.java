@@ -17,15 +17,19 @@ import lombok.extern.slf4j.Slf4j;
 /**
  * Observer Pattern - Subject/Publisher que gestiona la notificación de eventos.
  * 
- * <p>Implementa el patrón Observer como Subject, manteniendo una lista de
- * observadores y notificándolos cuando ocurren eventos de artículos.</p>
+ * <p>
+ * Implementa el patrón Observer como Subject, manteniendo una lista de
+ * observadores y notificándolos cuando ocurren eventos de artículos.
+ * </p>
  * 
- * <p><b>Características:</b></p>
+ * <p>
+ * <b>Características:</b>
+ * </p>
  * <ul>
- *   <li>Thread-safe usando CopyOnWriteArrayList</li>
- *   <li>Soporte para observers síncronos y asíncronos</li>
- *   <li>Ordenamiento por prioridad</li>
- *   <li>Auto-registro de observers mediante inyección de Spring</li>
+ * <li>Thread-safe usando CopyOnWriteArrayList</li>
+ * <li>Soporte para observers síncronos y asíncronos</li>
+ * <li>Ordenamiento por prioridad</li>
+ * <li>Auto-registro de observers mediante inyección de Spring</li>
  * </ul>
  * 
  * @see IArticuloObserver
@@ -34,17 +38,17 @@ import lombok.extern.slf4j.Slf4j;
 @Component
 @Slf4j
 public class ArticuloEventPublisher {
-    
+
     /** Lista thread-safe de observers registrados */
     private final CopyOnWriteArrayList<IArticuloObserver> observers = new CopyOnWriteArrayList<>();
-    
+
     /** Lista de observers inyectados por Spring */
     private final List<IArticuloObserver> springObservers;
-    
+
     public ArticuloEventPublisher(List<IArticuloObserver> springObservers) {
         this.springObservers = springObservers != null ? springObservers : new ArrayList<>();
     }
-    
+
     /**
      * Registra automáticamente los observers inyectados por Spring al iniciar.
      */
@@ -55,7 +59,7 @@ public class ArticuloEventPublisher {
             log.info("Observer Pattern: {} observers registrados automáticamente", observers.size());
         }
     }
-    
+
     /**
      * Registra un nuevo observer.
      * 
@@ -67,7 +71,7 @@ public class ArticuloEventPublisher {
             log.debug("Observer registrado: {}", observer.getClass().getSimpleName());
         }
     }
-    
+
     /**
      * Elimina un observer del registro.
      * 
@@ -79,7 +83,7 @@ public class ArticuloEventPublisher {
             log.debug("Observer eliminado: {}", observer.getClass().getSimpleName());
         }
     }
-    
+
     /**
      * Publica un evento a todos los observers registrados.
      * Los observers síncronos se ejecutan en orden de prioridad.
@@ -92,13 +96,13 @@ public class ArticuloEventPublisher {
             log.warn("Intento de publicar evento nulo");
             return;
         }
-        
+
         log.info("Publicando evento: {}", evento);
-        
+
         // Separar observers síncronos y asíncronos
         List<IArticuloObserver> sincronos = new ArrayList<>();
         List<IArticuloObserver> asincronos = new ArrayList<>();
-        
+
         for (IArticuloObserver observer : observers) {
             if (observer.esAsincrono()) {
                 asincronos.add(observer);
@@ -106,16 +110,16 @@ public class ArticuloEventPublisher {
                 sincronos.add(observer);
             }
         }
-        
+
         // Ejecutar observers síncronos en orden de prioridad
         sincronos.stream()
                 .sorted(Comparator.comparingInt(IArticuloObserver::getPrioridad))
                 .forEach(observer -> ejecutarObserverSincrono(observer, evento));
-        
+
         // Ejecutar observers asíncronos en paralelo
         asincronos.forEach(observer -> ejecutarObserverAsincrono(observer, evento));
     }
-    
+
     /**
      * Ejecuta un observer de forma síncrona con manejo de errores.
      */
@@ -123,11 +127,11 @@ public class ArticuloEventPublisher {
         try {
             observer.onArticuloEvent(evento);
         } catch (Exception e) {
-            log.error("Error en observer síncrono {}: {}", 
+            log.error("Error en observer síncrono {}: {}",
                     observer.getClass().getSimpleName(), e.getMessage(), e);
         }
     }
-    
+
     /**
      * Ejecuta un observer de forma asíncrona.
      */
@@ -137,19 +141,19 @@ public class ArticuloEventPublisher {
             try {
                 observer.onArticuloEvent(evento);
             } catch (Exception e) {
-                log.error("Error en observer asíncrono {}: {}", 
+                log.error("Error en observer asíncrono {}: {}",
                         observer.getClass().getSimpleName(), e.getMessage(), e);
             }
         });
     }
-    
+
     /**
      * Obtiene el número de observers registrados.
      */
     public int getCantidadObservers() {
         return observers.size();
     }
-    
+
     /**
      * Limpia todos los observers (útil para testing).
      */

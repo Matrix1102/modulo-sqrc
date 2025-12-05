@@ -57,4 +57,12 @@ public class RespuestaCliente {
 
     @Column(name = "fecha_creacion")
     private LocalDateTime fechaCreacion;
+
+    /**
+     * Tipo de respuesta: MANUAL (enviada por agente) o AUTOMATICA (generada por el sistema).
+     * Permite filtrar solo las respuestas reales para validaciones de negocio.
+     */
+    @Enumerated(EnumType.STRING)
+    @Column(name = "tipo_respuesta", length = 20)
+    private TipoRespuesta tipoRespuesta;
 }

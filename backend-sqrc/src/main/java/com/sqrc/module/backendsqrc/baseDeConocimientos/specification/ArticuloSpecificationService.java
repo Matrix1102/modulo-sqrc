@@ -16,18 +16,22 @@ import lombok.extern.slf4j.Slf4j;
 /**
  * Specification Pattern - Servicio para aplicar especificaciones a artículos.
  * 
- * <p>Proporciona métodos para filtrar artículos usando el patrón Specification,
- * permitiendo consultas flexibles y reutilizables.</p>
+ * <p>
+ * Proporciona métodos para filtrar artículos usando el patrón Specification,
+ * permitiendo consultas flexibles y reutilizables.
+ * </p>
  * 
- * <p><b>Ejemplo de uso:</b></p>
+ * <p>
+ * <b>Ejemplo de uso:</b>
+ * </p>
+ * 
  * <pre>
  * // Usando el builder
  * List&lt;Articulo&gt; resultados = specService.filtrar(
- *     ArticuloSpecificationBuilder.crear()
- *         .conEtiqueta(Etiqueta.FAQ)
- *         .soloPublicados()
- *         .build()
- * );
+ *         ArticuloSpecificationBuilder.crear()
+ *                 .conEtiqueta(Etiqueta.FAQ)
+ *                 .soloPublicados()
+ *                 .build());
  * 
  * // Desde un request
  * List&lt;Articulo&gt; resultados = specService.filtrarDesdeRequest(busquedaRequest);
@@ -42,9 +46,9 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 @Transactional(readOnly = true)
 public class ArticuloSpecificationService {
-    
+
     private final ArticuloRepository articuloRepository;
-    
+
     /**
      * Filtra todos los artículos usando una especificación.
      * 
@@ -53,14 +57,14 @@ public class ArticuloSpecificationService {
      */
     public List<Articulo> filtrar(Specification<Articulo> spec) {
         log.debug("Aplicando Specification Pattern para filtrar artículos");
-        
+
         List<Articulo> todos = articuloRepository.findAll();
-        
+
         return todos.stream()
                 .filter(spec::isSatisfiedBy)
                 .collect(Collectors.toList());
     }
-    
+
     /**
      * Filtra artículos desde un BusquedaArticuloRequest.
      * Convierte automáticamente el request en una especificación.
@@ -72,11 +76,11 @@ public class ArticuloSpecificationService {
         Specification<Articulo> spec = ArticuloSpecificationBuilder
                 .desdeRequest(request)
                 .build();
-        
+
         log.debug("Filtrar desde request: {}", request);
         return filtrar(spec);
     }
-    
+
     /**
      * Obtiene artículos disponibles para agentes.
      * (Publicados, vigentes, y con visibilidad para agentes)
@@ -84,7 +88,7 @@ public class ArticuloSpecificationService {
     public List<Articulo> obtenerDisponiblesParaAgentes() {
         return filtrar(ArticuloSpecifications.disponibleParaAgentes());
     }
-    
+
     /**
      * Obtiene artículos disponibles para supervisores.
      * (Publicados, vigentes, supervisores pueden ver todo)
@@ -92,21 +96,21 @@ public class ArticuloSpecificationService {
     public List<Articulo> obtenerDisponiblesParaSupervisores() {
         return filtrar(ArticuloSpecifications.disponibleParaSupervisores());
     }
-    
+
     /**
      * Obtiene artículos que requieren atención (borradores o propuestos).
      */
     public List<Articulo> obtenerRequierenAtencion() {
         return filtrar(ArticuloSpecifications.requiereAtencion());
     }
-    
+
     /**
      * Obtiene artículos expirados.
      */
     public List<Articulo> obtenerExpirados() {
         return filtrar(ArticuloSpecifications.estaExpirado());
     }
-    
+
     /**
      * Cuenta cuántos artículos satisfacen una especificación.
      */
@@ -115,7 +119,7 @@ public class ArticuloSpecificationService {
                 .filter(spec::isSatisfiedBy)
                 .count();
     }
-    
+
     /**
      * Verifica si existe al menos un artículo que satisfaga la especificación.
      */
@@ -123,7 +127,7 @@ public class ArticuloSpecificationService {
         return articuloRepository.findAll().stream()
                 .anyMatch(spec::isSatisfiedBy);
     }
-    
+
     /**
      * Obtiene el primer artículo que satisfaga la especificación.
      */

@@ -11,6 +11,7 @@ import com.sqrc.module.backendsqrc.plantillaRespuesta.event.RespuestaEnviadaEven
 import com.sqrc.module.backendsqrc.plantillaRespuesta.model.Plantilla;
 import com.sqrc.module.backendsqrc.plantillaRespuesta.model.PlantillaDefault;
 import com.sqrc.module.backendsqrc.plantillaRespuesta.model.RespuestaCliente;
+import com.sqrc.module.backendsqrc.plantillaRespuesta.model.TipoRespuesta;
 import com.sqrc.module.backendsqrc.plantillaRespuesta.observer.IRespuestaObserver;
 import com.sqrc.module.backendsqrc.ticket.repository.AsignacionRepository;
 import com.sqrc.module.backendsqrc.vista360.model.ClienteEntity;
@@ -139,6 +140,7 @@ public class RespuestaService {
         respuesta.setFechaEnvio(LocalDateTime.now());
         respuesta.setFechaCreacion(LocalDateTime.now());
         respuesta.setUrlPdfGenerado("GENERADO_MANUAL");
+        respuesta.setTipoRespuesta(TipoRespuesta.MANUAL); // Respuesta manual del agente
 
         respuestaRepository.save(respuesta);
 
@@ -236,6 +238,7 @@ public class RespuestaService {
             respuesta.setFechaEnvio(LocalDateTime.now());
             respuesta.setFechaCreacion(LocalDateTime.now());
             respuesta.setUrlPdfGenerado("AUTO");
+            respuesta.setTipoRespuesta(TipoRespuesta.AUTOMATICA); // Confirmación automática del sistema
 
             respuestaRepository.save(respuesta);
 

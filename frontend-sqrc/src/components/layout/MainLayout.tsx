@@ -88,6 +88,12 @@ const PAGE_CONFIG: Record<string, { title: string; subtitle: string }> = {
     subtitle: "Artículos y guías de resolución",
   },
 
+   // --- SUPERVISOR BASE DE CONOCIMIENTO ---
+  "/supervisor/base-conocimiento": {
+    title: "Base de Conocimiento",
+    subtitle: "Gestión y aprobación de artículos",
+  },
+  
   // --- DEFAULT ---
   default: {
     title: "Sistema SQRC",

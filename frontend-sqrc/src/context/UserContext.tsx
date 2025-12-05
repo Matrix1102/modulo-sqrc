@@ -21,7 +21,7 @@ interface UserProviderProps {
 
 // Usuario simulado por defecto (en producción vendría de la autenticación)
 const DEFAULT_USER: User = {
-  id: 1,
+  id: 11, // ID del empleado 11 (AgenteLlamada) que existe en la BD
   nombre: "Juan Pérez",
   email: "juan.perez@empresa.com",
   rol: "SUPERVISOR",

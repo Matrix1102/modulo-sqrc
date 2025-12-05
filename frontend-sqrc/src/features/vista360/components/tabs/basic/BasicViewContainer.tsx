@@ -3,7 +3,6 @@ import CustomerSearch from "./CustomerSearch";
 import CustomerProfileForm from "./CustomerProfileForm";
 import ServiceStatsGrid from "./ServiceStatsGrid";
 import { 
-  buscarClientePorDni, 
   obtenerClientePorId, 
   obtenerMetricasCliente, 
   type ClienteBasicoDTO, 
@@ -19,7 +18,7 @@ const BasicViewContainer: React.FC = () => {
 
   const handleSearch = async (searchValue: string) => {
     if (!searchValue) {
-      setError("Por favor ingrese un DNI o ID");
+      setError("Por favor ingrese un ID de cliente");
       return;
     }
 
@@ -29,15 +28,11 @@ const BasicViewContainer: React.FC = () => {
     try {
       let clienteData: ClienteBasicoDTO;
 
-      // Detectar si es DNI (8 dígitos) o ID (número)
-      if (/^\d{8}$/.test(searchValue)) {
-        // Buscar por DNI
-        clienteData = await buscarClientePorDni(searchValue);
-      } else if (/^\d+$/.test(searchValue)) {
-        // Buscar por ID
+      // Solo búsqueda por ID (la búsqueda por DNI no está disponible en el API externo)
+      if (/^\d+$/.test(searchValue)) {
         clienteData = await obtenerClientePorId(Number(searchValue));
       } else {
-        setError("Formato inválido. Ingrese un DNI de 8 dígitos o un ID numérico");
+        setError("Formato inválido. Ingrese un ID numérico de cliente");
         setLoading(false);
         return;
       }

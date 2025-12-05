@@ -8,7 +8,7 @@ interface Props {
 
 const CustomerSearch: React.FC<Props> = ({ 
   onSearch,
-  placeholder = "Ingrese DNI o ID del cliente"
+  placeholder = "Ingrese el ID del cliente"
 }) => {
   const [value, setValue] = useState("");
 
