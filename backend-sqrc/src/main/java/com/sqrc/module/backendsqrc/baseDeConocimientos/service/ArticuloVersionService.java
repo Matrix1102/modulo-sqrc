@@ -23,6 +23,7 @@ import java.util.stream.Collectors;
 
 /**
  * Servicio para la gestión de versiones de artículos.
+ * Utiliza el patrón State para manejar las transiciones de estado de manera limpia.
  */
 @Service
 @RequiredArgsConstructor
@@ -60,6 +61,7 @@ public class ArticuloVersionService {
                 Long totalVersiones = versionRepository.contarVersionesPorArticulo(idArticulo);
                 int siguienteNumero = totalVersiones.intValue() + 1;
 
+                // La nueva versión inicia en estado BORRADOR automáticamente
                 ArticuloVersion nuevaVersion = ArticuloVersion.builder()
                                 .articulo(articulo)
                                 .numeroVersion(siguienteNumero)
@@ -68,7 +70,7 @@ public class ArticuloVersionService {
                                 .creadoPor(creador)
                                 .creadoEn(LocalDateTime.now())
                                 .esVigente(false)
-                                .estadoPropuesta(EstadoArticulo.BORRADOR)
+                                .estadoPropuesta(EstadoArticulo.BORRADOR) // Estado inicial
                                 .origen(request.getOrigen() != null ? request.getOrigen() : OrigenVersion.MANUAL)
                                 .ticketOrigen(ticketOrigen)
                                 .build();
@@ -80,7 +82,8 @@ public class ArticuloVersionService {
                 articulo.setActualizadoEn(LocalDateTime.now());
                 articuloRepository.save(articulo);
 
-                log.info("Versión {} creada para artículo ID: {}", siguienteNumero, idArticulo);
+                log.info("Versión {} creada para artículo ID: {} en estado {}",
+                                siguienteNumero, idArticulo, nuevaVersion.getEstadoPropuesta());
 
                 return mapToResponse(nuevaVersion);
         }
@@ -118,6 +121,7 @@ public class ArticuloVersionService {
 
         /**
          * Marca una versión como vigente (publica la versión).
+         * Utiliza el patrón State para validar la transición.
          */
         public ArticuloVersionResponse marcarComoVigente(Integer idVersion) {
                 log.info("Marcando versión ID: {} como vigente", idVersion);
@@ -125,19 +129,20 @@ public class ArticuloVersionService {
                 ArticuloVersion version = versionRepository.findById(idVersion)
                                 .orElseThrow(() -> new VersionNotFoundException(idVersion));
 
-                // Verificar que esté en borrador
-                if (version.getEstadoPropuesta() == EstadoArticulo.RECHAZADO) {
-                        throw new OperacionInvalidaException("No se puede publicar una versión rechazada");
-                }
-
                 // Desmarcar todas las versiones vigentes del artículo
                 versionRepository.desmarcarVersionesVigentes(version.getArticulo().getIdArticulo());
 
-                // Marcar esta versión como vigente
-                version.marcarComoVigente();
+                // Usar el patrón State para publicar (validación automática de transición)
+                try {
+                        version.publicar();
+                } catch (TransicionEstadoException e) {
+                        throw new OperacionInvalidaException(e.getMessage());
+                }
+                
                 version = versionRepository.save(version);
 
-                log.info("Versión ID: {} marcada como vigente", idVersion);
+                log.info("Versión ID: {} marcada como vigente (estado: {})", 
+                        idVersion, version.getEstadoPropuesta());
 
                 return mapToResponse(version);
         }
@@ -145,6 +150,7 @@ public class ArticuloVersionService {
         /**
          * Publica un artículo marcando una versión como vigente y estableciendo
          * visibilidad.
+         * Utiliza el patrón State para validar la transición.
          */
         public ArticuloVersionResponse publicarArticulo(Integer idArticulo, Integer idVersion,
                         PublicarArticuloRequest request) {
@@ -164,11 +170,17 @@ public class ArticuloVersionService {
                 // Desmarcar todas las versiones vigentes
                 versionRepository.desmarcarVersionesVigentes(idArticulo);
 
-                // Publicar la versión (convertir LocalDate a LocalDateTime)
+                // Usar el patrón State para publicar
                 LocalDateTime fechaPublicacion = request.getVigenteDesde() != null
                                 ? request.getVigenteDesde().atStartOfDay()
                                 : LocalDateTime.now();
-                version.publicar(fechaPublicacion);
+                
+                try {
+                        version.publicar(fechaPublicacion);
+                } catch (TransicionEstadoException e) {
+                        throw new OperacionInvalidaException(e.getMessage());
+                }
+                
                 versionRepository.save(version);
 
                 // Actualizar el artículo
@@ -181,14 +193,15 @@ public class ArticuloVersionService {
                 }
                 articuloRepository.save(articulo);
 
-                log.info("Artículo ID: {} publicado exitosamente", idArticulo);
+                log.info("Artículo ID: {} publicado exitosamente con versión {} (estado: {})", 
+                        idArticulo, version.getNumeroVersion(), version.getEstadoPropuesta());
 
                 return mapToResponse(version);
         }
 
         /**
          * Propone una versión para revisión del supervisor.
-         * Cambia el estado de BORRADOR a PROPUESTO.
+         * Utiliza el patrón State: BORRADOR → PROPUESTO
          */
         public ArticuloVersionResponse proponerVersion(Integer idVersion) {
                 log.info("Proponiendo versión ID: {} para revisión", idVersion);
@@ -196,23 +209,24 @@ public class ArticuloVersionService {
                 ArticuloVersion version = versionRepository.findById(idVersion)
                                 .orElseThrow(() -> new VersionNotFoundException(idVersion));
 
-                // Solo se pueden proponer versiones en borrador
-                if (version.getEstadoPropuesta() != EstadoArticulo.BORRADOR) {
-                        throw new OperacionInvalidaException(
-                                        "Solo se pueden proponer versiones en estado BORRADOR. Estado actual: "
-                                                        + version.getEstadoPropuesta());
+                // Usar el patrón State para la transición
+                try {
+                        version.proponer();
+                } catch (TransicionEstadoException e) {
+                        throw new OperacionInvalidaException(e.getMessage());
                 }
-
-                version.setEstadoPropuesta(EstadoArticulo.PROPUESTO);
+                
                 version = versionRepository.save(version);
 
-                log.info("Versión ID: {} propuesta para revisión", idVersion);
+                log.info("Versión ID: {} propuesta para revisión (estado: {})", 
+                        idVersion, version.getEstadoPropuesta());
 
                 return mapToResponse(version);
         }
 
         /**
          * Archiva una versión.
+         * Utiliza el patrón State: PUBLICADO → ARCHIVADO
          */
         public ArticuloVersionResponse archivarVersion(Integer idVersion) {
                 log.info("Archivando versión ID: {}", idVersion);
@@ -220,16 +234,24 @@ public class ArticuloVersionService {
                 ArticuloVersion version = versionRepository.findById(idVersion)
                                 .orElseThrow(() -> new VersionNotFoundException(idVersion));
 
-                version.archivar(LocalDateTime.now());
+                // Usar el patrón State para archivar
+                try {
+                        version.archivar(LocalDateTime.now());
+                } catch (TransicionEstadoException e) {
+                        throw new OperacionInvalidaException(e.getMessage());
+                }
+                
                 version = versionRepository.save(version);
 
-                log.info("Versión ID: {} archivada", idVersion);
+                log.info("Versión ID: {} archivada (estado: {})", 
+                        idVersion, version.getEstadoPropuesta());
 
                 return mapToResponse(version);
         }
 
         /**
          * Rechaza una versión propuesta.
+         * Utiliza el patrón State: PROPUESTO → RECHAZADO
          */
         public ArticuloVersionResponse rechazarVersion(Integer idVersion) {
                 log.info("Rechazando versión ID: {}", idVersion);
@@ -237,14 +259,42 @@ public class ArticuloVersionService {
                 ArticuloVersion version = versionRepository.findById(idVersion)
                                 .orElseThrow(() -> new VersionNotFoundException(idVersion));
 
-                if (version.getEsVigente()) {
-                        throw new OperacionInvalidaException("No se puede rechazar una versión que está vigente");
+                // Usar el patrón State para rechazar
+                try {
+                        version.rechazar();
+                } catch (TransicionEstadoException e) {
+                        throw new OperacionInvalidaException(e.getMessage());
                 }
-
-                version.rechazar();
+                
                 version = versionRepository.save(version);
 
-                log.info("Versión ID: {} rechazada", idVersion);
+                log.info("Versión ID: {} rechazada (estado: {})", 
+                        idVersion, version.getEstadoPropuesta());
+
+                return mapToResponse(version);
+        }
+
+        /**
+         * Depreca una versión publicada (cuando expira).
+         * Utiliza el patrón State: PUBLICADO → DEPRECADO
+         */
+        public ArticuloVersionResponse deprecarVersion(Integer idVersion) {
+                log.info("Deprecando versión ID: {}", idVersion);
+
+                ArticuloVersion version = versionRepository.findById(idVersion)
+                                .orElseThrow(() -> new VersionNotFoundException(idVersion));
+
+                // Usar el patrón State para deprecar
+                try {
+                        version.deprecar();
+                } catch (TransicionEstadoException e) {
+                        throw new OperacionInvalidaException(e.getMessage());
+                }
+                
+                version = versionRepository.save(version);
+
+                log.info("Versión ID: {} deprecada (estado: {})", 
+                        idVersion, version.getEstadoPropuesta());
 
                 return mapToResponse(version);
         }
