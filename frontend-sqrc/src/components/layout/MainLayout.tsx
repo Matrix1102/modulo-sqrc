@@ -3,7 +3,7 @@ import { Sidebar } from "./Sidebar";
 import { Navbar } from "./Navbar";
 
 interface MainLayoutProps {
-  role: "AGENT" | "SUPERVISOR";
+  role: "SUPERVISOR" | "BACKOFFICE" | "AGENTE_LLAMADA" | "AGENTE_PRESENCIAL";
 }
 
 // 1. Diccionario de Títulos Ampliado
@@ -29,7 +29,6 @@ const PAGE_CONFIG: Record<string, { title: string; subtitle: string }> = {
     title: "Detalle de Agente",
     subtitle: "Historial de tickets del agente seleccionado",
   },
-  // Nuevas rutas de Encuestas (Nivel 2)
   "/supervisor/encuestas/agentes": {
     title: "Encuestas sobre Agentes",
     subtitle: "Detalle de evaluaciones por personal",
@@ -39,30 +38,54 @@ const PAGE_CONFIG: Record<string, { title: string; subtitle: string }> = {
     subtitle: "Detalle de evaluaciones por tipo de servicio",
   },
 
-  // --- AGENTE ---
-  "/agente/tickets": {
+  // --- AGENTE LLAMADA ---
+  "/agente-llamada": {
     title: "Gestión de Tickets",
-    subtitle: "Administra tus casos asignados",
+    subtitle: "Atención telefónica de clientes",
   },
-  "/agente/nuevo-ticket": {
-    title: "Nuevo Ticket",
-    subtitle: "Registrar una nueva solicitud o reclamo",
+  "/agente-llamada/tickets": {
+    title: "Gestión de Tickets",
+    subtitle: "Atención telefónica de clientes",
   },
-  "/agente/mis-casos": {
-    title: "Mis Casos",
-    subtitle: "Historial de atenciones realizadas",
-  },
-  "/cliente-360": {
+  "/agente-llamada/cliente-360": {
     title: "Vista 360° Cliente",
-    subtitle: "Consulta el perfil completo y las métricas del cliente",
+    subtitle: "Perfil completo del cliente - Call Center",
   },
-  "/kb": {
+  "/agente-llamada/base-conocimiento": {
     title: "Base de Conocimiento",
     subtitle: "Artículos y guías de resolución",
   },
-  "/perfil": {
-    title: "Mi Perfil",
-    subtitle: "Configuración de cuenta y preferencias",
+
+  // --- AGENTE PRESENCIAL ---
+  "/agente-presencial": {
+    title: "Gestión de Tickets",
+    subtitle: "Atención presencial en oficina",
+  },
+  "/agente-presencial/tickets": {
+    title: "Gestión de Tickets",
+    subtitle: "Atención presencial en oficina",
+  },
+  "/agente-presencial/cliente-360": {
+    title: "Vista 360° Cliente",
+    subtitle: "Perfil completo del cliente - Oficina",
+  },
+  "/agente-presencial/base-conocimiento": {
+    title: "Base de Conocimiento",
+    subtitle: "Artículos y guías de resolución",
+  },
+
+  // --- BACKOFFICE ---
+  "/backoffice": {
+    title: "Gestión de Tickets",
+    subtitle: "Tickets escalados y casos complejos",
+  },
+  "/backoffice/tickets": {
+    title: "Gestión de Tickets",
+    subtitle: "Tickets escalados y casos complejos",
+  },
+  "/backoffice/base-conocimiento": {
+    title: "Base de Conocimiento",
+    subtitle: "Artículos y guías de resolución",
   },
 
   // --- DEFAULT ---
@@ -96,11 +119,48 @@ const DYNAMIC_ROUTES = [
     subtitle: "Gestión y resolución del caso",
   },
   {
-    prefix: "/agente/tickets/",
+    prefix: "/agente-llamada/tickets/",
     title: "Trabajando Ticket",
-    subtitle: "Detalles y acciones del caso",
+    subtitle: "Detalles del caso - Call Center",
+  },
+  {
+    prefix: "/agente-presencial/tickets/",
+    title: "Trabajando Ticket",
+    subtitle: "Detalles del caso - Atención Presencial",
+  },
+  {
+    prefix: "/backoffice/tickets/",
+    title: "Detalle del Ticket",
+    subtitle: "Análisis y resolución del caso escalado",
   },
 ];
+
+// Helper functions para obtener información del usuario según el rol
+const getUserName = (role: MainLayoutProps["role"]): string => {
+  switch (role) {
+    case "SUPERVISOR":
+      return "Juan Pérez";
+    case "BACKOFFICE":
+      return "Carlos García";
+    case "AGENTE_LLAMADA":
+      return "Ana Llamada";
+    case "AGENTE_PRESENCIAL":
+      return "María Presencial";
+  }
+};
+
+const getUserRole = (role: MainLayoutProps["role"]): string => {
+  switch (role) {
+    case "SUPERVISOR":
+      return "Supervisor";
+    case "BACKOFFICE":
+      return "Backoffice";
+    case "AGENTE_LLAMADA":
+      return "Agente de Llamada";
+    case "AGENTE_PRESENCIAL":
+      return "Agente Presencial";
+  }
+};
 
 export default function MainLayout({ role }: Readonly<MainLayoutProps>) {
   const location = useLocation();
@@ -135,8 +195,8 @@ export default function MainLayout({ role }: Readonly<MainLayoutProps>) {
         <Navbar
           title={pageInfo.title}
           subtitle={pageInfo.subtitle}
-          userName={role === "SUPERVISOR" ? "Juan Pérez" : "Ana Agente"}
-          userRole={role === "SUPERVISOR" ? "Supervisor" : "Agente de Soporte"}
+          userName={getUserName(role)}
+          userRole={getUserRole(role)}
         />
 
         <main className="flex-1 overflow-x-hidden overflow-y-auto p-6 bg-light-200">

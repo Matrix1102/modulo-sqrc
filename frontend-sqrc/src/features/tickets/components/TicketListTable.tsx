@@ -1,7 +1,7 @@
 /**
  * Tabla de listado de tickets
  */
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { EstadoBadge } from './EstadoBadge';
 import { TipoBadge } from './TipoBadge';
 import type { TicketListItem } from '../types';
@@ -22,6 +22,17 @@ export const TicketListTable = ({
   onSelectAll,
 }: TicketListTableProps) => {
   const navigate = useNavigate();
+  const location = useLocation();
+
+  // Detectar la ruta base actual (ej: /agente-llamada, /agente-presencial, /backoffice)
+  const getBasePath = () => {
+    const path = location.pathname;
+    if (path.startsWith('/agente-llamada')) return '/agente-llamada';
+    if (path.startsWith('/agente-presencial')) return '/agente-presencial';
+    if (path.startsWith('/backoffice')) return '/backoffice';
+    if (path.startsWith('/supervisor')) return '/supervisor';
+    return '/agente-llamada'; // fallback
+  };
 
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
@@ -40,7 +51,8 @@ export const TicketListTable = ({
   };
 
   const handleRowClick = (ticketId: number) => {
-    navigate(`/agente/tickets/${ticketId}`);
+    const basePath = getBasePath();
+    navigate(`${basePath}/tickets/${ticketId}`);
   };
 
   if (loading) {

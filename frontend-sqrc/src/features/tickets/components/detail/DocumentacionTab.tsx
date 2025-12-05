@@ -246,7 +246,7 @@ export const DocumentacionTab: React.FC<DocumentacionTabProps> = ({
                     </div>
                     <div>
                       <p className="font-medium text-gray-900">
-                        {doc.empleado.nombre} {doc.empleado.apellido}
+                        {doc.empleado?.nombre ?? 'Agente'} {doc.empleado?.apellido ?? ''}
                       </p>
                       <p className="text-xs text-gray-500">{formatDate(doc.fechaCreacion)}</p>
                     </div>

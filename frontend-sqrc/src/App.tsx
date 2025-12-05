@@ -39,21 +39,53 @@ const Home = () => (
       </p>
     </div>
 
-    <div className="flex gap-4 flex-wrap justify-center">
-      {/* Enlace directo a la página de Tickets del Agente */}
+    <div className="grid grid-cols-2 gap-4 max-w-lg">
+      {/* Agente de Llamada */}
       <Link
-        to="/agente/tickets"
-        className="px-8 py-4 bg-sqrc-primary-500 hover:bg-sqrc-primary-600 text-white rounded-lg transition-colors font-medium flex items-center gap-2 shadow-lg"
+        to="/agente-llamada"
+        className="px-6 py-5 bg-sqrc-gray-800 hover:bg-sqrc-gray-700 border border-sqrc-gray-700 text-white rounded-xl transition-all font-medium flex flex-col items-center gap-3 shadow-lg hover:shadow-xl hover:scale-105"
       >
-        🎧 Soy Agente
+        <span className="text-3xl">📞</span>
+        <div className="text-center">
+          <span className="block font-semibold">Agente Llamada</span>
+          <span className="text-xs text-sqrc-gray-400">Call Center</span>
+        </div>
       </Link>
 
-      {/* Enlace directo al Dashboard del Supervisor */}
+      {/* Agente Presencial */}
+      <Link
+        to="/agente-presencial"
+        className="px-6 py-5 bg-sqrc-gray-800 hover:bg-sqrc-gray-700 border border-sqrc-gray-700 text-white rounded-xl transition-all font-medium flex flex-col items-center gap-3 shadow-lg hover:shadow-xl hover:scale-105"
+      >
+        <span className="text-3xl">🏢</span>
+        <div className="text-center">
+          <span className="block font-semibold">Agente Presencial</span>
+          <span className="text-xs text-sqrc-gray-400">Atención en oficina</span>
+        </div>
+      </Link>
+
+      {/* Backoffice */}
+      <Link
+        to="/backoffice"
+        className="px-6 py-5 bg-sqrc-gray-800 hover:bg-sqrc-gray-700 border border-sqrc-gray-700 text-white rounded-xl transition-all font-medium flex flex-col items-center gap-3 shadow-lg hover:shadow-xl hover:scale-105"
+      >
+        <span className="text-3xl">💼</span>
+        <div className="text-center">
+          <span className="block font-semibold">Backoffice</span>
+          <span className="text-xs text-sqrc-gray-400">Gestión interna</span>
+        </div>
+      </Link>
+
+      {/* Supervisor */}
       <Link
         to="/supervisor"
-        className="px-8 py-4 bg-sqrc-secondary-500 hover:bg-sqrc-secondary-600 text-white rounded-lg transition-colors font-medium flex items-center gap-2 shadow-lg"
+        className="px-6 py-5 bg-sqrc-gray-800 hover:bg-sqrc-gray-700 border border-sqrc-gray-700 text-white rounded-xl transition-all font-medium flex flex-col items-center gap-3 shadow-lg hover:shadow-xl hover:scale-105"
       >
-        👑 Soy Supervisor
+        <span className="text-3xl">👑</span>
+        <div className="text-center">
+          <span className="block font-semibold">Supervisor</span>
+          <span className="text-xs text-sqrc-gray-400">Panel de control</span>
+        </div>
       </Link>
     </div>
   </div>
@@ -73,19 +105,37 @@ export default function App() {
             element={<SurveyExecutionPage />}
           />
 
-          {/* ─── ZONA AGENTE ─── */}
-          <Route path="/agente" element={<MainLayout role="AGENT" />}>
-            {/* Según tu carpeta, aquí vive la página de Tickets */}
+          {/* ─── ZONA AGENTE LLAMADA ─── */}
+          <Route path="/agente-llamada" element={<MainLayout role="AGENTE_LLAMADA" />}>
+            <Route index element={<TicketingPage />} />
             <Route path="tickets" element={<TicketingPage />} />
-            {/* Detalle del ticket para agentes */}
             <Route path="tickets/:ticketId" element={<AgenteTicketDetailPage />} />
-            {/*Ruta para Responder al cliente */}
             <Route path="tickets/responder/:ticketId" element={<ResponderTicketPage />} />
           </Route>
 
-          {/* Vista 360 del cliente para agentes */}
-          <Route path="/cliente-360" element={<MainLayout role="AGENT" />}>
+          {/* ─── ZONA AGENTE PRESENCIAL ─── */}
+          <Route path="/agente-presencial" element={<MainLayout role="AGENTE_PRESENCIAL" />}>
+            <Route index element={<TicketingPage />} />
+            <Route path="tickets" element={<TicketingPage />} />
+            <Route path="tickets/:ticketId" element={<AgenteTicketDetailPage />} />
+            <Route path="tickets/responder/:ticketId" element={<ResponderTicketPage />} />
+          </Route>
+
+          {/* Vista 360 del cliente - Agente Llamada */}
+          <Route path="/agente-llamada/cliente-360" element={<MainLayout role="AGENTE_LLAMADA" />}>
             <Route index element={<Vista360Page />} />
+          </Route>
+
+          {/* Vista 360 del cliente - Agente Presencial */}
+          <Route path="/agente-presencial/cliente-360" element={<MainLayout role="AGENTE_PRESENCIAL" />}>
+            <Route index element={<Vista360Page />} />
+          </Route>
+
+          {/* ─── ZONA BACKOFFICE ─── */}
+          <Route path="/backoffice" element={<MainLayout role="BACKOFFICE" />}>
+            <Route index element={<TicketingPage />} />
+            <Route path="tickets" element={<TicketingPage />} />
+            <Route path="tickets/:ticketId" element={<AgenteTicketDetailPage />} />
           </Route>
 
           {/* ─── ZONA SUPERVISOR ─── */}
@@ -114,11 +164,20 @@ export default function App() {
             />
           </Route>
 
-          {/* ─── BASE DE CONOCIMIENTO (Agente) ─── */}
-          <Route
-            path="/base-conocimiento"
-            element={<MainLayout role="AGENT" />}
-          >
+          {/* ─── BASE DE CONOCIMIENTO - Por rol ─── */}
+          <Route path="/agente-llamada/base-conocimiento" element={<MainLayout role="AGENTE_LLAMADA" />}>
+            <Route index element={<BaseConocimientoPage />} />
+            <Route path="articulo/:id" element={<ArticuloExpandidoPage />} />
+            <Route path="editar/:id" element={<EditarArticuloPage />} />
+          </Route>
+
+          <Route path="/agente-presencial/base-conocimiento" element={<MainLayout role="AGENTE_PRESENCIAL" />}>
+            <Route index element={<BaseConocimientoPage />} />
+            <Route path="articulo/:id" element={<ArticuloExpandidoPage />} />
+            <Route path="editar/:id" element={<EditarArticuloPage />} />
+          </Route>
+
+          <Route path="/backoffice/base-conocimiento" element={<MainLayout role="BACKOFFICE" />}>
             <Route index element={<BaseConocimientoPage />} />
             <Route path="articulo/:id" element={<ArticuloExpandidoPage />} />
             <Route path="editar/:id" element={<EditarArticuloPage />} />

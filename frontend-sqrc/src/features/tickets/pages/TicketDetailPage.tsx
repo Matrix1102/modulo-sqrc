@@ -2,7 +2,7 @@
  * Página de detalle del ticket
  */
 import { useState, useEffect } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { FaPaperPlane } from 'react-icons/fa';
 import { 
   TicketDetailLayout, 
@@ -25,6 +25,17 @@ import type {
 export const TicketDetailPage = () => {
   const { ticketId } = useParams<{ ticketId: string }>();
   const navigate = useNavigate();
+  const location = useLocation();
+
+  // Detectar la ruta base actual
+  const getBasePath = () => {
+    const path = location.pathname;
+    if (path.startsWith('/agente-llamada')) return '/agente-llamada';
+    if (path.startsWith('/agente-presencial')) return '/agente-presencial';
+    if (path.startsWith('/backoffice')) return '/backoffice';
+    if (path.startsWith('/supervisor')) return '/supervisor';
+    return '/agente-llamada';
+  };
 
   const [ticket, setTicket] = useState<TicketDetail | null>(null);
   const [documentacion, setDocumentacion] = useState<DocumentacionDTO[]>([]);
@@ -72,8 +83,9 @@ export const TicketDetailPage = () => {
   //LÓGICA PARA IR A LA PANTALLA DE RESPONDER
   const handleAtender = () => {
     if (!ticket) return;
+    const basePath = getBasePath();
 
-    navigate(`/agente/tickets/responder/${ticket.idTicket}`, { 
+    navigate(`${basePath}/tickets/responder/${ticket.idTicket}`, { 
         state: { 
             ticket: {
                 id: ticket.idTicket,
@@ -113,7 +125,7 @@ export const TicketDetailPage = () => {
           </div>
           <p className="text-red-600 mb-4">{error || 'Ticket no encontrado'}</p>
           <button
-            onClick={() => navigate('/agente/tickets')}
+            onClick={() => navigate(getBasePath())}
             className="text-blue-600 hover:underline"
           >
             Volver al listado

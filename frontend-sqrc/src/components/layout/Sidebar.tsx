@@ -3,16 +3,14 @@ import {
   LogOut,
   LayoutDashboard,
   ClipboardList,
-  PlusCircle,
   Ticket,
   BookOpen,
-  UserCircle,
   Search,
   Notebook,
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 
-type RoleType = "AGENT" | "SUPERVISOR";
+type RoleType = "SUPERVISOR" | "BACKOFFICE" | "AGENTE_LLAMADA" | "AGENTE_PRESENCIAL";
 
 interface MenuItem {
   icon: React.ComponentType<{ size?: number; className?: string }>;
@@ -57,16 +55,31 @@ export const Sidebar: React.FC<SidebarProps> = ({ role = "AGENT" }) => {
         path: "/supervisor/plantillas",
       },
     ],
-    AGENT: [
-      { icon: PlusCircle, label: "Nuevo Ticket", path: "/nuevo-ticket" },
-      { icon: Ticket, label: "Mis Casos", path: "/mis-casos" },
-      { icon: Search, label: "Vista 360° Cliente", path: "/cliente-360" },
+    AGENTE_LLAMADA: [
+      { icon: Ticket, label: "Gestión de Tickets", path: "/agente-llamada" },
+      { icon: Search, label: "Vista 360° Cliente", path: "/agente-llamada/cliente-360" },
       {
         icon: BookOpen,
         label: "Base de Conocimiento",
-        path: "/base-conocimiento",
+        path: "/agente-llamada/base-conocimiento",
       },
-      { icon: UserCircle, label: "Mi Perfil", path: "/perfil" },
+    ],
+    AGENTE_PRESENCIAL: [
+      { icon: Ticket, label: "Gestión de Tickets", path: "/agente-presencial" },
+      { icon: Search, label: "Vista 360° Cliente", path: "/agente-presencial/cliente-360" },
+      {
+        icon: BookOpen,
+        label: "Base de Conocimiento",
+        path: "/agente-presencial/base-conocimiento",
+      },
+    ],
+    BACKOFFICE: [
+      { icon: Ticket, label: "Tickets Escalados", path: "/backoffice" },
+      {
+        icon: BookOpen,
+        label: "Base de Conocimiento",
+        path: "/backoffice/base-conocimiento",
+      },
     ],
   };
 

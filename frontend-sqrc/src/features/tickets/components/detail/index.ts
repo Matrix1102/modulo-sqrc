@@ -1,7 +1,7 @@
 /**
  * Exportaciones de componentes de detalle de ticket
  */
-export { TicketDetailLayout, type TicketTabKey } from './TicketDetailLayout';
-export { DetallesTab } from './DetallesTab';
-export { DocumentacionTab } from './DocumentacionTab';
-export { HiloTab } from './HiloTab';
+export { default as TicketDetailLayout, type TicketTabKey } from './TicketDetailLayout';
+export { default as DetallesTab } from './DetallesTab';
+export { default as DocumentacionTab } from './DocumentacionTab';
+export { default as HiloTab } from './HiloTab';
