@@ -23,7 +23,8 @@ import java.util.stream.Collectors;
 
 /**
  * Servicio para la gestión de versiones de artículos.
- * Utiliza el patrón State para manejar las transiciones de estado de manera limpia.
+ * Utiliza el patrón State para manejar las transiciones de estado de manera
+ * limpia.
  */
 @Service
 @RequiredArgsConstructor
@@ -138,11 +139,11 @@ public class ArticuloVersionService {
                 } catch (TransicionEstadoException e) {
                         throw new OperacionInvalidaException(e.getMessage());
                 }
-                
+
                 version = versionRepository.save(version);
 
-                log.info("Versión ID: {} marcada como vigente (estado: {})", 
-                        idVersion, version.getEstadoPropuesta());
+                log.info("Versión ID: {} marcada como vigente (estado: {})",
+                                idVersion, version.getEstadoPropuesta());
 
                 return mapToResponse(version);
         }
@@ -174,13 +175,13 @@ public class ArticuloVersionService {
                 LocalDateTime fechaPublicacion = request.getVigenteDesde() != null
                                 ? request.getVigenteDesde().atStartOfDay()
                                 : LocalDateTime.now();
-                
+
                 try {
                         version.publicar(fechaPublicacion);
                 } catch (TransicionEstadoException e) {
                         throw new OperacionInvalidaException(e.getMessage());
                 }
-                
+
                 versionRepository.save(version);
 
                 // Actualizar el artículo
@@ -193,8 +194,8 @@ public class ArticuloVersionService {
                 }
                 articuloRepository.save(articulo);
 
-                log.info("Artículo ID: {} publicado exitosamente con versión {} (estado: {})", 
-                        idArticulo, version.getNumeroVersion(), version.getEstadoPropuesta());
+                log.info("Artículo ID: {} publicado exitosamente con versión {} (estado: {})",
+                                idArticulo, version.getNumeroVersion(), version.getEstadoPropuesta());
 
                 return mapToResponse(version);
         }
@@ -215,11 +216,11 @@ public class ArticuloVersionService {
                 } catch (TransicionEstadoException e) {
                         throw new OperacionInvalidaException(e.getMessage());
                 }
-                
+
                 version = versionRepository.save(version);
 
-                log.info("Versión ID: {} propuesta para revisión (estado: {})", 
-                        idVersion, version.getEstadoPropuesta());
+                log.info("Versión ID: {} propuesta para revisión (estado: {})",
+                                idVersion, version.getEstadoPropuesta());
 
                 return mapToResponse(version);
         }
@@ -240,11 +241,11 @@ public class ArticuloVersionService {
                 } catch (TransicionEstadoException e) {
                         throw new OperacionInvalidaException(e.getMessage());
                 }
-                
+
                 version = versionRepository.save(version);
 
-                log.info("Versión ID: {} archivada (estado: {})", 
-                        idVersion, version.getEstadoPropuesta());
+                log.info("Versión ID: {} archivada (estado: {})",
+                                idVersion, version.getEstadoPropuesta());
 
                 return mapToResponse(version);
         }
@@ -265,11 +266,11 @@ public class ArticuloVersionService {
                 } catch (TransicionEstadoException e) {
                         throw new OperacionInvalidaException(e.getMessage());
                 }
-                
+
                 version = versionRepository.save(version);
 
-                log.info("Versión ID: {} rechazada (estado: {})", 
-                        idVersion, version.getEstadoPropuesta());
+                log.info("Versión ID: {} rechazada (estado: {})",
+                                idVersion, version.getEstadoPropuesta());
 
                 return mapToResponse(version);
         }
@@ -290,11 +291,11 @@ public class ArticuloVersionService {
                 } catch (TransicionEstadoException e) {
                         throw new OperacionInvalidaException(e.getMessage());
                 }
-                
+
                 version = versionRepository.save(version);
 
-                log.info("Versión ID: {} deprecada (estado: {})", 
-                        idVersion, version.getEstadoPropuesta());
+                log.info("Versión ID: {} deprecada (estado: {})",
+                                idVersion, version.getEstadoPropuesta());
 
                 return mapToResponse(version);
         }

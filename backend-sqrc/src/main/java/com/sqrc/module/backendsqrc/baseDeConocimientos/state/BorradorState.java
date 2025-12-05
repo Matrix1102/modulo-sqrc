@@ -18,7 +18,8 @@ public class BorradorState implements EstadoArticuloState {
 
     private static final BorradorState INSTANCE = new BorradorState();
 
-    private BorradorState() {}
+    private BorradorState() {
+    }
 
     public static BorradorState getInstance() {
         return INSTANCE;
@@ -39,37 +40,33 @@ public class BorradorState implements EstadoArticuloState {
     @Override
     public EstadoArticuloState publicar(ArticuloVersion version) {
         throw new TransicionEstadoException(
-            EstadoArticulo.BORRADOR, 
-            EstadoArticulo.PUBLICADO,
-            "Una versión en borrador debe ser propuesta primero antes de publicar"
-        );
+                EstadoArticulo.BORRADOR,
+                EstadoArticulo.PUBLICADO,
+                "Una versión en borrador debe ser propuesta primero antes de publicar");
     }
 
     @Override
     public EstadoArticuloState rechazar(ArticuloVersion version) {
         throw new TransicionEstadoException(
-            EstadoArticulo.BORRADOR, 
-            EstadoArticulo.RECHAZADO,
-            "Solo se pueden rechazar versiones propuestas"
-        );
+                EstadoArticulo.BORRADOR,
+                EstadoArticulo.RECHAZADO,
+                "Solo se pueden rechazar versiones propuestas");
     }
 
     @Override
     public EstadoArticuloState archivar(ArticuloVersion version) {
         throw new TransicionEstadoException(
-            EstadoArticulo.BORRADOR, 
-            EstadoArticulo.ARCHIVADO,
-            "Solo se pueden archivar versiones publicadas"
-        );
+                EstadoArticulo.BORRADOR,
+                EstadoArticulo.ARCHIVADO,
+                "Solo se pueden archivar versiones publicadas");
     }
 
     @Override
     public EstadoArticuloState deprecar(ArticuloVersion version) {
         throw new TransicionEstadoException(
-            EstadoArticulo.BORRADOR, 
-            EstadoArticulo.DEPRECADO,
-            "Solo se pueden deprecar versiones publicadas"
-        );
+                EstadoArticulo.BORRADOR,
+                EstadoArticulo.DEPRECADO,
+                "Solo se pueden deprecar versiones publicadas");
     }
 
     @Override

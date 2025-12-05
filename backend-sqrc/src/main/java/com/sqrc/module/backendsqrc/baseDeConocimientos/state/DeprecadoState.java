@@ -19,7 +19,8 @@ public class DeprecadoState implements EstadoArticuloState {
 
     private static final DeprecadoState INSTANCE = new DeprecadoState();
 
-    private DeprecadoState() {}
+    private DeprecadoState() {
+    }
 
     public static DeprecadoState getInstance() {
         return INSTANCE;
@@ -33,28 +34,25 @@ public class DeprecadoState implements EstadoArticuloState {
     @Override
     public EstadoArticuloState proponer(ArticuloVersion version) {
         throw new TransicionEstadoException(
-            EstadoArticulo.DEPRECADO, 
-            EstadoArticulo.PROPUESTO,
-            "Una versión deprecada no puede ser modificada. Cree una nueva versión actualizada."
-        );
+                EstadoArticulo.DEPRECADO,
+                EstadoArticulo.PROPUESTO,
+                "Una versión deprecada no puede ser modificada. Cree una nueva versión actualizada.");
     }
 
     @Override
     public EstadoArticuloState publicar(ArticuloVersion version) {
         throw new TransicionEstadoException(
-            EstadoArticulo.DEPRECADO, 
-            EstadoArticulo.PUBLICADO,
-            "Una versión deprecada no puede ser republicada. Cree una nueva versión."
-        );
+                EstadoArticulo.DEPRECADO,
+                EstadoArticulo.PUBLICADO,
+                "Una versión deprecada no puede ser republicada. Cree una nueva versión.");
     }
 
     @Override
     public EstadoArticuloState rechazar(ArticuloVersion version) {
         throw new TransicionEstadoException(
-            EstadoArticulo.DEPRECADO, 
-            EstadoArticulo.RECHAZADO,
-            "Una versión deprecada no puede ser rechazada"
-        );
+                EstadoArticulo.DEPRECADO,
+                EstadoArticulo.RECHAZADO,
+                "Una versión deprecada no puede ser rechazada");
     }
 
     @Override
@@ -67,19 +65,17 @@ public class DeprecadoState implements EstadoArticuloState {
     @Override
     public EstadoArticuloState deprecar(ArticuloVersion version) {
         throw new TransicionEstadoException(
-            EstadoArticulo.DEPRECADO, 
-            EstadoArticulo.DEPRECADO,
-            "La versión ya está deprecada"
-        );
+                EstadoArticulo.DEPRECADO,
+                EstadoArticulo.DEPRECADO,
+                "La versión ya está deprecada");
     }
 
     @Override
     public EstadoArticuloState volverABorrador(ArticuloVersion version) {
         throw new TransicionEstadoException(
-            EstadoArticulo.DEPRECADO, 
-            EstadoArticulo.BORRADOR,
-            "Una versión deprecada no puede volver a borrador. Cree una nueva versión."
-        );
+                EstadoArticulo.DEPRECADO,
+                EstadoArticulo.BORRADOR,
+                "Una versión deprecada no puede volver a borrador. Cree una nueva versión.");
     }
 
     @Override

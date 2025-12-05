@@ -21,7 +21,8 @@ public class PublicadoState implements EstadoArticuloState {
 
     private static final PublicadoState INSTANCE = new PublicadoState();
 
-    private PublicadoState() {}
+    private PublicadoState() {
+    }
 
     public static PublicadoState getInstance() {
         return INSTANCE;
@@ -35,28 +36,25 @@ public class PublicadoState implements EstadoArticuloState {
     @Override
     public EstadoArticuloState proponer(ArticuloVersion version) {
         throw new TransicionEstadoException(
-            EstadoArticulo.PUBLICADO, 
-            EstadoArticulo.PROPUESTO,
-            "Una versión publicada no puede ser propuesta. Cree una nueva versión."
-        );
+                EstadoArticulo.PUBLICADO,
+                EstadoArticulo.PROPUESTO,
+                "Una versión publicada no puede ser propuesta. Cree una nueva versión.");
     }
 
     @Override
     public EstadoArticuloState publicar(ArticuloVersion version) {
         throw new TransicionEstadoException(
-            EstadoArticulo.PUBLICADO, 
-            EstadoArticulo.PUBLICADO,
-            "La versión ya está publicada"
-        );
+                EstadoArticulo.PUBLICADO,
+                EstadoArticulo.PUBLICADO,
+                "La versión ya está publicada");
     }
 
     @Override
     public EstadoArticuloState rechazar(ArticuloVersion version) {
         throw new TransicionEstadoException(
-            EstadoArticulo.PUBLICADO, 
-            EstadoArticulo.RECHAZADO,
-            "No se puede rechazar una versión que ya está publicada"
-        );
+                EstadoArticulo.PUBLICADO,
+                EstadoArticulo.RECHAZADO,
+                "No se puede rechazar una versión que ya está publicada");
     }
 
     @Override
@@ -81,10 +79,9 @@ public class PublicadoState implements EstadoArticuloState {
     @Override
     public EstadoArticuloState volverABorrador(ArticuloVersion version) {
         throw new TransicionEstadoException(
-            EstadoArticulo.PUBLICADO, 
-            EstadoArticulo.BORRADOR,
-            "Una versión publicada no puede volver a borrador. Cree una nueva versión."
-        );
+                EstadoArticulo.PUBLICADO,
+                EstadoArticulo.BORRADOR,
+                "Una versión publicada no puede volver a borrador. Cree una nueva versión.");
     }
 
     @Override

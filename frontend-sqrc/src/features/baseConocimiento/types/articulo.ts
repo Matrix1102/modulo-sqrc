@@ -295,11 +295,31 @@ export const mapToArticuloResumen = (
 
 // ============ IA GENERATION TYPES ============
 
+/** Tipo de fuente para generación con IA */
+export type TipoFuenteGeneracion = 'DOCUMENTACION' | 'DOCUMENTO_UPLOAD' | 'TEMA_LIBRE';
+
 /** Request para generar artículo con IA */
 export interface GenerarArticuloIARequest {
   idDocumentacion?: number;
   idCreador: number;
   instruccionesAdicionales?: string;
+  tema?: string;
+  etiquetaSugerida?: string;
+  tipoCasoSugerido?: string;
+}
+
+/** Request unificado para generación con IA (patrón Strategy) */
+export interface GeneracionArticuloRequest {
+  tipoFuente: TipoFuenteGeneracion;
+  idCreador?: number;
+  instruccionesAdicionales?: string;
+  // Para DOCUMENTACION
+  idDocumentacion?: number;
+  // Para DOCUMENTO_UPLOAD
+  contenidoDocumento?: string;
+  nombreDocumento?: string;
+  tipoDocumento?: string;
+  // Para TEMA_LIBRE
   tema?: string;
   etiquetaSugerida?: string;
   tipoCasoSugerido?: string;

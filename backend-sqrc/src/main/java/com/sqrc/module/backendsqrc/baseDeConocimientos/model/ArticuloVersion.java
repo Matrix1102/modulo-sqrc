@@ -21,8 +21,8 @@ import java.util.List;
  * 
  * Utiliza el patrón State para manejar las transiciones de estado:
  * BORRADOR → PROPUESTO → PUBLICADO → ARCHIVADO
- *                     ↘ RECHAZADO
- *                              ↘ DEPRECADO
+ * ↘ RECHAZADO
+ * ↘ DEPRECADO
  */
 @Entity
 @Table(name = "articulo_versiones", indexes = {
@@ -191,7 +191,8 @@ public class ArticuloVersion {
         this.esVigente = true;
     }
 
-    // ===================== MÉTODOS LEGACY (mantener compatibilidad) =====================
+    // ===================== MÉTODOS LEGACY (mantener compatibilidad)
+    // =====================
 
     /**
      * @deprecated Usar publicar() en su lugar

@@ -22,7 +22,7 @@ public class EstadoArticuloStateFactory {
         if (estado == null) {
             return BorradorState.getInstance();
         }
-        
+
         return switch (estado) {
             case BORRADOR -> BorradorState.getInstance();
             case PROPUESTO -> PropuestoState.getInstance();

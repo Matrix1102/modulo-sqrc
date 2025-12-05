@@ -12,10 +12,13 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
+import java.util.Map;
 
 /**
  * Controlador REST para la gestión de artículos de la base de conocimiento.
@@ -444,5 +447,69 @@ public class ArticuloController {
         } else {
             return ResponseEntity.badRequest().body(response);
         }
+    }
+
+    /**
+     * Genera un artículo desde un documento subido (PDF, Word, TXT) usando IA.
+     * Extrae el texto del documento y genera un artículo estructurado.
+     * 
+     * Formatos soportados:
+     * - PDF (.pdf)
+     * - Word (.doc, .docx)
+     * - Texto plano (.txt)
+     * 
+     * POST /api/articulos/generar-ia/documento
+     */
+    @PostMapping(value = "/generar-ia/documento", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ResponseEntity<GenerarArticuloIAResponse> generarArticuloDesdeDocumento(
+            @RequestParam("documento") MultipartFile documento,
+            @RequestParam("idCreador") Long idCreador) {
+        
+        log.info("POST /api/articulos/generar-ia/documento - Archivo: {}, Creador: {}", 
+                documento.getOriginalFilename(), idCreador);
+        
+        GenerarArticuloIAResponse response = articuloIAService.generarArticuloDesdeDocumentoUpload(
+                documento, idCreador);
+        
+        if (response.isExito()) {
+            return ResponseEntity.status(HttpStatus.CREATED).body(response);
+        } else {
+            return ResponseEntity.badRequest().body(response);
+        }
+    }
+
+    /**
+     * Genera un artículo usando el patrón Strategy (API unificada).
+     * Soporta múltiples fuentes de datos según tipoFuente:
+     * - DOCUMENTACION: Desde documentación de ticket existente
+     * - DOCUMENTO_UPLOAD: Desde documento subido (usar endpoint específico)
+     * - TEMA_LIBRE: Desde un tema especificado
+     * 
+     * POST /api/articulos/generar-ia/unificado
+     */
+    @PostMapping("/generar-ia/unificado")
+    public ResponseEntity<GenerarArticuloIAResponse> generarArticuloUnificado(
+            @Valid @RequestBody GeneracionArticuloRequest request) {
+        
+        log.info("POST /api/articulos/generar-ia/unificado - Tipo: {}", request.getTipoFuente());
+        
+        GenerarArticuloIAResponse response = articuloIAService.generarArticulo(request);
+        
+        if (response.isExito()) {
+            return ResponseEntity.status(HttpStatus.CREATED).body(response);
+        } else {
+            return ResponseEntity.badRequest().body(response);
+        }
+    }
+
+    /**
+     * Obtiene información de las estrategias de generación disponibles.
+     * 
+     * GET /api/articulos/generar-ia/estrategias
+     */
+    @GetMapping("/generar-ia/estrategias")
+    public ResponseEntity<Map<String, String>> obtenerEstrategiasDisponibles() {
+        log.info("GET /api/articulos/generar-ia/estrategias");
+        return ResponseEntity.ok(articuloIAService.obtenerEstrategiasDisponibles());
     }
 }

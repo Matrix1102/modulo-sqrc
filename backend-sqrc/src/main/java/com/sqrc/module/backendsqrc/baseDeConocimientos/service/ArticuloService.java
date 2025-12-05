@@ -513,14 +513,12 @@ public class ArticuloService {
      * 
      * @param idDocumentacion ID de la documentación
      * @param idEmpleado ID del empleado que solicita (será el propietario)
-     * @param instruccionesAdicionales Instrucciones extra para la IA (opcional)
      * @param guardarComoBorrador Si es true, guarda el artículo automáticamente
      * @return ArticuloGeneradoIA con el contenido generado
      */
     public ArticuloGeneradoIA generarArticuloDesdeDocumentacion(
             Long idDocumentacion, 
             Long idEmpleado,
-            String instruccionesAdicionales,
             boolean guardarComoBorrador) {
         
         log.info("🤖 Generando artículo con IA desde documentación ID: {}", idDocumentacion);
@@ -539,8 +537,7 @@ public class ArticuloService {
         ContextoDocumentacionDTO contexto = construirContextoDesdeDocumentacion(documentacion);
 
         // Llamar a Gemini para generar el artículo
-        ArticuloGeneradoIA articuloGenerado = geminiService.generarArticuloDesdeContexto(
-                contexto, instruccionesAdicionales);
+        ArticuloGeneradoIA articuloGenerado = geminiService.generarArticuloDesdeContexto(contexto);
 
         // Si se solicita guardar como borrador
         if (guardarComoBorrador && idEmpleado != null) {

@@ -19,7 +19,8 @@ public class ArchivadoState implements EstadoArticuloState {
 
     private static final ArchivadoState INSTANCE = new ArchivadoState();
 
-    private ArchivadoState() {}
+    private ArchivadoState() {
+    }
 
     public static ArchivadoState getInstance() {
         return INSTANCE;
@@ -33,55 +34,49 @@ public class ArchivadoState implements EstadoArticuloState {
     @Override
     public EstadoArticuloState proponer(ArticuloVersion version) {
         throw new TransicionEstadoException(
-            EstadoArticulo.ARCHIVADO, 
-            EstadoArticulo.PROPUESTO,
-            "Una versión archivada no puede ser modificada. Cree una nueva versión."
-        );
+                EstadoArticulo.ARCHIVADO,
+                EstadoArticulo.PROPUESTO,
+                "Una versión archivada no puede ser modificada. Cree una nueva versión.");
     }
 
     @Override
     public EstadoArticuloState publicar(ArticuloVersion version) {
         throw new TransicionEstadoException(
-            EstadoArticulo.ARCHIVADO, 
-            EstadoArticulo.PUBLICADO,
-            "Una versión archivada no puede ser republicada. Cree una nueva versión."
-        );
+                EstadoArticulo.ARCHIVADO,
+                EstadoArticulo.PUBLICADO,
+                "Una versión archivada no puede ser republicada. Cree una nueva versión.");
     }
 
     @Override
     public EstadoArticuloState rechazar(ArticuloVersion version) {
         throw new TransicionEstadoException(
-            EstadoArticulo.ARCHIVADO, 
-            EstadoArticulo.RECHAZADO,
-            "Una versión archivada no puede ser rechazada"
-        );
+                EstadoArticulo.ARCHIVADO,
+                EstadoArticulo.RECHAZADO,
+                "Una versión archivada no puede ser rechazada");
     }
 
     @Override
     public EstadoArticuloState archivar(ArticuloVersion version) {
         throw new TransicionEstadoException(
-            EstadoArticulo.ARCHIVADO, 
-            EstadoArticulo.ARCHIVADO,
-            "La versión ya está archivada"
-        );
+                EstadoArticulo.ARCHIVADO,
+                EstadoArticulo.ARCHIVADO,
+                "La versión ya está archivada");
     }
 
     @Override
     public EstadoArticuloState deprecar(ArticuloVersion version) {
         throw new TransicionEstadoException(
-            EstadoArticulo.ARCHIVADO, 
-            EstadoArticulo.DEPRECADO,
-            "Una versión archivada no puede ser deprecada"
-        );
+                EstadoArticulo.ARCHIVADO,
+                EstadoArticulo.DEPRECADO,
+                "Una versión archivada no puede ser deprecada");
     }
 
     @Override
     public EstadoArticuloState volverABorrador(ArticuloVersion version) {
         throw new TransicionEstadoException(
-            EstadoArticulo.ARCHIVADO, 
-            EstadoArticulo.BORRADOR,
-            "Una versión archivada no puede volver a borrador. Cree una nueva versión."
-        );
+                EstadoArticulo.ARCHIVADO,
+                EstadoArticulo.BORRADOR,
+                "Una versión archivada no puede volver a borrador. Cree una nueva versión.");
     }
 
     @Override

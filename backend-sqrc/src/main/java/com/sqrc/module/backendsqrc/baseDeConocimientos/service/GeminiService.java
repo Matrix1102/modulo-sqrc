@@ -52,15 +52,13 @@ public class GeminiService {
     /**
      * Genera un artículo de conocimiento a partir del contexto de documentación.
      * 
-     * @param contexto              Información de la documentación, ticket y asignación
-     * @param instruccionesAdicionales Instrucciones extra del usuario (opcional)
+     * @param contexto Información de la documentación, ticket y asignación
      * @return ArticuloGeneradoIA con el contenido generado
      */
-    public ArticuloGeneradoIA generarArticuloDesdeContexto(ContextoDocumentacionDTO contexto, 
-                                                           String instruccionesAdicionales) {
+    public ArticuloGeneradoIA generarArticuloDesdeContexto(ContextoDocumentacionDTO contexto) {
         log.info("Generando artículo con Gemini para documentación ID: {}", contexto.getIdDocumentacion());
 
-        String prompt = construirPrompt(contexto, instruccionesAdicionales);
+        String prompt = construirPrompt(contexto);
         
         try {
             String respuestaGemini = llamarGeminiAPI(prompt);
@@ -74,7 +72,7 @@ public class GeminiService {
     /**
      * Construye el prompt para Gemini con el contexto de la documentación.
      */
-    private String construirPrompt(ContextoDocumentacionDTO contexto, String instruccionesAdicionales) {
+    private String construirPrompt(ContextoDocumentacionDTO contexto) {
         StringBuilder prompt = new StringBuilder();
         
         prompt.append("Genera un artículo de base de conocimiento para CRM de telecomunicaciones.\n\n");
@@ -82,10 +80,6 @@ public class GeminiService {
         prompt.append("PROBLEMA: ").append(contexto.getProblema()).append("\n");
         prompt.append("SOLUCIÓN: ").append(contexto.getSolucion()).append("\n");
         prompt.append("TIPO: ").append(contexto.getTipoTicket()).append("\n");
-        
-        if (instruccionesAdicionales != null && !instruccionesAdicionales.isBlank()) {
-            prompt.append("EXTRA: ").append(instruccionesAdicionales).append("\n");
-        }
         
         prompt.append("""
             
@@ -116,12 +110,12 @@ public class GeminiService {
 
         log.debug("Llamando a Gemini API con modelo: {}", model);
 
-        // Configuración para respuesta JSON
+        // Configuración para respuesta JSON - aumentado maxOutputTokens para documentos largos
         GenerateContentConfig config = GenerateContentConfig.builder()
             .temperature(0.4f)
             .topK(20f)
             .topP(0.8f)
-            .maxOutputTokens(2048)
+            .maxOutputTokens(8192)
             .responseMimeType("application/json")
             .build();
 
@@ -175,9 +169,10 @@ public class GeminiService {
 
     /**
      * Limpia la respuesta JSON de posibles marcadores de código.
+     * También intenta reparar JSON truncado.
      */
     private String limpiarJsonResponse(String texto) {
-        if (texto == null) return "{}";
+        if (texto == null || texto.isBlank()) return "{}";
         
         texto = texto.trim();
         
@@ -192,7 +187,109 @@ public class GeminiService {
             texto = texto.substring(0, texto.length() - 3);
         }
         
-        return texto.trim();
+        texto = texto.trim();
+        
+        // Intentar reparar JSON truncado
+        texto = repararJsonTruncado(texto);
+        
+        return texto;
+    }
+
+    /**
+     * Intenta reparar un JSON que fue truncado por límite de tokens.
+     */
+    private String repararJsonTruncado(String json) {
+        if (json == null || json.isBlank()) return "{}";
+        
+        // Si ya es JSON válido, retornarlo
+        if (esJsonValido(json)) {
+            return json;
+        }
+        
+        log.warn("JSON truncado detectado, intentando reparar...");
+        
+        // Contar llaves y corchetes abiertos
+        int llaves = 0;
+        int corchetes = 0;
+        boolean enString = false;
+        boolean escape = false;
+        
+        for (char c : json.toCharArray()) {
+            if (escape) {
+                escape = false;
+                continue;
+            }
+            if (c == '\\') {
+                escape = true;
+                continue;
+            }
+            if (c == '"') {
+                enString = !enString;
+                continue;
+            }
+            if (!enString) {
+                if (c == '{') llaves++;
+                else if (c == '}') llaves--;
+                else if (c == '[') corchetes++;
+                else if (c == ']') corchetes--;
+            }
+        }
+        
+        // Si estamos dentro de un string, cerrarlo
+        if (enString) {
+            json = json + "\"";
+        }
+        
+        // Cerrar corchetes y llaves faltantes
+        StringBuilder sb = new StringBuilder(json);
+        for (int i = 0; i < corchetes; i++) {
+            sb.append("]");
+        }
+        for (int i = 0; i < llaves; i++) {
+            sb.append("}");
+        }
+        
+        String jsonReparado = sb.toString();
+        
+        // Verificar si ahora es válido
+        if (esJsonValido(jsonReparado)) {
+            log.info("JSON reparado exitosamente");
+            return jsonReparado;
+        }
+        
+        // Si aún no es válido, intentar una reparación más agresiva
+        // Buscar el último campo válido y cerrar desde ahí
+        int ultimaLlave = json.lastIndexOf("}");
+        int ultimoCorchete = json.lastIndexOf("]");
+        int ultimaComa = json.lastIndexOf(",");
+        
+        // Si hay una coma al final (campo incompleto), quitarla
+        if (ultimaComa > ultimaLlave && ultimaComa > ultimoCorchete) {
+            json = json.substring(0, ultimaComa);
+        }
+        
+        // Agregar cierres necesarios
+        sb = new StringBuilder(json);
+        for (int i = 0; i < corchetes; i++) {
+            sb.append("]");
+        }
+        for (int i = 0; i < llaves; i++) {
+            sb.append("}");
+        }
+        
+        return sb.toString();
+    }
+
+    /**
+     * Verifica si un string es JSON válido.
+     */
+    private boolean esJsonValido(String json) {
+        try {
+            objectMapper.readTree(json);
+            return true;
+        } catch (Exception e) {
+            return false;
+        }
     }
 
     private Etiqueta parseEtiqueta(String valor) {
@@ -338,6 +435,149 @@ public class GeminiService {
             - Incluye entre 4 y 8 pasos según la complejidad
             - Usa un tono profesional y claro
             - Responde SOLO con el JSON, sin texto adicional ni explicaciones
+            """);
+        
+        return prompt.toString();
+    }
+
+    /**
+     * Genera un artículo de conocimiento a partir del contenido de un documento subido.
+     * Para documentos grandes, procesa por secciones y combina los resultados.
+     * 
+     * @param contenidoDocumento Texto extraído del documento (PDF, Word, etc.)
+     * @param nombreDocumento    Nombre original del archivo
+     * @return ArticuloGeneradoIA con el contenido generado
+     */
+    public ArticuloGeneradoIA generarArticuloDesdeDocumento(String contenidoDocumento, 
+                                                             String nombreDocumento) {
+        log.info("Generando artículo desde documento: {} ({} caracteres)", 
+            nombreDocumento, contenidoDocumento != null ? contenidoDocumento.length() : 0);
+
+        // Para documentos muy grandes, primero resumir y luego generar
+        if (contenidoDocumento != null && contenidoDocumento.length() > 10000) {
+            log.info("Documento grande detectado, procesando en dos fases...");
+            return generarArticuloDocumentoGrande(contenidoDocumento, nombreDocumento);
+        }
+
+        String prompt = construirPromptDesdeDocumento(contenidoDocumento, nombreDocumento);
+        
+        try {
+            String respuestaGemini = llamarGeminiAPI(prompt);
+            return parsearRespuestaGemini(respuestaGemini);
+        } catch (Exception e) {
+            log.error("Error al generar artículo desde documento con Gemini: {}", e.getMessage(), e);
+            throw new RuntimeException("Error al comunicarse con Gemini API: " + e.getMessage(), e);
+        }
+    }
+
+    /**
+     * Procesa documentos grandes en dos fases:
+     * 1. Primero extrae los puntos clave del documento
+     * 2. Luego genera el artículo estructurado
+     */
+    private ArticuloGeneradoIA generarArticuloDocumentoGrande(String contenidoDocumento,
+                                                               String nombreDocumento) {
+        log.info("Fase 1: Extrayendo puntos clave del documento...");
+        
+        // Fase 1: Resumir el documento en puntos clave
+        String promptResumen = construirPromptResumenDocumento(contenidoDocumento, nombreDocumento);
+        String resumenPuntos;
+        
+        try {
+            resumenPuntos = llamarGeminiAPI(promptResumen);
+            log.info("Puntos clave extraídos: {} caracteres", resumenPuntos.length());
+        } catch (Exception e) {
+            log.warn("Error en fase 1, intentando método directo: {}", e.getMessage());
+            // Fallback: usar método directo con documento truncado
+            String prompt = construirPromptDesdeDocumento(contenidoDocumento, nombreDocumento);
+            String respuesta = llamarGeminiAPI(prompt);
+            return parsearRespuestaGemini(respuesta);
+        }
+        
+        // Fase 2: Generar artículo desde el resumen
+        log.info("Fase 2: Generando artículo estructurado...");
+        String promptArticulo = construirPromptDesdeResumen(resumenPuntos, nombreDocumento);
+        
+        try {
+            String respuestaGemini = llamarGeminiAPI(promptArticulo);
+            return parsearRespuestaGemini(respuestaGemini);
+        } catch (Exception e) {
+            log.error("Error en fase 2: {}", e.getMessage(), e);
+            throw new RuntimeException("Error al generar artículo: " + e.getMessage(), e);
+        }
+    }
+
+    /**
+     * Prompt para extraer puntos clave de un documento grande.
+     */
+    private String construirPromptResumenDocumento(String contenido, String nombreArchivo) {
+        // Dividir en chunks si es muy grande
+        String contenidoProcesar = contenido;
+        if (contenido.length() > 20000) {
+            contenidoProcesar = contenido.substring(0, 20000) + "\n[...documento truncado...]";
+        }
+        
+        return String.format("""
+            Extrae los puntos clave del siguiente documento de forma concisa.
+            
+            ARCHIVO: %s
+            
+            CONTENIDO:
+            %s
+            
+            Responde con una lista de los puntos más importantes (máximo 15 puntos):
+            - Tema principal
+            - Pasos o procedimientos mencionados
+            - Requisitos o prerequisitos
+            - Notas importantes o advertencias
+            - Conclusiones o resultados esperados
+            
+            Sé conciso y directo. Solo lista los puntos, sin explicaciones adicionales.
+            """, nombreArchivo, contenidoProcesar);
+    }
+
+    /**
+     * Prompt para generar artículo desde puntos clave resumidos.
+     */
+    private String construirPromptDesdeResumen(String puntosResumidos, String nombreArchivo) {
+        StringBuilder prompt = new StringBuilder();
+        
+        prompt.append("Genera un artículo de conocimiento basado en estos puntos clave extraídos de: ");
+        prompt.append(nombreArchivo != null ? nombreArchivo : "documento").append("\n\n");
+        prompt.append("PUNTOS CLAVE:\n").append(puntosResumidos).append("\n\n");
+        
+        prompt.append("""
+            Responde SOLO con JSON válido:
+            {"titulo":"max 100 chars","resumen":"2-3 oraciones","contenido":"HTML estructurado con <h2>,<p>,<ol>,<li>","etiqueta":"GUIAS|POLITICAS|FAQS|TROUBLESHOOTING|DESCRIPCIONES|INSTRUCTIVOS","tipoCaso":"SOLICITUD|QUEJA|RECLAMO|CONSULTA|TODOS","visibilidad":"AGENTE","tags":"5+ palabras clave","notaCambio":"Generado desde documento","confianza":0.85,"sugerencias":["mejora1"]}
+            
+            Estructura el contenido HTML con: descripción, contexto, pasos numerados y notas importantes.
+            """);
+        
+        return prompt.toString();
+    }
+
+    /**
+     * Construye el prompt para generar un artículo desde el contenido de un documento.
+     */
+    private String construirPromptDesdeDocumento(String contenidoDocumento, String nombreDocumento) {
+        // Limitar contenido del documento para evitar tokens excesivos
+        String contenidoLimitado = contenidoDocumento;
+        if (contenidoDocumento != null && contenidoDocumento.length() > 15000) {
+            contenidoLimitado = contenidoDocumento.substring(0, 15000) + "\n[... contenido truncado por longitud ...]";
+            log.warn("Documento truncado de {} a 15000 caracteres", contenidoDocumento.length());
+        }
+        
+        StringBuilder prompt = new StringBuilder();
+        
+        prompt.append("Analiza este documento y genera un artículo de conocimiento para CRM de telecomunicaciones.\n\n");
+        prompt.append("ARCHIVO: ").append(nombreDocumento != null ? nombreDocumento : "documento.txt").append("\n\n");
+        prompt.append("CONTENIDO:\n").append(contenidoLimitado).append("\n\n");
+        
+        prompt.append("""
+            Responde SOLO con JSON válido (sin markdown):
+            {"titulo":"max 100 chars","resumen":"2-3 oraciones","contenido":"HTML con <h2>,<p>,<ol>,<li>","etiqueta":"GUIAS|POLITICAS|FAQS|CASOS|TROUBLESHOOTING|DESCRIPCIONES|INSTRUCTIVOS","tipoCaso":"SOLICITUD|QUEJA|RECLAMO|CONSULTA|TODOS","visibilidad":"AGENTE","tags":"5+ palabras clave","notaCambio":"Generado desde documento","confianza":0.85,"sugerencias":["mejora1"]}
+            
+            El contenido HTML debe tener: descripción del tema, contexto, pasos numerados (<ol><li>), y notas importantes.
             """);
         
         return prompt.toString();

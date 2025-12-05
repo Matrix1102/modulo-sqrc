@@ -1,79 +1,86 @@
 import React, { useState } from "react";
-import { Sparkles, X, Loader2, FileText, AlertCircle } from "lucide-react";
-import articuloService from "../services/articuloService";
-import showToast from "../../../services/notification";
+import { Sparkles, X, FileText, Upload } from "lucide-react";
+import GenerarDesdeDocumentacionModal from "./GenerarDesdeDocumentacionModal";
+import GenerarDesdeDocumentoModal from "./GenerarDesdeDocumentoModal";
 import type { ArticuloGeneradoIA } from "../types/articulo";
+
+type TabType = 'documentacion' | 'documento';
 
 interface GenerarArticuloIAModalProps {
   isOpen: boolean;
   onClose: () => void;
   idCreador: number;
   onArticuloGenerado: (articulo: ArticuloGeneradoIA) => void;
+  /** Tab inicial: 'documentacion' o 'documento' */
+  tabInicial?: TabType;
 }
 
+/**
+ * Modal combinado para generar artículos con IA.
+ * Ofrece dos opciones:
+ * - Desde Documentación: Usa ID de documentación de ticket
+ * - Subir Documento: Sube PDF, Word o TXT
+ * 
+ * Este modal actúa como wrapper de los modales individuales.
+ * Para uso independiente, importa GenerarDesdeDocumentacionModal o GenerarDesdeDocumentoModal.
+ */
 const GenerarArticuloIAModal: React.FC<GenerarArticuloIAModalProps> = ({
   isOpen,
   onClose,
   idCreador,
   onArticuloGenerado,
+  tabInicial = 'documentacion',
 }) => {
-  const [idDocumentacion, setIdDocumentacion] = useState<string>("");
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-
-  const handleGenerar = async () => {
-    const docId = parseInt(idDocumentacion, 10);
-
-    if (!idDocumentacion || isNaN(docId) || docId <= 0) {
-      setError("Por favor ingresa un ID de documentación válido");
-      return;
-    }
-
-    setError(null);
-    setLoading(true);
-
-    try {
-      const response = await articuloService.previewArticuloIA({
-        idDocumentacion: docId,
-        idCreador,
-      });
-
-      if (response.exito && response.contenidoGenerado) {
-        showToast("✨ Artículo generado con IA exitosamente", "success");
-        onArticuloGenerado(response.contenidoGenerado);
-        handleClose();
-      } else {
-        setError(response.mensaje || "Error al generar el artículo");
-        if (response.errores?.length) {
-          setError(response.errores.join(", "));
-        }
-      }
-    } catch (err: unknown) {
-      console.error("Error al generar artículo con IA:", err);
-      const errorMessage =
-        err instanceof Error ? err.message : "Error de conexión con el servidor";
-      setError(errorMessage);
-      showToast("Error al generar artículo con IA", "error");
-    } finally {
-      setLoading(false);
-    }
-  };
+  const [activeTab, setActiveTab] = useState<TabType>(tabInicial);
+  const [showSubModal, setShowSubModal] = useState(false);
 
   const handleClose = () => {
-    setIdDocumentacion("");
-    setError(null);
+    setActiveTab(tabInicial);
+    setShowSubModal(false);
     onClose();
   };
 
-  // Generar al presionar Enter
-  const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === "Enter" && idDocumentacion && !loading) {
-      handleGenerar();
-    }
+  const handleSelectOption = (tab: TabType) => {
+    setActiveTab(tab);
+    setShowSubModal(true);
+  };
+
+  const handleSubModalClose = () => {
+    setShowSubModal(false);
+  };
+
+  const handleArticuloGenerado = (articulo: ArticuloGeneradoIA) => {
+    setShowSubModal(false);
+    onArticuloGenerado(articulo);
+    handleClose();
   };
 
   if (!isOpen) return null;
 
+  // Si hay un sub-modal abierto, mostrar ese
+  if (showSubModal) {
+    if (activeTab === 'documentacion') {
+      return (
+        <GenerarDesdeDocumentacionModal
+          isOpen={true}
+          onClose={handleSubModalClose}
+          idCreador={idCreador}
+          onArticuloGenerado={handleArticuloGenerado}
+        />
+      );
+    } else {
+      return (
+        <GenerarDesdeDocumentoModal
+          isOpen={true}
+          onClose={handleSubModalClose}
+          idCreador={idCreador}
+          onArticuloGenerado={handleArticuloGenerado}
+        />
+      );
+    }
+  }
+
+  // Modal selector principal
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center">
       {/* Overlay */}
@@ -96,7 +103,7 @@ const GenerarArticuloIAModal: React.FC<GenerarArticuloIAModalProps> = ({
                   Generar con IA
                 </h2>
                 <p className="text-purple-200 text-sm">
-                  Gemini 2.5 Flash
+                  Selecciona una opción
                 </p>
               </div>
             </div>
@@ -109,73 +116,52 @@ const GenerarArticuloIAModal: React.FC<GenerarArticuloIAModalProps> = ({
           </div>
         </div>
 
-        {/* Body */}
-        <div className="p-6 space-y-5">
-          {/* Info box */}
-          <div className="bg-blue-50 border border-blue-200 rounded-xl p-4">
-            <div className="flex gap-3">
-              <FileText className="w-5 h-5 text-blue-600 shrink-0 mt-0.5" />
-              <p className="text-sm text-blue-700">
-                Ingresa el ID de documentación y la IA generará automáticamente
-                el artículo con título, contenido estructurado, tags y categoría.
+        {/* Body - Opciones */}
+        <div className="p-6 space-y-4">
+          {/* Opción Documentación */}
+          <button
+            onClick={() => handleSelectOption('documentacion')}
+            className="w-full p-4 border-2 border-gray-200 rounded-xl hover:border-purple-400 hover:bg-purple-50 transition-all flex items-start gap-4 text-left group"
+          >
+            <div className="p-3 bg-purple-100 rounded-lg group-hover:bg-purple-200 transition-colors">
+              <FileText className="w-6 h-6 text-purple-600" />
+            </div>
+            <div className="flex-1">
+              <h3 className="font-semibold text-gray-900 group-hover:text-purple-700">
+                Desde Documentación
+              </h3>
+              <p className="text-sm text-gray-500 mt-1">
+                Genera un artículo usando el ID de documentación de un ticket existente
               </p>
             </div>
-          </div>
+          </button>
 
-          {/* ID Documentación */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              ID de Documentación
-            </label>
-            <input
-              type="number"
-              min="1"
-              placeholder="Ingresa el ID de documentación"
-              value={idDocumentacion}
-              onChange={(e) => setIdDocumentacion(e.target.value)}
-              onKeyDown={handleKeyDown}
-              autoFocus
-              className="w-full border border-gray-300 rounded-xl px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-all"
-              disabled={loading}
-            />
-          </div>
-
-          {/* Error message */}
-          {error && (
-            <div className="bg-red-50 border border-red-200 rounded-xl p-4">
-              <div className="flex gap-3">
-                <AlertCircle className="w-5 h-5 text-red-600 shrink-0" />
-                <p className="text-sm text-red-700">{error}</p>
-              </div>
+          {/* Opción Documento */}
+          <button
+            onClick={() => handleSelectOption('documento')}
+            className="w-full p-4 border-2 border-gray-200 rounded-xl hover:border-green-400 hover:bg-green-50 transition-all flex items-start gap-4 text-left group"
+          >
+            <div className="p-3 bg-green-100 rounded-lg group-hover:bg-green-200 transition-colors">
+              <Upload className="w-6 h-6 text-green-600" />
             </div>
-          )}
+            <div className="flex-1">
+              <h3 className="font-semibold text-gray-900 group-hover:text-green-700">
+                Subir Documento
+              </h3>
+              <p className="text-sm text-gray-500 mt-1">
+                Sube un archivo PDF, Word o TXT para generar un artículo
+              </p>
+            </div>
+          </button>
         </div>
 
         {/* Footer */}
-        <div className="px-6 py-4 bg-gray-50 border-t flex justify-end gap-3">
+        <div className="px-6 py-4 bg-gray-50 border-t flex justify-end">
           <button
             onClick={handleClose}
             className="px-4 py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-200 rounded-xl transition-colors"
-            disabled={loading}
           >
             Cancelar
-          </button>
-          <button
-            onClick={handleGenerar}
-            disabled={loading || !idDocumentacion}
-            className="px-5 py-2.5 bg-gradient-to-r from-purple-600 to-indigo-600 text-white text-sm font-medium rounded-xl hover:from-purple-700 hover:to-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all flex items-center gap-2 shadow-lg shadow-purple-500/25"
-          >
-            {loading ? (
-              <>
-                <Loader2 className="w-4 h-4 animate-spin" />
-                Generando...
-              </>
-            ) : (
-              <>
-                <Sparkles className="w-4 h-4" />
-                Generar Artículo
-              </>
-            )}
           </button>
         </div>
       </div>

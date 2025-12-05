@@ -417,6 +417,40 @@ const articuloService = {
     );
     return response.data;
   },
+
+  /**
+   * Genera un artículo con IA desde un documento subido (PDF, Word, TXT).
+   * Usa el patrón Strategy en el backend.
+   */
+  async generarArticuloDesdeDocumento(
+    documento: File,
+    idCreador: number
+  ): Promise<GenerarArticuloIAResponse> {
+    const formData = new FormData();
+    formData.append('documento', documento);
+    formData.append('idCreador', idCreador.toString());
+
+    const response = await http.post<GenerarArticuloIAResponse>(
+      `${BASE_URL}/generar-ia/documento`,
+      formData,
+      {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+      }
+    );
+    return response.data;
+  },
+
+  /**
+   * Obtiene las estrategias de generación disponibles.
+   */
+  async obtenerEstrategiasDisponibles(): Promise<Record<string, string>> {
+    const response = await http.get<Record<string, string>>(
+      `${BASE_URL}/generar-ia/estrategias`
+    );
+    return response.data;
+  },
 };
 
 export default articuloService;

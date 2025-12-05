@@ -12,12 +12,12 @@ import com.sqrc.module.backendsqrc.baseDeConocimientos.model.EstadoArticulo;
  * 
  * Diagrama de transiciones:
  * 
- *   BORRADOR ──────► PROPUESTO ──────► PUBLICADO ──────► ARCHIVADO
- *       ▲               │                   │
- *       │               ▼                   │
- *       └────────── RECHAZADO               │
- *                                           ▼
- *                                      DEPRECADO
+ * BORRADOR ──────► PROPUESTO ──────► PUBLICADO ──────► ARCHIVADO
+ * ▲ │ │
+ * │ ▼ │
+ * └────────── RECHAZADO │
+ * ▼
+ * DEPRECADO
  */
 public interface EstadoArticuloState {
 

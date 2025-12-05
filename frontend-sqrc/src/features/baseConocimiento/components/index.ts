@@ -11,4 +11,7 @@ export { default as MisArticulosView } from "./MisArticulosView";
 export { default as CrearArticuloView } from "./CrearArticuloView";
 export { default as ArticuloModal } from "./ArticuloModal";
 export { default as BuscadorArticulos } from "./BuscadorArticulos";
+export { default as GenerarArticuloIAModal } from "./GenerarArticuloIAModal";
+export { default as GenerarDesdeDocumentacionModal } from "./GenerarDesdeDocumentacionModal";
+export { default as GenerarDesdeDocumentoModal } from "./GenerarDesdeDocumentoModal";
 export type { CrearArticuloViewRef } from "./CrearArticuloView";

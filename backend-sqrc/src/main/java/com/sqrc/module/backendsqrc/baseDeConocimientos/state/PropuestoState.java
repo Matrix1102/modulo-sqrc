@@ -19,7 +19,8 @@ public class PropuestoState implements EstadoArticuloState {
 
     private static final PropuestoState INSTANCE = new PropuestoState();
 
-    private PropuestoState() {}
+    private PropuestoState() {
+    }
 
     public static PropuestoState getInstance() {
         return INSTANCE;
@@ -33,10 +34,9 @@ public class PropuestoState implements EstadoArticuloState {
     @Override
     public EstadoArticuloState proponer(ArticuloVersion version) {
         throw new TransicionEstadoException(
-            EstadoArticulo.PROPUESTO, 
-            EstadoArticulo.PROPUESTO,
-            "La versión ya está propuesta para revisión"
-        );
+                EstadoArticulo.PROPUESTO,
+                EstadoArticulo.PROPUESTO,
+                "La versión ya está propuesta para revisión");
     }
 
     @Override
@@ -57,28 +57,25 @@ public class PropuestoState implements EstadoArticuloState {
     @Override
     public EstadoArticuloState archivar(ArticuloVersion version) {
         throw new TransicionEstadoException(
-            EstadoArticulo.PROPUESTO, 
-            EstadoArticulo.ARCHIVADO,
-            "Solo se pueden archivar versiones publicadas"
-        );
+                EstadoArticulo.PROPUESTO,
+                EstadoArticulo.ARCHIVADO,
+                "Solo se pueden archivar versiones publicadas");
     }
 
     @Override
     public EstadoArticuloState deprecar(ArticuloVersion version) {
         throw new TransicionEstadoException(
-            EstadoArticulo.PROPUESTO, 
-            EstadoArticulo.DEPRECADO,
-            "Solo se pueden deprecar versiones publicadas"
-        );
+                EstadoArticulo.PROPUESTO,
+                EstadoArticulo.DEPRECADO,
+                "Solo se pueden deprecar versiones publicadas");
     }
 
     @Override
     public EstadoArticuloState volverABorrador(ArticuloVersion version) {
         throw new TransicionEstadoException(
-            EstadoArticulo.PROPUESTO, 
-            EstadoArticulo.BORRADOR,
-            "Una versión propuesta debe ser aprobada o rechazada, no puede volver a borrador"
-        );
+                EstadoArticulo.PROPUESTO,
+                EstadoArticulo.BORRADOR,
+                "Una versión propuesta debe ser aprobada o rechazada, no puede volver a borrador");
     }
 
     @Override

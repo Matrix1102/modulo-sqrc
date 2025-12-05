@@ -19,7 +19,8 @@ public class RechazadoState implements EstadoArticuloState {
 
     private static final RechazadoState INSTANCE = new RechazadoState();
 
-    private RechazadoState() {}
+    private RechazadoState() {
+    }
 
     public static RechazadoState getInstance() {
         return INSTANCE;
@@ -33,46 +34,41 @@ public class RechazadoState implements EstadoArticuloState {
     @Override
     public EstadoArticuloState proponer(ArticuloVersion version) {
         throw new TransicionEstadoException(
-            EstadoArticulo.RECHAZADO, 
-            EstadoArticulo.PROPUESTO,
-            "Una versión rechazada no puede ser propuesta nuevamente. Cree una nueva versión."
-        );
+                EstadoArticulo.RECHAZADO,
+                EstadoArticulo.PROPUESTO,
+                "Una versión rechazada no puede ser propuesta nuevamente. Cree una nueva versión.");
     }
 
     @Override
     public EstadoArticuloState publicar(ArticuloVersion version) {
         throw new TransicionEstadoException(
-            EstadoArticulo.RECHAZADO, 
-            EstadoArticulo.PUBLICADO,
-            "Una versión rechazada no puede ser publicada. Cree una nueva versión."
-        );
+                EstadoArticulo.RECHAZADO,
+                EstadoArticulo.PUBLICADO,
+                "Una versión rechazada no puede ser publicada. Cree una nueva versión.");
     }
 
     @Override
     public EstadoArticuloState rechazar(ArticuloVersion version) {
         throw new TransicionEstadoException(
-            EstadoArticulo.RECHAZADO, 
-            EstadoArticulo.RECHAZADO,
-            "La versión ya está rechazada"
-        );
+                EstadoArticulo.RECHAZADO,
+                EstadoArticulo.RECHAZADO,
+                "La versión ya está rechazada");
     }
 
     @Override
     public EstadoArticuloState archivar(ArticuloVersion version) {
         throw new TransicionEstadoException(
-            EstadoArticulo.RECHAZADO, 
-            EstadoArticulo.ARCHIVADO,
-            "Una versión rechazada no puede ser archivada"
-        );
+                EstadoArticulo.RECHAZADO,
+                EstadoArticulo.ARCHIVADO,
+                "Una versión rechazada no puede ser archivada");
     }
 
     @Override
     public EstadoArticuloState deprecar(ArticuloVersion version) {
         throw new TransicionEstadoException(
-            EstadoArticulo.RECHAZADO, 
-            EstadoArticulo.DEPRECADO,
-            "Una versión rechazada no puede ser deprecada"
-        );
+                EstadoArticulo.RECHAZADO,
+                EstadoArticulo.DEPRECADO,
+                "Una versión rechazada no puede ser deprecada");
     }
 
     @Override
