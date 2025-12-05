@@ -8,12 +8,13 @@ import com.sqrc.module.backendsqrc.baseDeConocimientos.model.EstadoArticulo;
  * Estado RECHAZADO: La versión fue rechazada por el supervisor.
  * 
  * Transiciones válidas:
+ * - proponer() → PROPUESTO (re-proponer para revisión)
  * - volverABorrador() → BORRADOR (para crear una nueva versión corregida)
  * 
  * Características:
  * - No puede ser editada directamente
  * - No es visible para agentes
- * - El autor puede crear una nueva versión basada en el feedback
+ * - El autor puede re-proponer o crear una nueva versión
  */
 public class RechazadoState implements EstadoArticuloState {
 
@@ -33,10 +34,9 @@ public class RechazadoState implements EstadoArticuloState {
 
     @Override
     public EstadoArticuloState proponer(ArticuloVersion version) {
-        throw new TransicionEstadoException(
-                EstadoArticulo.RECHAZADO,
-                EstadoArticulo.PROPUESTO,
-                "Una versión rechazada no puede ser propuesta nuevamente. Cree una nueva versión.");
+        // Transición válida: RECHAZADO → PROPUESTO (re-proponer)
+        version.setEstadoPropuestaInterno(EstadoArticulo.PROPUESTO);
+        return PropuestoState.getInstance();
     }
 
     @Override
@@ -44,7 +44,7 @@ public class RechazadoState implements EstadoArticuloState {
         throw new TransicionEstadoException(
                 EstadoArticulo.RECHAZADO,
                 EstadoArticulo.PUBLICADO,
-                "Una versión rechazada no puede ser publicada. Cree una nueva versión.");
+                "Una versión rechazada no puede ser publicada directamente. Debe ser propuesta primero.");
     }
 
     @Override
@@ -57,10 +57,9 @@ public class RechazadoState implements EstadoArticuloState {
 
     @Override
     public EstadoArticuloState archivar(ArticuloVersion version) {
-        throw new TransicionEstadoException(
-                EstadoArticulo.RECHAZADO,
-                EstadoArticulo.ARCHIVADO,
-                "Una versión rechazada no puede ser archivada");
+        // Transición válida: RECHAZADO → ARCHIVADO
+        version.setEstadoPropuestaInterno(EstadoArticulo.ARCHIVADO);
+        return ArchivadoState.getInstance();
     }
 
     @Override

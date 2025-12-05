@@ -6,7 +6,11 @@ import type {
   TipoCaso,
   BusquedaArticuloRequest,
 } from "../types/articulo";
-import { ETIQUETA_OPTIONS, VISIBILIDAD_OPTIONS, TIPO_CASO_OPTIONS } from "../types/articulo";
+import {
+  ETIQUETA_OPTIONS,
+  VISIBILIDAD_OPTIONS,
+  TIPO_CASO_OPTIONS,
+} from "../types/articulo";
 import useDebouncedValue from "../../../components/ui/useDebouncedValue";
 
 interface ArticuloSearchPanelProps {
@@ -244,7 +248,9 @@ export const ArticuloSearchPanel: React.FC<ArticuloSearchPanelProps> = ({
                 type="checkbox"
                 checked={filtros.soloVigentes || false}
                 onChange={(e) =>
-                  onFiltrosChange({ soloVigentes: e.target.checked || undefined })
+                  onFiltrosChange({
+                    soloVigentes: e.target.checked || undefined,
+                  })
                 }
                 className="w-4 h-4 text-primary-600 border-gray-300 rounded focus:ring-primary-500"
               />

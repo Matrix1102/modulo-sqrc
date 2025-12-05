@@ -15,4 +15,7 @@ export { default as BuscadorArticulos } from "./BuscadorArticulos";
 export { default as GenerarArticuloIAModal } from "./GenerarArticuloIAModal";
 export { default as GenerarDesdeDocumentacionModal } from "./GenerarDesdeDocumentacionModal";
 export { default as GenerarDesdeDocumentoModal } from "./GenerarDesdeDocumentoModal";
+export { default as SupervisorEstadisticasView } from "./SupervisorEstadisticasView";
+export { default as SupervisorMisArticulosView } from "./SupervisorMisArticulosView";
+export { default as SupervisorTodosArticulosView } from "./SupervisorTodosArticulosView";
 export type { CrearArticuloViewRef } from "./CrearArticuloView";

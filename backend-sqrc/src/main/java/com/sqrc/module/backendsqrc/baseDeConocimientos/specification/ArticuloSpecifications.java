@@ -9,33 +9,40 @@ import com.sqrc.module.backendsqrc.baseDeConocimientos.model.TipoCaso;
 import com.sqrc.module.backendsqrc.baseDeConocimientos.model.Visibilidad;
 
 /**
- * Specification Pattern - Factory con especificaciones predefinidas para Artículos.
+ * Specification Pattern - Factory con especificaciones predefinidas para
+ * Artículos.
  * 
- * <p>Proporciona métodos estáticos para crear especificaciones comunes
- * que pueden combinarse de forma fluida.</p>
+ * <p>
+ * Proporciona métodos estáticos para crear especificaciones comunes
+ * que pueden combinarse de forma fluida.
+ * </p>
  * 
- * <p><b>Ejemplo de uso:</b></p>
+ * <p>
+ * <b>Ejemplo de uso:</b>
+ * </p>
+ * 
  * <pre>
  * Specification&lt;Articulo&gt; spec = ArticuloSpecifications
- *     .conEtiqueta(Etiqueta.TROUBLESHOOTING)
- *     .and(ArticuloSpecifications.estaVigente())
- *     .and(ArticuloSpecifications.conVisibilidad(Visibilidad.PUBLICO));
+ *         .conEtiqueta(Etiqueta.TROUBLESHOOTING)
+ *         .and(ArticuloSpecifications.estaVigente())
+ *         .and(ArticuloSpecifications.conVisibilidad(Visibilidad.PUBLICO));
  * 
  * List&lt;Articulo&gt; filtrados = articulos.stream()
- *     .filter(spec::isSatisfiedBy)
- *     .collect(Collectors.toList());
+ *         .filter(spec::isSatisfiedBy)
+ *         .collect(Collectors.toList());
  * </pre>
  * 
  * @see Specification
  */
 public final class ArticuloSpecifications {
-    
+
     private ArticuloSpecifications() {
         // Clase utilitaria - no instanciable
     }
-    
-    // ===================== ESPECIFICACIONES DE ETIQUETA/CATEGORÍA =====================
-    
+
+    // ===================== ESPECIFICACIONES DE ETIQUETA/CATEGORÍA
+    // =====================
+
     /**
      * Artículos con una etiqueta específica.
      */
@@ -45,37 +52,37 @@ public final class ArticuloSpecifications {
         }
         return articulo -> articulo.getEtiqueta() == etiqueta;
     }
-    
+
     /**
      * Artículos de troubleshooting.
      */
     public static Specification<Articulo> esTroubleshooting() {
         return conEtiqueta(Etiqueta.TROUBLESHOOTING);
     }
-    
+
     /**
      * Artículos de FAQ (preguntas frecuentes).
      */
     public static Specification<Articulo> esFAQs() {
         return conEtiqueta(Etiqueta.FAQS);
     }
-    
+
     /**
      * Artículos de guías de procedimiento.
      */
     public static Specification<Articulo> esGuia() {
         return conEtiqueta(Etiqueta.GUIAS);
     }
-    
+
     /**
      * Artículos de instructivos paso a paso.
      */
     public static Specification<Articulo> esInstructivo() {
         return conEtiqueta(Etiqueta.INSTRUCTIVOS);
     }
-    
+
     // ===================== ESPECIFICACIONES DE VISIBILIDAD =====================
-    
+
     /**
      * Artículos con una visibilidad específica.
      */
@@ -85,7 +92,7 @@ public final class ArticuloSpecifications {
         }
         return articulo -> articulo.getVisibilidad() == visibilidad;
     }
-    
+
     /**
      * Artículos visibles para agentes (visibilidad AGENTE o SUPERVISOR).
      * Agentes pueden ver todo lo que tiene visibilidad de agente.
@@ -93,23 +100,23 @@ public final class ArticuloSpecifications {
     public static Specification<Articulo> visibleParaAgente() {
         return articulo -> articulo.getVisibilidad() == Visibilidad.AGENTE;
     }
-    
+
     /**
      * Artículos visibles solo para supervisores.
      */
     public static Specification<Articulo> visibleParaSupervisor() {
         return conVisibilidad(Visibilidad.SUPERVISOR);
     }
-    
+
     /**
      * Artículos que un agente puede ver (AGENTE solamente).
      */
     public static Specification<Articulo> esVisibilidadAgente() {
         return conVisibilidad(Visibilidad.AGENTE);
     }
-    
+
     // ===================== ESPECIFICACIONES DE TIPO DE CASO =====================
-    
+
     /**
      * Artículos para un tipo de caso específico.
      */
@@ -118,25 +125,25 @@ public final class ArticuloSpecifications {
             return Specification.alwaysTrue();
         }
         return articulo -> articulo.getTipoCaso() == tipoCaso ||
-                          articulo.getTipoCaso() == TipoCaso.TODOS;
+                articulo.getTipoCaso() == TipoCaso.TODOS;
     }
-    
+
     /**
      * Artículos aplicables a todos los tipos de caso.
      */
     public static Specification<Articulo> paraTodosTipos() {
         return articulo -> articulo.getTipoCaso() == TipoCaso.TODOS;
     }
-    
+
     // ===================== ESPECIFICACIONES DE VIGENCIA =====================
-    
+
     /**
      * Artículos vigentes en la fecha actual.
      */
     public static Specification<Articulo> estaVigente() {
         return estaVigenteEn(LocalDateTime.now());
     }
-    
+
     /**
      * Artículos vigentes en una fecha específica.
      */
@@ -146,22 +153,22 @@ public final class ArticuloSpecifications {
                 return true;
             }
             boolean despuesDeInicio = !fecha.isBefore(articulo.getVigenteDesde());
-            boolean antesDeExpiracion = articulo.getVigenteHasta() == null || 
-                                        !fecha.isAfter(articulo.getVigenteHasta());
+            boolean antesDeExpiracion = articulo.getVigenteHasta() == null ||
+                    !fecha.isAfter(articulo.getVigenteHasta());
             return despuesDeInicio && antesDeExpiracion;
         };
     }
-    
+
     /**
      * Artículos expirados (ya no vigentes).
      */
     public static Specification<Articulo> estaExpirado() {
-        return articulo -> articulo.getVigenteHasta() != null && 
-                          LocalDateTime.now().isAfter(articulo.getVigenteHasta());
+        return articulo -> articulo.getVigenteHasta() != null &&
+                LocalDateTime.now().isAfter(articulo.getVigenteHasta());
     }
-    
+
     // ===================== ESPECIFICACIONES DE PROPIETARIO =====================
-    
+
     /**
      * Artículos de un propietario específico.
      */
@@ -170,47 +177,48 @@ public final class ArticuloSpecifications {
             return Specification.alwaysTrue();
         }
         return articulo -> articulo.getPropietario() != null &&
-                          articulo.getPropietario().getIdEmpleado().equals(idEmpleado);
+                articulo.getPropietario().getIdEmpleado().equals(idEmpleado);
     }
-    
+
     // ===================== ESPECIFICACIONES DE VERSIÓN =====================
-    
+
     /**
      * Artículos que tienen al menos una versión publicada.
      */
     public static Specification<Articulo> tieneVersionPublicada() {
         return articulo -> articulo.getVersiones() != null &&
-                          articulo.getVersiones().stream()
-                              .anyMatch(v -> v.getEstadoPropuesta() == EstadoArticulo.PUBLICADO);
+                articulo.getVersiones().stream()
+                        .anyMatch(v -> v.getEstadoPropuesta() == EstadoArticulo.PUBLICADO);
     }
-    
+
     /**
      * Artículos con versión vigente (esVigente = true).
      */
     public static Specification<Articulo> tieneVersionVigente() {
         return articulo -> articulo.getVersionVigente() != null;
     }
-    
+
     /**
      * Artículos con versiones en borrador.
      */
     public static Specification<Articulo> tieneVersionEnBorrador() {
         return articulo -> articulo.getVersiones() != null &&
-                          articulo.getVersiones().stream()
-                              .anyMatch(v -> v.getEstadoPropuesta() == EstadoArticulo.BORRADOR);
+                articulo.getVersiones().stream()
+                        .anyMatch(v -> v.getEstadoPropuesta() == EstadoArticulo.BORRADOR);
     }
-    
+
     /**
      * Artículos con versiones pendientes de revisión.
      */
     public static Specification<Articulo> tieneVersionPropuesta() {
         return articulo -> articulo.getVersiones() != null &&
-                          articulo.getVersiones().stream()
-                              .anyMatch(v -> v.getEstadoPropuesta() == EstadoArticulo.PROPUESTO);
+                articulo.getVersiones().stream()
+                        .anyMatch(v -> v.getEstadoPropuesta() == EstadoArticulo.PROPUESTO);
     }
-    
-    // ===================== ESPECIFICACIONES DE BÚSQUEDA DE TEXTO =====================
-    
+
+    // ===================== ESPECIFICACIONES DE BÚSQUEDA DE TEXTO
+    // =====================
+
     /**
      * Artículos cuyo título contiene el texto (case-insensitive).
      */
@@ -220,9 +228,9 @@ public final class ArticuloSpecifications {
         }
         String textoLower = texto.toLowerCase().trim();
         return articulo -> articulo.getTitulo() != null &&
-                          articulo.getTitulo().toLowerCase().contains(textoLower);
+                articulo.getTitulo().toLowerCase().contains(textoLower);
     }
-    
+
     /**
      * Artículos cuyo resumen contiene el texto (case-insensitive).
      */
@@ -232,9 +240,9 @@ public final class ArticuloSpecifications {
         }
         String textoLower = texto.toLowerCase().trim();
         return articulo -> articulo.getResumen() != null &&
-                          articulo.getResumen().toLowerCase().contains(textoLower);
+                articulo.getResumen().toLowerCase().contains(textoLower);
     }
-    
+
     /**
      * Artículos cuyos tags contienen el texto (case-insensitive).
      */
@@ -244,9 +252,9 @@ public final class ArticuloSpecifications {
         }
         String textoLower = texto.toLowerCase().trim();
         return articulo -> articulo.getTags() != null &&
-                          articulo.getTags().toLowerCase().contains(textoLower);
+                articulo.getTags().toLowerCase().contains(textoLower);
     }
-    
+
     /**
      * Artículos cuyo código coincide exactamente (case-insensitive).
      */
@@ -256,9 +264,9 @@ public final class ArticuloSpecifications {
         }
         String codigoLower = codigo.toLowerCase().trim();
         return articulo -> articulo.getCodigo() != null &&
-                          articulo.getCodigo().toLowerCase().equals(codigoLower);
+                articulo.getCodigo().toLowerCase().equals(codigoLower);
     }
-    
+
     /**
      * Búsqueda de texto libre en título, resumen y tags.
      */
@@ -270,9 +278,10 @@ public final class ArticuloSpecifications {
                 .or(resumenContiene(texto))
                 .or(tagsContiene(texto));
     }
-    
-    // ===================== ESPECIFICACIONES COMPUESTAS PREDEFINIDAS =====================
-    
+
+    // ===================== ESPECIFICACIONES COMPUESTAS PREDEFINIDAS
+    // =====================
+
     /**
      * Artículos publicados y vigentes visibles para agentes.
      * Útil para mostrar artículos en la KB para agentes.
@@ -282,7 +291,7 @@ public final class ArticuloSpecifications {
                 .and(estaVigente())
                 .and(visibleParaAgente());
     }
-    
+
     /**
      * Artículos publicados y vigentes visibles para supervisores.
      * Supervisores pueden ver tanto artículos AGENTE como SUPERVISOR.
@@ -291,7 +300,7 @@ public final class ArticuloSpecifications {
         return tieneVersionPublicada()
                 .and(estaVigente());
     }
-    
+
     /**
      * Artículos que necesitan atención (borradores o propuestos).
      */

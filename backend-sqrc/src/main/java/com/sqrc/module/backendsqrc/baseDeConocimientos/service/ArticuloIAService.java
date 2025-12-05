@@ -23,10 +23,12 @@ import java.util.Map;
 /**
  * Servicio para generar artículos de conocimiento usando IA (Gemini).
  * 
- * <p><b>Patrones implementados:</b></p>
+ * <p>
+ * <b>Patrones implementados:</b>
+ * </p>
  * <ul>
- *   <li><b>Strategy Pattern:</b> Para soportar múltiples fuentes de datos</li>
- *   <li><b>Factory Pattern:</b> Para la creación de artículos y versiones</li>
+ * <li><b>Strategy Pattern:</b> Para soportar múltiples fuentes de datos</li>
+ * <li><b>Factory Pattern:</b> Para la creación de artículos y versiones</li>
  * </ul>
  * 
  * @see ArticuloFactory
@@ -47,7 +49,8 @@ public class ArticuloIAService {
     private final DocumentoUploadStrategy documentoUploadStrategy;
     private final ArticuloFactory articuloFactory; // Factory Pattern
 
-    // ===================== MÉTODO UNIFICADO CON PATRÓN STRATEGY + FACTORY =====================
+    // ===================== MÉTODO UNIFICADO CON PATRÓN STRATEGY + FACTORY
+    // =====================
 
     /**
      * Genera un artículo usando el patrón Strategy para la generación de contenido
@@ -376,18 +379,18 @@ public class ArticuloIAService {
      * Encapsula la lógica de creación y vinculación con documentación.
      * 
      * @param contenido Contenido generado por IA
-     * @param creador Empleado creador
-     * @param request Request original con metadatos
+     * @param creador   Empleado creador
+     * @param request   Request original con metadatos
      * @return Artículo creado y persistido
      */
     private Articulo crearArticuloConFactory(ArticuloGeneradoIA contenido,
             Empleado creador,
             GeneracionArticuloRequest request) {
-        
+
         // Obtener ticket de origen si viene de documentación
         Ticket ticketOrigen = null;
         Documentacion documentacion = null;
-        
+
         if (request.getIdDocumentacion() != null) {
             documentacion = documentacionRepository.findById(request.getIdDocumentacion())
                     .orElse(null);
@@ -395,11 +398,11 @@ public class ArticuloIAService {
                 ticketOrigen = documentacion.getAsignacion().getTicket();
             }
         }
-        
+
         // Factory Pattern: Crear contexto y delegar creación
         ArticuloCreationContext context = ArticuloCreationContext.desdeRequest(
                 contenido, creador, request);
-        
+
         // Si hay ticket, enriquecemos el contexto
         if (ticketOrigen != null) {
             context = ArticuloCreationContext.builder()
@@ -415,16 +418,16 @@ public class ArticuloIAService {
                     .requestOriginal(request)
                     .build();
         }
-        
+
         // Usar la Factory para crear el artículo
         Articulo articulo = articuloFactory.crearArticulo(context);
-        
+
         // Vincular documentación con el artículo creado
         if (documentacion != null) {
             documentacion.setIdArticuloKB(articulo.getIdArticulo());
             documentacionRepository.save(documentacion);
         }
-        
+
         return articulo;
     }
 
@@ -476,4 +479,3 @@ public class ArticuloIAService {
                 .build();
     }
 }
-
