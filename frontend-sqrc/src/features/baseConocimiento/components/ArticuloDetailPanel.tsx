@@ -77,7 +77,7 @@ export const ArticuloDetailPanel: React.FC<ArticuloDetailPanelProps> = ({
         </h1>
 
         {/* Badges */}
-        <div className="flex items-center gap-2 flex-wrap mb-4">
+        <div className="flex items-center gap-2 flex-wrap mb-3">
           <span className="bg-primary-500 text-white text-xs font-bold px-2.5 py-1 rounded-lg">
             {articulo.codigo}
           </span>
@@ -87,6 +87,20 @@ export const ArticuloDetailPanel: React.FC<ArticuloDetailPanelProps> = ({
             </span>
           )}
         </div>
+
+        {/* Tags */}
+        {articulo.tags && (
+          <div className="flex flex-wrap gap-1.5 mb-4">
+            {articulo.tags.split(",").map((tag, index) => (
+              <span
+                key={index}
+                className="bg-blue-50 text-blue-600 text-xs px-2 py-0.5 rounded-full border border-blue-100"
+              >
+                {tag.trim()}
+              </span>
+            ))}
+          </div>
+        )}
 
         {/* Stats row */}
         <div className="flex items-center gap-6 text-sm text-gray-500">

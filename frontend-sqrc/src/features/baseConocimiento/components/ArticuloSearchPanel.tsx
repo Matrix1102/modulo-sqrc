@@ -1,11 +1,12 @@
-import React from "react";
-import { Search, ChevronDown } from "lucide-react";
+import React, { useState, useEffect } from "react";
+import { Search, ChevronDown, X } from "lucide-react";
 import type {
   Etiqueta,
   Visibilidad,
   BusquedaArticuloRequest,
 } from "../types/articulo";
 import { ETIQUETA_OPTIONS, VISIBILIDAD_OPTIONS } from "../types/articulo";
+import useDebouncedValue from "../../../components/ui/useDebouncedValue";
 
 interface ArticuloSearchPanelProps {
   filtros: BusquedaArticuloRequest;
@@ -20,6 +21,31 @@ export const ArticuloSearchPanel: React.FC<ArticuloSearchPanelProps> = ({
   resultados,
   loading = false,
 }) => {
+  // Estado local para el input de búsqueda (sin debounce)
+  const [searchText, setSearchText] = useState(filtros.texto || "");
+
+  // Valor con debounce que dispara la búsqueda
+  const debouncedSearchText = useDebouncedValue(searchText, 400);
+
+  // Sincronizar el valor debounced con los filtros
+  useEffect(() => {
+    if (debouncedSearchText !== filtros.texto) {
+      onFiltrosChange({ texto: debouncedSearchText || undefined });
+    }
+  }, [debouncedSearchText, filtros.texto, onFiltrosChange]);
+
+  // Sincronizar cuando los filtros externos cambian (ej: limpiar)
+  useEffect(() => {
+    if (filtros.texto !== searchText && filtros.texto !== debouncedSearchText) {
+      setSearchText(filtros.texto || "");
+    }
+  }, [filtros.texto]);
+
+  const handleClearSearch = () => {
+    setSearchText("");
+    onFiltrosChange({ texto: undefined });
+  };
+
   return (
     <div className="bg-white rounded-xl border border-gray-100 p-4 mb-6">
       {/* Search input */}
@@ -30,11 +56,19 @@ export const ArticuloSearchPanel: React.FC<ArticuloSearchPanelProps> = ({
         />
         <input
           type="text"
-          placeholder="Buscar artículo..."
-          value={filtros.texto || ""}
-          onChange={(e) => onFiltrosChange({ texto: e.target.value })}
-          className="w-full pl-10 pr-4 py-3 bg-gray-50 border-none rounded-lg text-sm outline-none focus:ring-2 focus:ring-primary-100 transition-all"
+          placeholder="Buscar por título, código, tags o contenido..."
+          value={searchText}
+          onChange={(e) => setSearchText(e.target.value)}
+          className="w-full pl-10 pr-10 py-3 bg-gray-50 border-none rounded-lg text-sm outline-none focus:ring-2 focus:ring-primary-100 transition-all"
         />
+        {searchText && (
+          <button
+            onClick={handleClearSearch}
+            className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors"
+          >
+            <X size={18} />
+          </button>
+        )}
       </div>
 
       {/* Filters row */}

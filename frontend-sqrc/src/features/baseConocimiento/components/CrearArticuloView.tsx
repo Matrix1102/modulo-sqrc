@@ -25,6 +25,7 @@ import {
   Palette,
   RotateCcw,
   RotateCw,
+  Sparkles,
 } from "lucide-react";
 import articuloService from "../services/articuloService";
 import { useUserId } from "../../../context";
@@ -34,12 +35,14 @@ import type {
   Etiqueta,
   TipoCaso,
   Visibilidad,
+  ArticuloGeneradoIA,
 } from "../types/articulo";
 import {
   ETIQUETA_OPTIONS,
   TIPO_CASO_OPTIONS,
   VISIBILIDAD_OPTIONS,
 } from "../types/articulo";
+import GenerarArticuloIAModal from "./GenerarArticuloIAModal";
 
 interface CrearArticuloViewProps {
   onArticuloCreated?: () => void;
@@ -56,6 +59,7 @@ const CrearArticuloView = forwardRef<
 >(({ onArticuloCreated }, ref) => {
   const userId = useUserId();
   const [loading, setLoading] = useState(false);
+  const [showIAModal, setShowIAModal] = useState(false);
 
   const [formData, setFormData] = useState({
     categoria: "TROUBLESHOOTING" as Etiqueta,
@@ -73,6 +77,21 @@ const CrearArticuloView = forwardRef<
 
   const handleChange = useCallback((field: string, value: string) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
+  }, []);
+
+  // Callback cuando la IA genera el artículo
+  const handleArticuloGenerado = useCallback((articulo: ArticuloGeneradoIA) => {
+    setFormData((prev) => ({
+      ...prev,
+      titulo: articulo.titulo || prev.titulo,
+      resumen: articulo.resumen || prev.resumen,
+      contenido: articulo.contenido || prev.contenido,
+      categoria: articulo.etiqueta || prev.categoria,
+      tipoCaso: articulo.tipoCaso || prev.tipoCaso,
+      visibilidad: articulo.visibilidad || prev.visibilidad,
+      etiquetas: articulo.tags || prev.etiquetas,
+      notaCambio: articulo.notaCambio || "Generado con IA - Gemini 2.5 Flash",
+    }));
   }, []);
 
   // Función para verificar si hay contenido para guardar
@@ -112,6 +131,7 @@ const CrearArticuloView = forwardRef<
         vigenteDesde: vigenteDesdeDate,
         vigenteHasta: vigenteHastaDate,
         idPropietario: userId,
+        tags: formData.etiquetas || undefined,
         contenidoInicial: formData.contenido || "Contenido pendiente",
         notaCambioInicial: formData.notaCambio || "Borrador automático",
       };
@@ -187,6 +207,7 @@ const CrearArticuloView = forwardRef<
           vigenteDesde: vigenteDesdeDate,
           vigenteHasta: vigenteHastaDate,
           idPropietario: userId,
+          tags: formData.etiquetas || undefined,
           // Campos de la tabla articulo_versiones (primera versión)
           contenidoInicial: formData.contenido,
           notaCambioInicial: formData.notaCambio || "Versión inicial",
@@ -506,6 +527,16 @@ const CrearArticuloView = forwardRef<
           >
             Pegar Imagen
           </button>
+          {/* Botón Generar con IA */}
+          <button
+            type="button"
+            onClick={() => setShowIAModal(true)}
+            disabled={loading}
+            className="px-4 py-2 bg-gradient-to-r from-purple-500 to-indigo-500 text-white rounded-lg text-sm font-medium hover:from-purple-600 hover:to-indigo-600 transition-all disabled:opacity-50 flex items-center gap-2 shadow-md shadow-purple-500/25"
+          >
+            <Sparkles size={16} />
+            Generar con IA
+          </button>
         </div>
 
         <div className="flex gap-3">
@@ -535,6 +566,14 @@ const CrearArticuloView = forwardRef<
           </button>
         </div>
       </div>
+
+      {/* Modal de Generación con IA */}
+      <GenerarArticuloIAModal
+        isOpen={showIAModal}
+        onClose={() => setShowIAModal(false)}
+        idCreador={userId}
+        onArticuloGenerado={handleArticuloGenerado}
+      />
     </div>
   );
 });

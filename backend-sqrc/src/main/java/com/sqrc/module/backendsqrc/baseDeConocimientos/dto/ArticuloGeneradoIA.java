@@ -69,4 +69,14 @@ public class ArticuloGeneradoIA {
      * Sugerencias adicionales de la IA.
      */
     private List<String> sugerencias;
+
+    /**
+     * ID del artículo creado (si se guardó automáticamente).
+     */
+    private Integer idArticuloCreado;
+
+    /**
+     * Código del artículo creado (si se guardó automáticamente).
+     */
+    private String codigoArticuloCreado;
 }

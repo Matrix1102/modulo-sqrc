@@ -99,7 +99,7 @@ export const ArticuloCard: React.FC<ArticuloCardProps> = ({
       </p>
 
       {/* Código y etiqueta */}
-      <div className="flex items-center gap-2 mb-4">
+      <div className="flex items-center gap-2 mb-2">
         <span className="bg-primary-500 text-white text-xs font-bold px-2.5 py-1 rounded-lg">
           {articulo.codigo}
         </span>
@@ -109,6 +109,21 @@ export const ArticuloCard: React.FC<ArticuloCardProps> = ({
           </span>
         )}
       </div>
+
+      {/* Tags */}
+      {articulo.tags && (
+        <div className="flex flex-wrap gap-1.5 mb-4">
+          {articulo.tags.split(",").map((tag, index) => (
+            <span
+              key={index}
+              className="bg-blue-50 text-blue-600 text-xs px-2 py-0.5 rounded-full border border-blue-100"
+            >
+              {tag.trim()}
+            </span>
+          ))}
+        </div>
+      )}
+      {!articulo.tags && <div className="mb-4" />}
 
       {/* Footer stats */}
       <div className="flex items-center justify-between pt-3 border-t border-gray-50">

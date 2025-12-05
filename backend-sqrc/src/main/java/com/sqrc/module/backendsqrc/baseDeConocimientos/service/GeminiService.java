@@ -2,45 +2,51 @@ package com.sqrc.module.backendsqrc.baseDeConocimientos.service;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.google.genai.Client;
+import com.google.genai.types.GenerateContentConfig;
+import com.google.genai.types.GenerateContentResponse;
 import com.sqrc.module.backendsqrc.baseDeConocimientos.dto.ArticuloGeneradoIA;
 import com.sqrc.module.backendsqrc.baseDeConocimientos.dto.ContextoDocumentacionDTO;
 import com.sqrc.module.backendsqrc.baseDeConocimientos.model.Etiqueta;
 import com.sqrc.module.backendsqrc.baseDeConocimientos.model.TipoCaso;
 import com.sqrc.module.backendsqrc.baseDeConocimientos.model.Visibilidad;
+import jakarta.annotation.PostConstruct;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.http.MediaType;
 import org.springframework.stereotype.Service;
-import org.springframework.web.reactive.function.client.WebClient;
 
-import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
 
 /**
  * Servicio para comunicación con la API de Google Gemini.
- * Utiliza Gemini 2.0 Flash para análisis y generación de contenido.
+ * Utiliza el SDK oficial google-genai con el modelo Gemini 2.5 Flash.
  */
 @Service
 @Slf4j
 public class GeminiService {
 
-    private final WebClient webClient;
     private final ObjectMapper objectMapper;
+    private Client geminiClient;
 
     @Value("${gemini.api.key}")
     private String apiKey;
 
-    @Value("${gemini.api.url}")
-    private String apiUrl;
-
-    @Value("${gemini.api.model}")
+    @Value("${gemini.api.model:gemini-2.5-flash}")
     private String model;
 
-    public GeminiService(WebClient.Builder webClientBuilder, ObjectMapper objectMapper) {
-        this.webClient = webClientBuilder.build();
+    public GeminiService(ObjectMapper objectMapper) {
         this.objectMapper = objectMapper;
+    }
+
+    @PostConstruct
+    public void init() {
+        if (apiKey != null && !apiKey.isBlank() && !apiKey.equals("TU_API_KEY_AQUI")) {
+            this.geminiClient = Client.builder().apiKey(apiKey).build();
+            log.info("✅ Gemini Client inicializado con modelo: {}", model);
+        } else {
+            log.warn("⚠️ Gemini API Key no configurada correctamente");
+        }
     }
 
     /**
@@ -101,60 +107,47 @@ public class GeminiService {
     }
 
     /**
-     * Llama a la API de Gemini y retorna la respuesta como texto.
+     * Llama a la API de Gemini usando el SDK oficial y retorna la respuesta como texto.
      */
     private String llamarGeminiAPI(String prompt) {
-        String url = apiUrl + "?key=" + apiKey;
-        
-        // Construir el body de la petición según la API de Gemini
-        Map<String, Object> requestBody = Map.of(
-            "contents", List.of(
-                Map.of(
-                    "parts", List.of(
-                        Map.of("text", prompt)
-                    )
-                )
-            ),
-            "generationConfig", Map.of(
-                "temperature", 0.4,
-                "topK", 20,
-                "topP", 0.8,
-                "maxOutputTokens", 2048,
-                "responseMimeType", "application/json"
-            )
+        if (geminiClient == null) {
+            throw new RuntimeException("Gemini Client no está inicializado. Verifica la API Key.");
+        }
+
+        log.debug("Llamando a Gemini API con modelo: {}", model);
+
+        // Configuración para respuesta JSON
+        GenerateContentConfig config = GenerateContentConfig.builder()
+            .temperature(0.4f)
+            .topK(20f)
+            .topP(0.8f)
+            .maxOutputTokens(2048)
+            .responseMimeType("application/json")
+            .build();
+
+        // Llamar a la API usando el SDK
+        GenerateContentResponse response = geminiClient.models.generateContent(
+            model,
+            prompt,
+            config
         );
 
-        log.debug("Llamando a Gemini API: {}", model);
+        String textoRespuesta = response.text();
+        log.debug("Respuesta de Gemini recibida: {} caracteres", 
+            textoRespuesta != null ? textoRespuesta.length() : 0);
         
-        String response = webClient.post()
-            .uri(url)
-            .contentType(MediaType.APPLICATION_JSON)
-            .bodyValue(requestBody)
-            .retrieve()
-            .bodyToMono(String.class)
-            .timeout(Duration.ofSeconds(60))
-            .block();
-        
-        log.debug("Respuesta de Gemini recibida");
-        return response;
+        return textoRespuesta;
     }
 
     /**
      * Parsea la respuesta JSON de Gemini y extrae el artículo generado.
      */
-    private ArticuloGeneradoIA parsearRespuestaGemini(String respuestaJson) {
+    /**
+     * Parsea la respuesta JSON de Gemini y extrae el artículo generado.
+     * Con el SDK, response.text() ya retorna directamente el contenido.
+     */
+    private ArticuloGeneradoIA parsearRespuestaGemini(String textoGenerado) {
         try {
-            JsonNode root = objectMapper.readTree(respuestaJson);
-            
-            // Extraer el texto de la respuesta de Gemini
-            JsonNode candidates = root.path("candidates");
-            if (candidates.isEmpty() || !candidates.isArray()) {
-                throw new RuntimeException("Respuesta de Gemini sin candidates");
-            }
-            
-            JsonNode content = candidates.get(0).path("content").path("parts").get(0).path("text");
-            String textoGenerado = content.asText();
-            
             // Limpiar el texto si viene con marcadores de código
             textoGenerado = limpiarJsonResponse(textoGenerado);
             
