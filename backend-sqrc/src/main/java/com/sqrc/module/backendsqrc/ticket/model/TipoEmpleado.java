@@ -8,5 +8,10 @@ public enum TipoEmpleado {
     SUPERVISOR,
     BACKOFFICE,
     AGENTE_LLAMADA,
-    AGENTE_PRESENCIAL
+    AGENTE_PRESENCIAL,
+    /**
+     * Tipo genérico para empleados sincronizados desde API externa.
+     * Corresponde al DiscriminatorValue por defecto de la clase base Empleado.
+     */
+    AGENTE
 }
