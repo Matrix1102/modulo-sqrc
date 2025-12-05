@@ -1,5 +1,13 @@
 import React, { useState, useRef } from "react";
-import { Sparkles, X, Loader2, Upload, AlertCircle, FileUp, Trash2 } from "lucide-react";
+import {
+  Sparkles,
+  X,
+  Loader2,
+  Upload,
+  AlertCircle,
+  FileUp,
+  Trash2,
+} from "lucide-react";
 import articuloService from "../services/articuloService";
 import showToast from "../../../services/notification";
 import type { ArticuloGeneradoIA } from "../types/articulo";
@@ -16,13 +24,13 @@ interface GenerarDesdeDocumentoModalProps {
   /** Mensaje informativo (opcional) */
   mensajeInfo?: string;
   /** Color del gradiente del header: 'purple' | 'green' | 'blue' */
-  colorTema?: 'purple' | 'green' | 'blue';
+  colorTema?: "purple" | "green" | "blue";
 }
 
 /**
  * Modal para generar artículos con IA desde documentos subidos (PDF, Word, TXT).
  * Usa el patrón Strategy en el backend (DocumentoUploadStrategy).
- * 
+ *
  * Este componente es reutilizable y puede usarse en diferentes contextos
  * personalizando el título, mensaje y colores.
  */
@@ -34,7 +42,7 @@ const GenerarDesdeDocumentoModal: React.FC<GenerarDesdeDocumentoModalProps> = ({
   titulo = "Generar desde Documento",
   subtitulo = "Gemini 2.5 Flash",
   mensajeInfo = "Sube un documento PDF, Word o TXT y la IA extraerá el contenido para generar un artículo estructurado automáticamente.",
-  colorTema = 'purple',
+  colorTema = "purple",
 }) => {
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [loading, setLoading] = useState(false);
@@ -42,38 +50,42 @@ const GenerarDesdeDocumentoModal: React.FC<GenerarDesdeDocumentoModalProps> = ({
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Formatos soportados
-  const FORMATOS_SOPORTADOS = '.pdf,.doc,.docx,.txt';
-  const FORMATOS_MIME = ['application/pdf', 'application/msword', 
-    'application/vnd.openxmlformats-officedocument.wordprocessingml.document', 'text/plain'];
+  const FORMATOS_SOPORTADOS = ".pdf,.doc,.docx,.txt";
+  const FORMATOS_MIME = [
+    "application/pdf",
+    "application/msword",
+    "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+    "text/plain",
+  ];
 
   // Colores según tema
   const colores = {
     purple: {
-      gradient: 'from-purple-600 to-indigo-600',
-      gradientHover: 'hover:from-purple-700 hover:to-indigo-700',
-      shadow: 'shadow-purple-500/25',
-      ring: 'focus:ring-purple-500',
-      dropHover: 'hover:border-purple-400 hover:bg-purple-50',
-      textAccent: 'text-purple-600',
-      subtitleText: 'text-purple-200',
+      gradient: "from-purple-600 to-indigo-600",
+      gradientHover: "hover:from-purple-700 hover:to-indigo-700",
+      shadow: "shadow-purple-500/25",
+      ring: "focus:ring-purple-500",
+      dropHover: "hover:border-purple-400 hover:bg-purple-50",
+      textAccent: "text-purple-600",
+      subtitleText: "text-purple-200",
     },
     green: {
-      gradient: 'from-green-600 to-emerald-600',
-      gradientHover: 'hover:from-green-700 hover:to-emerald-700',
-      shadow: 'shadow-green-500/25',
-      ring: 'focus:ring-green-500',
-      dropHover: 'hover:border-green-400 hover:bg-green-50',
-      textAccent: 'text-green-600',
-      subtitleText: 'text-green-200',
+      gradient: "from-green-600 to-emerald-600",
+      gradientHover: "hover:from-green-700 hover:to-emerald-700",
+      shadow: "shadow-green-500/25",
+      ring: "focus:ring-green-500",
+      dropHover: "hover:border-green-400 hover:bg-green-50",
+      textAccent: "text-green-600",
+      subtitleText: "text-green-200",
     },
     blue: {
-      gradient: 'from-blue-600 to-cyan-600',
-      gradientHover: 'hover:from-blue-700 hover:to-cyan-700',
-      shadow: 'shadow-blue-500/25',
-      ring: 'focus:ring-blue-500',
-      dropHover: 'hover:border-blue-400 hover:bg-blue-50',
-      textAccent: 'text-blue-600',
-      subtitleText: 'text-blue-200',
+      gradient: "from-blue-600 to-cyan-600",
+      gradientHover: "hover:from-blue-700 hover:to-cyan-700",
+      shadow: "shadow-blue-500/25",
+      ring: "focus:ring-blue-500",
+      dropHover: "hover:border-blue-400 hover:bg-blue-50",
+      textAccent: "text-blue-600",
+      subtitleText: "text-blue-200",
     },
   };
 
@@ -82,12 +94,16 @@ const GenerarDesdeDocumentoModal: React.FC<GenerarDesdeDocumentoModalProps> = ({
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
-      if (!FORMATOS_MIME.includes(file.type) && !file.name.match(/\.(pdf|doc|docx|txt)$/i)) {
-        setError('Formato no soportado. Use PDF, Word (.doc/.docx) o TXT.');
+      if (
+        !FORMATOS_MIME.includes(file.type) &&
+        !file.name.match(/\.(pdf|doc|docx|txt)$/i)
+      ) {
+        setError("Formato no soportado. Use PDF, Word (.doc/.docx) o TXT.");
         return;
       }
-      if (file.size > 10 * 1024 * 1024) { // 10MB max
-        setError('El archivo es muy grande. Máximo 10MB.');
+      if (file.size > 10 * 1024 * 1024) {
+        // 10MB max
+        setError("El archivo es muy grande. Máximo 10MB.");
         return;
       }
       setSelectedFile(file);
@@ -99,8 +115,11 @@ const GenerarDesdeDocumentoModal: React.FC<GenerarDesdeDocumentoModalProps> = ({
     e.preventDefault();
     const file = e.dataTransfer.files[0];
     if (file) {
-      if (!FORMATOS_MIME.includes(file.type) && !file.name.match(/\.(pdf|doc|docx|txt)$/i)) {
-        setError('Formato no soportado. Use PDF, Word (.doc/.docx) o TXT.');
+      if (
+        !FORMATOS_MIME.includes(file.type) &&
+        !file.name.match(/\.(pdf|doc|docx|txt)$/i)
+      ) {
+        setError("Formato no soportado. Use PDF, Word (.doc/.docx) o TXT.");
         return;
       }
       setSelectedFile(file);
@@ -124,7 +143,10 @@ const GenerarDesdeDocumentoModal: React.FC<GenerarDesdeDocumentoModalProps> = ({
       );
 
       if (response.exito && response.contenidoGenerado) {
-        showToast("✨ Artículo generado desde documento exitosamente", "success");
+        showToast(
+          "✨ Artículo generado desde documento exitosamente",
+          "success"
+        );
         onArticuloGenerado(response.contenidoGenerado);
         handleClose();
       } else {
@@ -136,7 +158,9 @@ const GenerarDesdeDocumentoModal: React.FC<GenerarDesdeDocumentoModalProps> = ({
     } catch (err: unknown) {
       console.error("Error al generar desde documento:", err);
       const errorMessage =
-        err instanceof Error ? err.message : "Error de conexión con el servidor";
+        err instanceof Error
+          ? err.message
+          : "Error de conexión con el servidor";
       setError(errorMessage);
       showToast("Error al procesar el documento", "error");
     } finally {
@@ -151,16 +175,16 @@ const GenerarDesdeDocumentoModal: React.FC<GenerarDesdeDocumentoModalProps> = ({
   };
 
   const getFileIcon = (fileName: string) => {
-    if (fileName.endsWith('.pdf')) return '📄';
-    if (fileName.endsWith('.doc') || fileName.endsWith('.docx')) return '📝';
-    if (fileName.endsWith('.txt')) return '📃';
-    return '📎';
+    if (fileName.endsWith(".pdf")) return "📄";
+    if (fileName.endsWith(".doc") || fileName.endsWith(".docx")) return "📝";
+    if (fileName.endsWith(".txt")) return "📃";
+    return "📎";
   };
 
   const formatFileSize = (bytes: number) => {
-    if (bytes < 1024) return bytes + ' B';
-    if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
-    return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
+    if (bytes < 1024) return bytes + " B";
+    if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + " KB";
+    return (bytes / (1024 * 1024)).toFixed(1) + " MB";
   };
 
   if (!isOpen) return null;
@@ -183,12 +207,8 @@ const GenerarDesdeDocumentoModal: React.FC<GenerarDesdeDocumentoModalProps> = ({
                 <Sparkles className="w-5 h-5 text-white" />
               </div>
               <div>
-                <h2 className="text-lg font-semibold text-white">
-                  {titulo}
-                </h2>
-                <p className={`${tema.subtitleText} text-sm`}>
-                  {subtitulo}
-                </p>
+                <h2 className="text-lg font-semibold text-white">{titulo}</h2>
+                <p className={`${tema.subtitleText} text-sm`}>{subtitulo}</p>
               </div>
             </div>
             <button
@@ -206,9 +226,7 @@ const GenerarDesdeDocumentoModal: React.FC<GenerarDesdeDocumentoModalProps> = ({
           <div className="bg-green-50 border border-green-200 rounded-xl p-4">
             <div className="flex gap-3">
               <Upload className="w-5 h-5 text-green-600 shrink-0 mt-0.5" />
-              <p className="text-sm text-green-700">
-                {mensajeInfo}
-              </p>
+              <p className="text-sm text-green-700">{mensajeInfo}</p>
             </div>
           </div>
 
@@ -219,7 +237,7 @@ const GenerarDesdeDocumentoModal: React.FC<GenerarDesdeDocumentoModalProps> = ({
             onClick={() => fileInputRef.current?.click()}
             className={`border-2 border-dashed rounded-xl p-6 text-center cursor-pointer transition-all ${
               selectedFile
-                ? 'border-green-300 bg-green-50'
+                ? "border-green-300 bg-green-50"
                 : `border-gray-300 ${tema.dropHover}`
             }`}
           >
@@ -231,11 +249,13 @@ const GenerarDesdeDocumentoModal: React.FC<GenerarDesdeDocumentoModalProps> = ({
               className="hidden"
               disabled={loading}
             />
-            
+
             {selectedFile ? (
               <div className="space-y-2">
                 <div className="flex items-center justify-center gap-2 text-green-600">
-                  <span className="text-2xl">{getFileIcon(selectedFile.name)}</span>
+                  <span className="text-2xl">
+                    {getFileIcon(selectedFile.name)}
+                  </span>
                   <span className="font-medium">{selectedFile.name}</span>
                 </div>
                 <p className="text-sm text-gray-500">
@@ -256,8 +276,10 @@ const GenerarDesdeDocumentoModal: React.FC<GenerarDesdeDocumentoModalProps> = ({
               <div className="space-y-2">
                 <FileUp className="w-10 h-10 text-gray-400 mx-auto" />
                 <p className="text-sm text-gray-600">
-                  <span className={`${tema.textAccent} font-medium`}>Haz clic para seleccionar</span>
-                  {" "}o arrastra un archivo aquí
+                  <span className={`${tema.textAccent} font-medium`}>
+                    Haz clic para seleccionar
+                  </span>{" "}
+                  o arrastra un archivo aquí
                 </p>
                 <p className="text-xs text-gray-400">
                   PDF, Word (.doc, .docx) o TXT • Máx. 10MB

@@ -56,9 +56,9 @@ public class DocumentoUploadStrategy implements GeneracionArticuloStrategy {
 
         // Truncar si es muy largo
         if (contenido.length() > MAX_CARACTERES) {
-            log.warn("Documento muy largo ({} caracteres), truncando a {}", 
+            log.warn("Documento muy largo ({} caracteres), truncando a {}",
                     contenido.length(), MAX_CARACTERES);
-            contenido = contenido.substring(0, MAX_CARACTERES) + 
+            contenido = contenido.substring(0, MAX_CARACTERES) +
                     "\n\n[... Contenido truncado por longitud ...]";
         }
 
@@ -111,8 +111,8 @@ public class DocumentoUploadStrategy implements GeneracionArticuloStrategy {
                 return new String(archivo.getBytes());
             } else {
                 throw new OperacionInvalidaException(
-                        "Formato de archivo no soportado: " + tipoMime + 
-                        ". Use PDF, Word (.doc/.docx) o TXT.");
+                        "Formato de archivo no soportado: " + tipoMime +
+                                ". Use PDF, Word (.doc/.docx) o TXT.");
             }
         } catch (IOException e) {
             log.error("Error al leer el archivo: {}", e.getMessage(), e);
@@ -128,7 +128,7 @@ public class DocumentoUploadStrategy implements GeneracionArticuloStrategy {
             PDFTextStripper stripper = new PDFTextStripper();
             stripper.setSortByPosition(true);
             String texto = stripper.getText(document);
-            log.info("Texto extraído de PDF: {} caracteres, {} páginas", 
+            log.info("Texto extraído de PDF: {} caracteres, {} páginas",
                     texto.length(), document.getNumberOfPages());
             return texto;
         }
@@ -152,7 +152,7 @@ public class DocumentoUploadStrategy implements GeneracionArticuloStrategy {
      */
     private String extraerTextoDoc(InputStream inputStream) throws IOException {
         try (HWPFDocument document = new HWPFDocument(inputStream);
-             WordExtractor extractor = new WordExtractor(document)) {
+                WordExtractor extractor = new WordExtractor(document)) {
             String texto = extractor.getText();
             log.info("Texto extraído de DOC: {} caracteres", texto.length());
             return texto;
@@ -163,21 +163,21 @@ public class DocumentoUploadStrategy implements GeneracionArticuloStrategy {
 
     private boolean esPDF(String nombre, String mime) {
         return (nombre != null && nombre.toLowerCase().endsWith(".pdf")) ||
-               "application/pdf".equals(mime);
+                "application/pdf".equals(mime);
     }
 
     private boolean esDocx(String nombre, String mime) {
         return (nombre != null && nombre.toLowerCase().endsWith(".docx")) ||
-               "application/vnd.openxmlformats-officedocument.wordprocessingml.document".equals(mime);
+                "application/vnd.openxmlformats-officedocument.wordprocessingml.document".equals(mime);
     }
 
     private boolean esDoc(String nombre, String mime) {
         return (nombre != null && nombre.toLowerCase().endsWith(".doc")) ||
-               "application/msword".equals(mime);
+                "application/msword".equals(mime);
     }
 
     private boolean esTxt(String nombre, String mime) {
         return (nombre != null && nombre.toLowerCase().endsWith(".txt")) ||
-               (mime != null && mime.startsWith("text/"));
+                (mime != null && mime.startsWith("text/"));
     }
 }

@@ -31,17 +31,17 @@ public class GeneracionArticuloContext {
 
     /**
      * Constructor que inyecta todas las estrategias registradas.
-     * Spring inyecta automáticamente todas las implementaciones de GeneracionArticuloStrategy.
+     * Spring inyecta automáticamente todas las implementaciones de
+     * GeneracionArticuloStrategy.
      */
     public GeneracionArticuloContext(List<GeneracionArticuloStrategy> estrategias) {
         this.estrategias = estrategias;
         this.estrategiasPorNombre = estrategias.stream()
                 .collect(Collectors.toMap(
                         GeneracionArticuloStrategy::getNombre,
-                        s -> s
-                ));
-        
-        log.info("GeneracionArticuloContext inicializado con {} estrategias: {}", 
+                        s -> s));
+
+        log.info("GeneracionArticuloContext inicializado con {} estrategias: {}",
                 estrategias.size(),
                 estrategias.stream()
                         .map(GeneracionArticuloStrategy::getNombre)
@@ -53,20 +53,21 @@ public class GeneracionArticuloContext {
      * 
      * @param request Solicitud de generación
      * @return Artículo generado
-     * @throws OperacionInvalidaException si no hay estrategia que soporte la solicitud
+     * @throws OperacionInvalidaException si no hay estrategia que soporte la
+     *                                    solicitud
      */
     public ArticuloGeneradoIA generarArticulo(GeneracionArticuloRequest request) {
         GeneracionArticuloStrategy estrategia = seleccionarEstrategia(request);
-        
+
         log.info("Usando estrategia '{}' para generar artículo", estrategia.getNombre());
-        
+
         long startTime = System.currentTimeMillis();
         ArticuloGeneradoIA resultado = estrategia.generar(request);
         long tiempoMs = System.currentTimeMillis() - startTime;
-        
-        log.info("Artículo generado con estrategia '{}' en {}ms", 
+
+        log.info("Artículo generado con estrategia '{}' en {}ms",
                 estrategia.getNombre(), tiempoMs);
-        
+
         return resultado;
     }
 
@@ -82,8 +83,8 @@ public class GeneracionArticuloContext {
                 .filter(s -> s.soporta(request))
                 .findFirst()
                 .orElseThrow(() -> new OperacionInvalidaException(
-                        "No hay estrategia de generación disponible para el tipo de solicitud: " + 
-                        request.getTipoFuente()));
+                        "No hay estrategia de generación disponible para el tipo de solicitud: " +
+                                request.getTipoFuente()));
     }
 
     /**
@@ -97,8 +98,8 @@ public class GeneracionArticuloContext {
         GeneracionArticuloStrategy estrategia = estrategiasPorNombre.get(nombre);
         if (estrategia == null) {
             throw new OperacionInvalidaException(
-                    "Estrategia no encontrada: " + nombre + 
-                    ". Disponibles: " + String.join(", ", estrategiasPorNombre.keySet()));
+                    "Estrategia no encontrada: " + nombre +
+                            ". Disponibles: " + String.join(", ", estrategiasPorNombre.keySet()));
         }
         return estrategia;
     }
@@ -131,7 +132,6 @@ public class GeneracionArticuloContext {
         return estrategias.stream()
                 .collect(Collectors.toMap(
                         GeneracionArticuloStrategy::getNombre,
-                        GeneracionArticuloStrategy::getDescripcion
-                ));
+                        GeneracionArticuloStrategy::getDescripcion));
     }
 }

@@ -427,15 +427,15 @@ const articuloService = {
     idCreador: number
   ): Promise<GenerarArticuloIAResponse> {
     const formData = new FormData();
-    formData.append('documento', documento);
-    formData.append('idCreador', idCreador.toString());
+    formData.append("documento", documento);
+    formData.append("idCreador", idCreador.toString());
 
     const response = await http.post<GenerarArticuloIAResponse>(
       `${BASE_URL}/generar-ia/documento`,
       formData,
       {
         headers: {
-          'Content-Type': 'multipart/form-data',
+          "Content-Type": "multipart/form-data",
         },
       }
     );

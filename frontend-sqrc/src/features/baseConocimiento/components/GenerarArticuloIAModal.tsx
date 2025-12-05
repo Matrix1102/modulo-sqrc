@@ -4,7 +4,7 @@ import GenerarDesdeDocumentacionModal from "./GenerarDesdeDocumentacionModal";
 import GenerarDesdeDocumentoModal from "./GenerarDesdeDocumentoModal";
 import type { ArticuloGeneradoIA } from "../types/articulo";
 
-type TabType = 'documentacion' | 'documento';
+type TabType = "documentacion" | "documento";
 
 interface GenerarArticuloIAModalProps {
   isOpen: boolean;
@@ -20,7 +20,7 @@ interface GenerarArticuloIAModalProps {
  * Ofrece dos opciones:
  * - Desde Documentación: Usa ID de documentación de ticket
  * - Subir Documento: Sube PDF, Word o TXT
- * 
+ *
  * Este modal actúa como wrapper de los modales individuales.
  * Para uso independiente, importa GenerarDesdeDocumentacionModal o GenerarDesdeDocumentoModal.
  */
@@ -29,7 +29,7 @@ const GenerarArticuloIAModal: React.FC<GenerarArticuloIAModalProps> = ({
   onClose,
   idCreador,
   onArticuloGenerado,
-  tabInicial = 'documentacion',
+  tabInicial = "documentacion",
 }) => {
   const [activeTab, setActiveTab] = useState<TabType>(tabInicial);
   const [showSubModal, setShowSubModal] = useState(false);
@@ -59,7 +59,7 @@ const GenerarArticuloIAModal: React.FC<GenerarArticuloIAModalProps> = ({
 
   // Si hay un sub-modal abierto, mostrar ese
   if (showSubModal) {
-    if (activeTab === 'documentacion') {
+    if (activeTab === "documentacion") {
       return (
         <GenerarDesdeDocumentacionModal
           isOpen={true}
@@ -102,9 +102,7 @@ const GenerarArticuloIAModal: React.FC<GenerarArticuloIAModalProps> = ({
                 <h2 className="text-lg font-semibold text-white">
                   Generar con IA
                 </h2>
-                <p className="text-purple-200 text-sm">
-                  Selecciona una opción
-                </p>
+                <p className="text-purple-200 text-sm">Selecciona una opción</p>
               </div>
             </div>
             <button
@@ -120,7 +118,7 @@ const GenerarArticuloIAModal: React.FC<GenerarArticuloIAModalProps> = ({
         <div className="p-6 space-y-4">
           {/* Opción Documentación */}
           <button
-            onClick={() => handleSelectOption('documentacion')}
+            onClick={() => handleSelectOption("documentacion")}
             className="w-full p-4 border-2 border-gray-200 rounded-xl hover:border-purple-400 hover:bg-purple-50 transition-all flex items-start gap-4 text-left group"
           >
             <div className="p-3 bg-purple-100 rounded-lg group-hover:bg-purple-200 transition-colors">
@@ -131,14 +129,15 @@ const GenerarArticuloIAModal: React.FC<GenerarArticuloIAModalProps> = ({
                 Desde Documentación
               </h3>
               <p className="text-sm text-gray-500 mt-1">
-                Genera un artículo usando el ID de documentación de un ticket existente
+                Genera un artículo usando el ID de documentación de un ticket
+                existente
               </p>
             </div>
           </button>
 
           {/* Opción Documento */}
           <button
-            onClick={() => handleSelectOption('documento')}
+            onClick={() => handleSelectOption("documento")}
             className="w-full p-4 border-2 border-gray-200 rounded-xl hover:border-green-400 hover:bg-green-50 transition-all flex items-start gap-4 text-left group"
           >
             <div className="p-3 bg-green-100 rounded-lg group-hover:bg-green-200 transition-colors">

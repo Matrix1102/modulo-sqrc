@@ -15,12 +15,9 @@ interface GenerarDesdeDocumentacionModalProps {
  * Modal para generar artículos con IA desde documentación de tickets.
  * Usa el patrón Strategy en el backend (DocumentacionStrategy).
  */
-const GenerarDesdeDocumentacionModal: React.FC<GenerarDesdeDocumentacionModalProps> = ({
-  isOpen,
-  onClose,
-  idCreador,
-  onArticuloGenerado,
-}) => {
+const GenerarDesdeDocumentacionModal: React.FC<
+  GenerarDesdeDocumentacionModalProps
+> = ({ isOpen, onClose, idCreador, onArticuloGenerado }) => {
   const [idDocumentacion, setIdDocumentacion] = useState<string>("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -55,7 +52,9 @@ const GenerarDesdeDocumentacionModal: React.FC<GenerarDesdeDocumentacionModalPro
     } catch (err: unknown) {
       console.error("Error al generar artículo con IA:", err);
       const errorMessage =
-        err instanceof Error ? err.message : "Error de conexión con el servidor";
+        err instanceof Error
+          ? err.message
+          : "Error de conexión con el servidor";
       setError(errorMessage);
       showToast("Error al generar artículo con IA", "error");
     } finally {
@@ -98,9 +97,7 @@ const GenerarDesdeDocumentacionModal: React.FC<GenerarDesdeDocumentacionModalPro
                 <h2 className="text-lg font-semibold text-white">
                   Generar desde Documentación
                 </h2>
-                <p className="text-purple-200 text-sm">
-                  Gemini 2.5 Flash
-                </p>
+                <p className="text-purple-200 text-sm">Gemini 2.5 Flash</p>
               </div>
             </div>
             <button

@@ -20,9 +20,9 @@ public class GeneracionArticuloRequest {
      * Tipo de fuente para la generación.
      */
     public enum TipoFuente {
-        DOCUMENTACION,      // Desde documentación de ticket existente
-        DOCUMENTO_UPLOAD,   // Desde documento subido (PDF, Word, etc.)
-        TEMA_LIBRE          // Desde un tema especificado por el usuario
+        DOCUMENTACION, // Desde documentación de ticket existente
+        DOCUMENTO_UPLOAD, // Desde documento subido (PDF, Word, etc.)
+        TEMA_LIBRE // Desde un tema especificado por el usuario
     }
 
     /**
@@ -36,14 +36,14 @@ public class GeneracionArticuloRequest {
     private Long idCreador;
 
     // ========== Campos para DOCUMENTACION ==========
-    
+
     /**
      * ID de documentación de ticket (solo para tipoFuente=DOCUMENTACION).
      */
     private Long idDocumentacion;
 
     // ========== Campos para DOCUMENTO_UPLOAD ==========
-    
+
     /**
      * Archivo subido (PDF, Word, etc.) - solo para tipoFuente=DOCUMENTO_UPLOAD.
      * Nota: En la práctica, este campo se maneja por separado en el controlador.
@@ -66,7 +66,7 @@ public class GeneracionArticuloRequest {
     private String tipoDocumento;
 
     // ========== Campos para TEMA_LIBRE ==========
-    
+
     /**
      * Tema sugerido para el artículo (solo para tipoFuente=TEMA_LIBRE).
      */
@@ -95,8 +95,8 @@ public class GeneracionArticuloRequest {
      * Verifica si la solicitud es para generación desde documento subido.
      */
     public boolean esDesdeDocumentoUpload() {
-        return tipoFuente == TipoFuente.DOCUMENTO_UPLOAD && 
-               (documento != null || contenidoDocumento != null);
+        return tipoFuente == TipoFuente.DOCUMENTO_UPLOAD &&
+                (documento != null || contenidoDocumento != null);
     }
 
     /**
@@ -121,7 +121,7 @@ public class GeneracionArticuloRequest {
      * Crea una solicitud desde documento subido.
      */
     public static GeneracionArticuloRequest desdeDocumentoUpload(String contenido, String nombreArchivo,
-                                                                  String tipoMime, Long idCreador) {
+            String tipoMime, Long idCreador) {
         return GeneracionArticuloRequest.builder()
                 .tipoFuente(TipoFuente.DOCUMENTO_UPLOAD)
                 .contenidoDocumento(contenido)
@@ -134,8 +134,8 @@ public class GeneracionArticuloRequest {
     /**
      * Crea una solicitud desde tema libre.
      */
-    public static GeneracionArticuloRequest desdeTemaLibre(String tema, String etiqueta, 
-                                                            String tipoCaso, Long idCreador) {
+    public static GeneracionArticuloRequest desdeTemaLibre(String tema, String etiqueta,
+            String tipoCaso, Long idCreador) {
         return GeneracionArticuloRequest.builder()
                 .tipoFuente(TipoFuente.TEMA_LIBRE)
                 .tema(tema)

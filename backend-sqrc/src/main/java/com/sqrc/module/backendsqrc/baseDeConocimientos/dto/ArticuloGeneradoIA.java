@@ -12,7 +12,8 @@ import java.util.List;
 
 /**
  * DTO con el contenido generado por la IA para crear un artículo.
- * Contiene todos los campos necesarios para crear el artículo y su versión inicial.
+ * Contiene todos los campos necesarios para crear el artículo y su versión
+ * inicial.
  */
 @Data
 @NoArgsConstructor

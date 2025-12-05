@@ -508,19 +508,21 @@ public class ArticuloService {
     }
 
     /**
-     * Genera un artículo de conocimiento a partir de una documentación usando IA (Gemini 2.5 Flash).
-     * Hace un join desde documentación con asignaciones para obtener el contexto completo.
+     * Genera un artículo de conocimiento a partir de una documentación usando IA
+     * (Gemini 2.5 Flash).
+     * Hace un join desde documentación con asignaciones para obtener el contexto
+     * completo.
      * 
-     * @param idDocumentacion ID de la documentación
-     * @param idEmpleado ID del empleado que solicita (será el propietario)
+     * @param idDocumentacion     ID de la documentación
+     * @param idEmpleado          ID del empleado que solicita (será el propietario)
      * @param guardarComoBorrador Si es true, guarda el artículo automáticamente
      * @return ArticuloGeneradoIA con el contenido generado
      */
     public ArticuloGeneradoIA generarArticuloDesdeDocumentacion(
-            Long idDocumentacion, 
+            Long idDocumentacion,
             Long idEmpleado,
             boolean guardarComoBorrador) {
-        
+
         log.info("🤖 Generando artículo con IA desde documentación ID: {}", idDocumentacion);
 
         // Verificar que Gemini está configurado
@@ -551,27 +553,31 @@ public class ArticuloService {
     }
 
     /**
-     * Construye el DTO de contexto desde la documentación con join a asignación y ticket.
+     * Construye el DTO de contexto desde la documentación con join a asignación y
+     * ticket.
      */
     private ContextoDocumentacionDTO construirContextoDesdeDocumentacion(Documentacion documentacion) {
         // Obtener ticket desde la asignación
         Ticket ticket = documentacion.getAsignacion().getTicket();
-        
+
         ContextoDocumentacionDTO.ContextoDocumentacionDTOBuilder builder = ContextoDocumentacionDTO.builder()
                 .idDocumentacion(documentacion.getIdDocumentacion())
                 .problema(documentacion.getProblema())
                 .solucion(documentacion.getSolucion())
-                .fechaDocumentacion(documentacion.getFechaCreacion() != null 
-                        ? documentacion.getFechaCreacion().format(FECHA_FORMATTER) : null)
+                .fechaDocumentacion(documentacion.getFechaCreacion() != null
+                        ? documentacion.getFechaCreacion().format(FECHA_FORMATTER)
+                        : null)
                 .idAsignacion(documentacion.getAsignacion().getIdAsignacion())
-                .fechaInicioAsignacion(documentacion.getAsignacion().getFechaInicio() != null 
-                        ? documentacion.getAsignacion().getFechaInicio().format(FECHA_FORMATTER) : null)
-                .fechaFinAsignacion(documentacion.getAsignacion().getFechaFin() != null 
-                        ? documentacion.getAsignacion().getFechaFin().format(FECHA_FORMATTER) : null);
+                .fechaInicioAsignacion(documentacion.getAsignacion().getFechaInicio() != null
+                        ? documentacion.getAsignacion().getFechaInicio().format(FECHA_FORMATTER)
+                        : null)
+                .fechaFinAsignacion(documentacion.getAsignacion().getFechaFin() != null
+                        ? documentacion.getAsignacion().getFechaFin().format(FECHA_FORMATTER)
+                        : null);
 
         // Datos del agente
         if (documentacion.getAsignacion().getEmpleado() != null) {
-            builder.nombreAgente(documentacion.getAsignacion().getEmpleado().getNombre() + " " + 
+            builder.nombreAgente(documentacion.getAsignacion().getEmpleado().getNombre() + " " +
                     documentacion.getAsignacion().getEmpleado().getApellido());
         }
 
@@ -583,7 +589,7 @@ public class ArticuloService {
                     .tipoTicket(ticket.getTipoTicket() != null ? ticket.getTipoTicket().name() : null)
                     .estadoTicket(ticket.getEstado() != null ? ticket.getEstado().name() : null)
                     .origenTicket(ticket.getOrigen() != null ? ticket.getOrigen().name() : null);
-            
+
             // Motivo del ticket
             if (ticket.getMotivo() != null) {
                 builder.motivoTicket(ticket.getMotivo().getNombre());
@@ -596,7 +602,8 @@ public class ArticuloService {
     /**
      * Guarda el artículo generado por IA como borrador.
      */
-    private ArticuloResponse guardarArticuloGenerado(ArticuloGeneradoIA generado, Long idEmpleado, Long idDocumentacion) {
+    private ArticuloResponse guardarArticuloGenerado(ArticuloGeneradoIA generado, Long idEmpleado,
+            Long idDocumentacion) {
         // Generar código único basado en documentación
         String codigo = "IA-DOC" + idDocumentacion + "-" + UUID.randomUUID().toString().substring(0, 4).toUpperCase();
 

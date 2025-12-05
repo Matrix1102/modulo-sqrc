@@ -296,7 +296,10 @@ export const mapToArticuloResumen = (
 // ============ IA GENERATION TYPES ============
 
 /** Tipo de fuente para generación con IA */
-export type TipoFuenteGeneracion = 'DOCUMENTACION' | 'DOCUMENTO_UPLOAD' | 'TEMA_LIBRE';
+export type TipoFuenteGeneracion =
+  | "DOCUMENTACION"
+  | "DOCUMENTO_UPLOAD"
+  | "TEMA_LIBRE";
 
 /** Request para generar artículo con IA */
 export interface GenerarArticuloIARequest {

@@ -137,7 +137,8 @@ public class DocumentacionStrategy implements GeneracionArticuloStrategy {
                 sb.append("Impacto: ").append(queja.getImpacto());
             }
             if (queja.getAreaInvolucrada() != null) {
-                if (sb.length() > 0) sb.append(". ");
+                if (sb.length() > 0)
+                    sb.append(". ");
                 sb.append("Área involucrada: ").append(queja.getAreaInvolucrada());
             }
             return sb.toString();

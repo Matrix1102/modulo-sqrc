@@ -47,7 +47,8 @@ public class ArticuloIAService {
     private final GeneracionArticuloContext generacionContext;
     private final DocumentoUploadStrategy documentoUploadStrategy;
 
-    // ===================== MÉTODO UNIFICADO CON PATRÓN STRATEGY =====================
+    // ===================== MÉTODO UNIFICADO CON PATRÓN STRATEGY
+    // =====================
 
     /**
      * Genera un artículo usando el patrón Strategy.
@@ -80,7 +81,7 @@ public class ArticuloIAService {
 
                 return GenerarArticuloIAResponse.builder()
                         .exito(true)
-                        .mensaje("Artículo generado exitosamente con IA usando estrategia: " + 
+                        .mensaje("Artículo generado exitosamente con IA usando estrategia: " +
                                 generacionContext.seleccionarEstrategia(request).getNombre())
                         .articulo(mapToArticuloResponse(articulo))
                         .contenidoGenerado(contenidoGenerado)
@@ -110,13 +111,13 @@ public class ArticuloIAService {
     /**
      * Genera un artículo desde un documento subido (PDF, Word, TXT).
      * 
-     * @param documento    Archivo subido
-     * @param idCreador    ID del empleado creador
+     * @param documento Archivo subido
+     * @param idCreador ID del empleado creador
      * @return Respuesta con el artículo generado
      */
     public GenerarArticuloIAResponse generarArticuloDesdeDocumentoUpload(
             MultipartFile documento, Long idCreador) {
-        
+
         long startTime = System.currentTimeMillis();
         log.info("Generando artículo desde documento: {}", documento.getOriginalFilename());
 
@@ -155,12 +156,14 @@ public class ArticuloIAService {
         return generacionContext.obtenerInfoEstrategias();
     }
 
-    // ===================== MÉTODOS LEGACY (compatibilidad hacia atrás) =====================
+    // ===================== MÉTODOS LEGACY (compatibilidad hacia atrás)
+    // =====================
 
     /**
      * Genera un artículo completo desde la documentación de un ticket usando IA.
      * 
-     * @deprecated Usar {@link #generarArticulo(GeneracionArticuloRequest)} con tipoFuente=DOCUMENTACION
+     * @deprecated Usar {@link #generarArticulo(GeneracionArticuloRequest)} con
+     *             tipoFuente=DOCUMENTACION
      * @param request Datos de la solicitud (idDocumentacion, idCreador)
      * @return Respuesta con el artículo generado o error
      */
@@ -170,14 +173,14 @@ public class ArticuloIAService {
         GeneracionArticuloRequest newRequest = GeneracionArticuloRequest.desdeDocumentacion(
                 request.getIdDocumentacion(),
                 request.getIdCreador());
-        
+
         GenerarArticuloIAResponse response = generarArticulo(newRequest);
-        
+
         // Agregar campos legacy a la respuesta
         if (response.isExito()) {
             response.setIdDocumentacionOrigen(request.getIdDocumentacion());
         }
-        
+
         return response;
     }
 
@@ -480,11 +483,12 @@ public class ArticuloIAService {
 
     /**
      * Crea un artículo desde el contenido generado por IA (versión unificada).
-     * Soporta cualquier tipo de fuente (documentación, documento upload, tema libre).
+     * Soporta cualquier tipo de fuente (documentación, documento upload, tema
+     * libre).
      */
-    private Articulo crearArticuloDesdeIAUnificado(ArticuloGeneradoIA contenido, 
-                                                    Empleado creador,
-                                                    GeneracionArticuloRequest request) {
+    private Articulo crearArticuloDesdeIAUnificado(ArticuloGeneradoIA contenido,
+            Empleado creador,
+            GeneracionArticuloRequest request) {
         String codigo = generarCodigoUnico();
 
         // Crear el artículo
@@ -566,9 +570,9 @@ public class ArticuloIAService {
 
         return switch (request.getTipoFuente()) {
             case DOCUMENTACION -> "Artículo generado con IA desde documentación de ticket";
-            case DOCUMENTO_UPLOAD -> "Artículo generado con IA desde documento: " + 
+            case DOCUMENTO_UPLOAD -> "Artículo generado con IA desde documento: " +
                     (request.getNombreDocumento() != null ? request.getNombreDocumento() : "documento");
-            case TEMA_LIBRE -> "Artículo generado con IA sobre tema: " + 
+            case TEMA_LIBRE -> "Artículo generado con IA sobre tema: " +
                     (request.getTema() != null ? request.getTema() : "tema libre");
         };
     }

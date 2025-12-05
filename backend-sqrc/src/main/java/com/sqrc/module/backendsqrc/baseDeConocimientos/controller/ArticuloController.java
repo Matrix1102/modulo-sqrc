@@ -405,7 +405,8 @@ public class ArticuloController {
     // ===================== ENDPOINTS DE GENERACIÓN CON IA =====================
 
     /**
-     * Genera un artículo completo desde la documentación de un ticket usando IA (Gemini).
+     * Genera un artículo completo desde la documentación de un ticket usando IA
+     * (Gemini).
      * Analiza el problema, solución, contexto del ticket y genera:
      * - Título optimizado
      * - Resumen
@@ -422,7 +423,7 @@ public class ArticuloController {
             @Valid @RequestBody GenerarArticuloIARequest request) {
         log.info("POST /api/articulos/generar-ia - Documentación ID: {}", request.getIdDocumentacion());
         GenerarArticuloIAResponse response = articuloIAService.generarArticuloDesdeDocumentacion(request);
-        
+
         if (response.isExito()) {
             return ResponseEntity.status(HttpStatus.CREATED).body(response);
         } else {
@@ -441,7 +442,7 @@ public class ArticuloController {
             @Valid @RequestBody GenerarArticuloIARequest request) {
         log.info("POST /api/articulos/preview-ia - Documentación ID: {}", request.getIdDocumentacion());
         GenerarArticuloIAResponse response = articuloIAService.previewArticuloDesdeDocumentacion(request);
-        
+
         if (response.isExito()) {
             return ResponseEntity.ok(response);
         } else {
@@ -464,13 +465,13 @@ public class ArticuloController {
     public ResponseEntity<GenerarArticuloIAResponse> generarArticuloDesdeDocumento(
             @RequestParam("documento") MultipartFile documento,
             @RequestParam("idCreador") Long idCreador) {
-        
-        log.info("POST /api/articulos/generar-ia/documento - Archivo: {}, Creador: {}", 
+
+        log.info("POST /api/articulos/generar-ia/documento - Archivo: {}, Creador: {}",
                 documento.getOriginalFilename(), idCreador);
-        
+
         GenerarArticuloIAResponse response = articuloIAService.generarArticuloDesdeDocumentoUpload(
                 documento, idCreador);
-        
+
         if (response.isExito()) {
             return ResponseEntity.status(HttpStatus.CREATED).body(response);
         } else {
@@ -490,11 +491,11 @@ public class ArticuloController {
     @PostMapping("/generar-ia/unificado")
     public ResponseEntity<GenerarArticuloIAResponse> generarArticuloUnificado(
             @Valid @RequestBody GeneracionArticuloRequest request) {
-        
+
         log.info("POST /api/articulos/generar-ia/unificado - Tipo: {}", request.getTipoFuente());
-        
+
         GenerarArticuloIAResponse response = articuloIAService.generarArticulo(request);
-        
+
         if (response.isExito()) {
             return ResponseEntity.status(HttpStatus.CREATED).body(response);
         } else {

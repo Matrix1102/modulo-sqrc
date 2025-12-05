@@ -8,7 +8,8 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 
 /**
- * Strategy para generar artículos desde un tema libre especificado por el usuario.
+ * Strategy para generar artículos desde un tema libre especificado por el
+ * usuario.
  * 
  * Esta estrategia permite al usuario solicitar la generación de un artículo
  * sobre un tema específico sin necesidad de documentación previa.
