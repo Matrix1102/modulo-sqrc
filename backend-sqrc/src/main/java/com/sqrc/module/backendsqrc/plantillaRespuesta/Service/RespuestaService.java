@@ -1,5 +1,6 @@
 package com.sqrc.module.backendsqrc.plantillaRespuesta.Service;
 
+import com.sqrc.module.backendsqrc.plantillaRespuesta.DTO.ArchivoDescarga;
 import com.sqrc.module.backendsqrc.plantillaRespuesta.DTO.EnviarRespuestaRequestDTO;
 import com.sqrc.module.backendsqrc.plantillaRespuesta.DTO.PreviewResponseDTO;
 import com.sqrc.module.backendsqrc.plantillaRespuesta.DTO.RespuestaBorradorDTO;
@@ -372,5 +373,22 @@ public class RespuestaService {
                 tituloPreview,
                 htmlRenderizado
         );
+    }
+    @Transactional(readOnly = true)
+    public ArchivoDescarga descargarPdfPreview(EnviarRespuestaRequestDTO request) {
+
+        // 1. Reusamos la lógica de vista previa para obtener el HTML ya mezclado
+        // (Esto ya incluye los datos del ticket y lo que escribió el agente)
+        String html = generarVistaPrevia(request).htmlRenderizado();
+
+        // 2. Convertimos ese HTML a PDF (Bytes)
+        byte[] pdfBytes = pdfService.generarPdfDesdeHtml(html);
+
+        // 3. Definimos el nombre del archivo (Lógica de Negocio)
+        // Ej: "Respuesta_Reclamo_1050.pdf"
+        String nombreArchivo = String.format("Respuesta_Ticket_%d.pdf", request.idAsignacion());
+
+        // 4. Retornamos el paquete completo
+        return new ArchivoDescarga(nombreArchivo, pdfBytes);
     }
 }

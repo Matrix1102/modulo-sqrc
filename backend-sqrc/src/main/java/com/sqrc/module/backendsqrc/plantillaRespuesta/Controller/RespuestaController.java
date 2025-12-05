@@ -1,10 +1,13 @@
 package com.sqrc.module.backendsqrc.plantillaRespuesta.Controller;
 
+import com.sqrc.module.backendsqrc.plantillaRespuesta.DTO.ArchivoDescarga;
 import com.sqrc.module.backendsqrc.plantillaRespuesta.DTO.EnviarRespuestaRequestDTO;
 import com.sqrc.module.backendsqrc.plantillaRespuesta.DTO.PreviewResponseDTO;
 import com.sqrc.module.backendsqrc.plantillaRespuesta.DTO.RespuestaBorradorDTO; // <--- Importar nuevo DTO
 import com.sqrc.module.backendsqrc.plantillaRespuesta.Service.RespuestaService; // (o RespuestaServiceSP si le pusiste así)
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -39,6 +42,19 @@ public class RespuestaController {
     public ResponseEntity<PreviewResponseDTO> obtenerVistaPrevia(@RequestBody EnviarRespuestaRequestDTO request) {
         // El servicio ya devuelve el objeto completo
         return ResponseEntity.ok(respuestaService.generarVistaPrevia(request));
+    }
+    @PostMapping("/descargar-preview")
+    public ResponseEntity<byte[]> descargarPdf(@RequestBody EnviarRespuestaRequestDTO request) {
+
+        // 1. Llamamos al servicio y recibimos el paquete completo
+        ArchivoDescarga archivo = respuestaService.descargarPdfPreview(request);
+
+        // 2. Configuramos la respuesta HTTP
+        return ResponseEntity.ok()
+                // El nombre del archivo viene del servicio
+                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + archivo.nombre() + "\"")
+                .contentType(MediaType.APPLICATION_PDF)
+                .body(archivo.contenido());
     }
 
 }

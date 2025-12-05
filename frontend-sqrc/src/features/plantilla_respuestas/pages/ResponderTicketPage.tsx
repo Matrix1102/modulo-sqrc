@@ -26,6 +26,7 @@ export const ResponderTicketPage = () => {
     const [htmlPreview, setHtmlPreview] = useState('');
     const [loading, setLoading] = useState(false);
     const [loadingPreview, setLoadingPreview] = useState(false);
+    const [downloading, setDownloading] = useState(false);
 
     // Validación de seguridad por si entran directo al link sin datos
     useEffect(() => {
@@ -105,6 +106,27 @@ export const ResponderTicketPage = () => {
         }
     };
 
+    // Función para descargar
+    const handleDescargarPdf = async () => {
+        if (!selectedPlantillaId) return;
+        setDownloading(true);
+        try {
+            await respuestaService.descargarPdf({
+                idAsignacion: Number(ticketId),
+                idPlantilla: Number(selectedPlantillaId),
+                correoDestino: ticketData.clienteCorreo,
+                asunto: asunto,
+                cerrarTicket: false, // No importa para el PDF
+                variables: { cuerpo, despedida }
+            });
+        } catch (error) {
+            console.error(error);
+            alert("Error al descargar el PDF.");
+        } finally {
+            setDownloading(false);
+        }
+    };
+
     if (!ticketData) return null;
 
     return (
@@ -169,7 +191,18 @@ export const ResponderTicketPage = () => {
                                 <label className="flex items-center gap-2 cursor-pointer">
                                     <input type="checkbox" className="w-4 h-4" checked={cerrarTicket} onChange={e => setCerrarTicket(e.target.checked)} />
                                     <span className="text-sm font-medium">Cerrar Ticket al enviar</span>
-                                </label>
+                                    </label>
+                            </div>
+                            <div className="mt-4">
+                                        <button 
+                                            onClick={handleDescargarPdf}
+                                            disabled={!htmlPreview || downloading}
+                                            className="w-full py-3 bg-white border-2 border-gray-300 text-gray-700 font-bold rounded-lg hover:border-gray-400 hover:bg-gray-50 transition flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                                        >
+                                            {downloading ? <FaSync className="animate-spin"/> : <FaPaperPlane className="rotate-180"/>}
+                                            {/* Nota: Usa FaDownload si lo tienes, si no la flecha sirve */}
+                                            Descargar PDF
+                                        </button>
                             </div>
                         </>
                     )}
