@@ -2,8 +2,17 @@
  * Modal para crear un nuevo ticket
  */
 import { useState } from 'react';
+import { useLocation } from 'react-router-dom';
 import type { ClienteDTO, TipoTicket, OrigenTicket, CreateTicketRequest } from '../types';
 import { createTicket } from '../services/ticketApi';
+
+// Mapeo de roles a empleados de la API externa (sincronizados)
+// IMPORTANTE: Ejecutar AGREGAR_AGENTES_API.sql para completar la jerarquía
+const ROLE_CONFIG: Record<string, { empleadoId: number; origen: OrigenTicket; label: string; nombreAgente: string }> = {
+  'agente-llamada': { empleadoId: 11, origen: 'LLAMADA', label: 'Llamada', nombreAgente: 'Rosa Martínez' },           // ID 11 - API externa
+  'agente-presencial': { empleadoId: 12, origen: 'PRESENCIAL', label: 'Presencial', nombreAgente: 'Diego Fernández' }, // ID 12 - API externa
+  'backoffice': { empleadoId: 3, origen: 'LLAMADA', label: 'Backoffice', nombreAgente: 'Jorge Resolver' },            // ID 3 - Local
+};
 
 interface CreateTicketModalProps {
   isOpen: boolean;
@@ -18,14 +27,26 @@ export const CreateTicketModal = ({
   cliente,
   onTicketCreated,
 }: CreateTicketModalProps) => {
+  const location = useLocation();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+
+  // Detectar rol actual basado en la ruta
+  const getCurrentRole = () => {
+    const path = location.pathname;
+    if (path.startsWith('/agente-llamada')) return 'agente-llamada';
+    if (path.startsWith('/agente-presencial')) return 'agente-presencial';
+    if (path.startsWith('/backoffice')) return 'backoffice';
+    return 'agente-llamada'; // fallback
+  };
+
+  const currentRole = getCurrentRole();
+  const roleConfig = ROLE_CONFIG[currentRole];
 
   // Form fields
   const [asunto, setAsunto] = useState('');
   const [descripcion, setDescripcion] = useState('');
   const [tipoTicket, setTipoTicket] = useState<TipoTicket>('CONSULTA');
-  const [origen, setOrigen] = useState<OrigenTicket>('LLAMADA');
 
   // Campos específicos por tipo
   const [tema, setTema] = useState(''); // CONSULTA
@@ -51,8 +72,8 @@ export const CreateTicketModal = ({
         asunto,
         descripcion,
         clienteId: cliente.idCliente,
-        origen,
-        empleadoId: 6, // TODO: Obtener del contexto de usuario autenticado (Sofía Call - Agente Llamada)
+        origen: roleConfig.origen, // Origen fijo según rol
+        empleadoId: roleConfig.empleadoId, // Empleado de API externa según rol
       };
 
       // Agregar campos específicos según el tipo
@@ -85,7 +106,6 @@ export const CreateTicketModal = ({
     setAsunto('');
     setDescripcion('');
     setTipoTicket('CONSULTA');
-    setOrigen('LLAMADA');
     setTema('');
     setImpacto('');
     setAreaInvolucrada('');
@@ -147,14 +167,14 @@ export const CreateTicketModal = ({
                   />
                 </div>
 
-                {/* Propietario (agente actual - por ahora hardcodeado) */}
+                {/* Propietario (agente actual basado en rol) */}
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
                     Propietario del ticket :
                   </label>
                   <input
                     type="text"
-                    value="Agente Actual" // TODO: Obtener del contexto de usuario
+                    value={roleConfig.nombreAgente}
                     disabled
                     className="w-full px-4 py-2 border border-gray-200 rounded-lg bg-gray-50 text-gray-500"
                   />
@@ -283,19 +303,20 @@ export const CreateTicketModal = ({
                   </div>
                 )}
 
-                {/* Canal */}
+                {/* Canal - Automático según tipo de agente */}
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
                     Canal :
                   </label>
-                  <select
-                    value={origen}
-                    onChange={(e) => setOrigen(e.target.value as OrigenTicket)}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  >
-                    <option value="LLAMADA">Llamada</option>
-                    <option value="PRESENCIAL">Presencial</option>
-                  </select>
+                  <input
+                    type="text"
+                    value={roleConfig.label}
+                    disabled
+                    className="w-full px-4 py-2 border border-gray-200 rounded-lg bg-gray-100 text-gray-600 cursor-not-allowed"
+                  />
+                  <p className="text-xs text-gray-500 mt-1">
+                    Asignado automáticamente según tu rol
+                  </p>
                 </div>
 
                 {/* Error */}

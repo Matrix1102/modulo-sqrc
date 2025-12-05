@@ -13,48 +13,40 @@ export const TicketFilters = ({ onFiltersChange }: TicketFiltersProps) => {
   const [search, setSearch] = useState('');
   const [tipoFilter, setTipoFilter] = useState<TipoTicket | ''>('');
   const [estadoFilter, setEstadoFilter] = useState<EstadoTicket | ''>('');
-  const [fechaInicio, setFechaInicio] = useState('');
-  const [fechaFin, setFechaFin] = useState('');
+  const [fecha, setFecha] = useState('');
 
   const buildFilters = (
     tipo: TipoTicket | '',
     estado: EstadoTicket | '',
-    inicio: string,
-    fin: string,
+    fechaValue: string,
     searchValue: string
   ): TicketFilter => {
     const newFilters: TicketFilter = {};
     if (tipo) newFilters.tipo = tipo;
     if (estado) newFilters.estado = estado;
-    if (inicio) newFilters.fechaInicio = inicio;
-    if (fin) newFilters.fechaFin = fin;
+    if (fechaValue) newFilters.fecha = fechaValue;
     if (searchValue) newFilters.search = searchValue;
     return newFilters;
   };
 
   const handleSearchChange = (value: string) => {
     setSearch(value);
-    onFiltersChange(buildFilters(tipoFilter, estadoFilter, fechaInicio, fechaFin, value));
+    onFiltersChange(buildFilters(tipoFilter, estadoFilter, fecha, value));
   };
 
   const handleTipoChange = (value: TipoTicket | '') => {
     setTipoFilter(value);
-    onFiltersChange(buildFilters(value, estadoFilter, fechaInicio, fechaFin, search));
+    onFiltersChange(buildFilters(value, estadoFilter, fecha, search));
   };
 
   const handleEstadoChange = (value: EstadoTicket | '') => {
     setEstadoFilter(value);
-    onFiltersChange(buildFilters(tipoFilter, value, fechaInicio, fechaFin, search));
+    onFiltersChange(buildFilters(tipoFilter, value, fecha, search));
   };
 
-  const handleFechaInicioChange = (value: string) => {
-    setFechaInicio(value);
-    onFiltersChange(buildFilters(tipoFilter, estadoFilter, value, fechaFin, search));
-  };
-
-  const handleFechaFinChange = (value: string) => {
-    setFechaFin(value);
-    onFiltersChange(buildFilters(tipoFilter, estadoFilter, fechaInicio, value, search));
+  const handleFechaChange = (value: string) => {
+    setFecha(value);
+    onFiltersChange(buildFilters(tipoFilter, estadoFilter, value, search));
   };
 
   return (
@@ -117,20 +109,13 @@ export const TicketFilters = ({ onFiltersChange }: TicketFiltersProps) => {
         </select>
       </div>
 
-      {/* Filtro Fecha */}
+      {/* Filtro Fecha - Una sola fecha específica */}
       <div className="flex items-center gap-2">
         <span className="text-sm text-gray-500">Fecha Creación</span>
         <input
           type="date"
-          value={fechaInicio}
-          onChange={(e) => handleFechaInicioChange(e.target.value)}
-          className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500"
-        />
-        <span className="text-gray-400">-</span>
-        <input
-          type="date"
-          value={fechaFin}
-          onChange={(e) => handleFechaFinChange(e.target.value)}
+          value={fecha}
+          onChange={(e) => handleFechaChange(e.target.value)}
           className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500"
         />
       </div>

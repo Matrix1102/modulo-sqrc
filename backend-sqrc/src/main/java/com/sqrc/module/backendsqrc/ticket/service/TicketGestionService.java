@@ -155,11 +155,15 @@ public class TicketGestionService {
      * Valida que el empleado puede crear tickets del canal especificado.
      * 
      * Reglas:
-     * - AgenteLlamada -> solo LLAMADA
-     * - AgentePresencial -> solo PRESENCIAL
+     * - AgenteLlamada / AGENTE_LLAMADA -> solo LLAMADA
+     * - AgentePresencial / AGENTE_PRESENCIAL -> solo PRESENCIAL
      * - Otros empleados -> cualquier canal (para pruebas/admin)
+     * 
+     * Nota: Los empleados sincronizados de la API externa tienen tipo_empleado
+     * pero no son instancias de las subclases (AgenteLlamada/AgentePresencial).
      */
     private void validarCanalPorTipoEmpleado(Empleado empleado, OrigenTicket origen) {
+        // Primero verificar por instancia de clase (empleados creados localmente)
         if (empleado instanceof Agente) {
             Agente agente = (Agente) empleado;
             if (!agente.puedeAtenderCanal(origen)) {
@@ -169,9 +173,20 @@ public class TicketGestionService {
                                 origen,
                                 agente.getCanalOrigen()));
             }
+            return;
         }
-        // BackOffice y Supervisor no crean tickets directamente en flujo normal
-        // pero permitimos para flexibilidad del sistema
+        
+        // Verificar por tipo de empleado (empleados sincronizados de API externa)
+        TipoEmpleado tipo = empleado.getTipoEmpleado();
+        if (tipo == TipoEmpleado.AGENTE_LLAMADA && origen != OrigenTicket.LLAMADA) {
+            throw new InvalidStateTransitionException(
+                    String.format("El Agente de Llamada no puede crear tickets con origen %s. Solo puede atender canal LLAMADA", origen));
+        }
+        if (tipo == TipoEmpleado.AGENTE_PRESENCIAL && origen != OrigenTicket.PRESENCIAL) {
+            throw new InvalidStateTransitionException(
+                    String.format("El Agente Presencial no puede crear tickets con origen %s. Solo puede atender canal PRESENCIAL", origen));
+        }
+        // BackOffice, Supervisor y AGENTE (base) pueden crear cualquier canal
     }
 
     // ==================== ACTUALIZAR TICKET ====================

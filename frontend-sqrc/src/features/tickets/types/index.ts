@@ -134,8 +134,7 @@ export interface AsignacionDTO {
 export interface TicketFilter {
   tipo?: TipoTicket;
   estado?: EstadoTicket;
-  fechaInicio?: string;
-  fechaFin?: string;
+  fecha?: string; // Fecha específica de creación (formato: yyyy-MM-dd)
   search?: string;
   page?: number;
   size?: number;
@@ -170,19 +169,21 @@ export interface ClienteInfo {
 }
 
 // ==================== Estado Badge Config ====================
+// Colores según diseño: Abierto=verde, Escalado=amarillo, Derivado=naranja, Cerrado=rojo
 
 export const ESTADO_CONFIG: Record<EstadoTicket, { label: string; color: string; bgColor: string }> = {
-  ABIERTO: { label: 'Abierto', color: 'text-green-700', bgColor: 'bg-green-100' },
-  ESCALADO: { label: 'Escalado', color: 'text-yellow-700', bgColor: 'bg-yellow-100' },
-  DERIVADO: { label: 'Derivado', color: 'text-blue-700', bgColor: 'bg-blue-100' },
-  CERRADO: { label: 'Cerrado', color: 'text-gray-700', bgColor: 'bg-gray-100' },
+  ABIERTO: { label: 'Abierto', color: 'text-white', bgColor: 'bg-green-500' },
+  ESCALADO: { label: 'Escalado', color: 'text-gray-800', bgColor: 'bg-yellow-400' },
+  DERIVADO: { label: 'Derivado', color: 'text-white', bgColor: 'bg-orange-400' },
+  CERRADO: { label: 'Cerrado', color: 'text-white', bgColor: 'bg-red-500' },
 };
 
-export const TIPO_CONFIG: Record<TipoTicket, { label: string; color: string; bgColor: string; icon: string }> = {
-  CONSULTA: { label: 'Consulta', color: 'text-blue-700', bgColor: 'bg-blue-100', icon: '❓' },
-  QUEJA: { label: 'Queja', color: 'text-orange-700', bgColor: 'bg-orange-100', icon: '😤' },
-  RECLAMO: { label: 'Reclamo', color: 'text-red-700', bgColor: 'bg-red-100', icon: '⚠️' },
-  SOLICITUD: { label: 'Solicitud', color: 'text-purple-700', bgColor: 'bg-purple-100', icon: '📋' },
+// Tipos con iconos según diseño
+export const TIPO_CONFIG: Record<TipoTicket, { label: string; color: string; bgColor: string; borderColor: string; icon: string }> = {
+  SOLICITUD: { label: 'Solicitud', color: 'text-purple-700', bgColor: 'bg-purple-50', borderColor: 'border-purple-200', icon: '📋' },
+  QUEJA: { label: 'Queja', color: 'text-orange-700', bgColor: 'bg-orange-50', borderColor: 'border-orange-200', icon: '🔊' },
+  CONSULTA: { label: 'Consulta', color: 'text-cyan-700', bgColor: 'bg-cyan-50', borderColor: 'border-cyan-200', icon: '❓' },
+  RECLAMO: { label: 'Reclamo', color: 'text-red-700', bgColor: 'bg-red-50', borderColor: 'border-red-200', icon: '⚠️' },
 };
 
 // ==================== Workflow (Escalamiento y Derivación) ====================

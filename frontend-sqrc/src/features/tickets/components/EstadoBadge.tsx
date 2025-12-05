@@ -1,5 +1,6 @@
 /**
- * Badge para mostrar el estado del ticket
+ * Badge para mostrar el estado del ticket según diseño
+ * Estados con colores sólidos: verde, amarillo, naranja, rojo
  */
 import type { EstadoTicket } from '../types';
 import { ESTADO_CONFIG } from '../types';
@@ -11,11 +12,11 @@ interface EstadoBadgeProps {
 
 export const EstadoBadge = ({ estado, size = 'sm' }: EstadoBadgeProps) => {
   const config = ESTADO_CONFIG[estado];
-  const sizeClasses = size === 'sm' ? 'px-2 py-0.5 text-xs' : 'px-3 py-1 text-sm';
+  const sizeClasses = size === 'sm' ? 'px-3 py-1 text-xs' : 'px-4 py-1.5 text-sm';
 
   return (
     <span
-      className={`inline-flex items-center rounded-full font-medium ${config.bgColor} ${config.color} ${sizeClasses}`}
+      className={`inline-flex items-center justify-center rounded-full font-medium ${config.bgColor} ${config.color} ${sizeClasses}`}
     >
       {config.label}
     </span>

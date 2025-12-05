@@ -22,14 +22,13 @@ const CLIENTES_ENDPOINT = '/api/v1/vista360/cliente';
 // ==================== Tickets ====================
 
 /**
- * Obtiene todos los tickets
+ * Obtiene todos los tickets con filtros opcionales
  */
 export async function getTickets(filter?: TicketFilter): Promise<TicketListItem[]> {
   const params = new URLSearchParams();
   if (filter?.tipo) params.append('tipo', filter.tipo);
   if (filter?.estado) params.append('estado', filter.estado);
-  if (filter?.fechaInicio) params.append('fechaInicio', filter.fechaInicio);
-  if (filter?.fechaFin) params.append('fechaFin', filter.fechaFin);
+  if (filter?.fecha) params.append('fecha', filter.fecha);
   if (filter?.search) params.append('search', filter.search);
 
   const queryString = params.toString();

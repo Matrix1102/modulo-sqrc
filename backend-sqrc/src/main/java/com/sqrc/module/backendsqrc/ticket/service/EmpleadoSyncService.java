@@ -1,9 +1,11 @@
 package com.sqrc.module.backendsqrc.ticket.service;
 
 import com.sqrc.module.backendsqrc.ticket.dto.EmpleadoExternoDTO;
-import com.sqrc.module.backendsqrc.ticket.model.Empleado;
-import com.sqrc.module.backendsqrc.ticket.model.TipoEmpleado;
+import com.sqrc.module.backendsqrc.ticket.model.*;
+import com.sqrc.module.backendsqrc.ticket.repository.AgenteLlamadaRepository;
+import com.sqrc.module.backendsqrc.ticket.repository.AgentePresencialRepository;
 import com.sqrc.module.backendsqrc.ticket.repository.EmpleadoRepository;
+import com.sqrc.module.backendsqrc.ticket.repository.SupervisorRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
@@ -23,9 +25,8 @@ import java.util.Optional;
 /**
  * Servicio para sincronizar empleados desde la API externa.
  * 
- * Solo sincroniza agentes de call center (AGENTE_LLAMADA).
- * Los demás tipos de empleados (SUPERVISOR, BACKOFFICE, AGENTE_PRESENCIAL)
- * se manejan localmente en la BD.
+ * Crea instancias de AgenteLlamada o AgentePresencial según corresponda,
+ * utilizando correctamente la jerarquía de clases del diseño.
  */
 @Service
 @RequiredArgsConstructor
@@ -33,6 +34,9 @@ import java.util.Optional;
 public class EmpleadoSyncService {
 
     private final EmpleadoRepository empleadoRepository;
+    private final AgenteLlamadaRepository agenteLlamadaRepository;
+    private final AgentePresencialRepository agentePresencialRepository;
+    private final SupervisorRepository supervisorRepository;
     private final RestTemplate restTemplate;
 
     @Value("${api.empleados.url:}")
@@ -108,45 +112,76 @@ public class EmpleadoSyncService {
     }
 
     /**
-     * Sincroniza un empleado externo a la BD local.
-     * Busca por DNI: si ya existe → actualiza, si no existe → inserta.
-     * Asigna tipo AGENTE_LLAMADA o AGENTE_PRESENCIAL alternadamente.
+     * Sincroniza un empleado externo a la BD local usando las clases correctas.
+     * Crea AgenteLlamada o AgentePresencial según el índice (alternando 50/50).
      * 
      * @param externo DTO del empleado externo
      * @param index Índice del empleado en la lista (para alternar tipos)
      */
     private void sincronizarEmpleado(EmpleadoExternoDTO externo, int index) {
-        // Buscar por DNI en lugar de ID (ya que los IDs pueden no coincidir)
+        // Buscar por DNI en lugar de ID
         Optional<Empleado> existente = empleadoRepository.findByDni(externo.getDocumentoIdentidad());
-
-        Empleado empleado;
+        
+        // Si ya existe, solo actualizamos campos básicos
         if (existente.isPresent()) {
-            empleado = existente.get();
-            log.debug("Actualizando empleado existente DNI: {}", externo.getDocumentoIdentidad());
-        } else {
-            empleado = new Empleado();
-            log.debug("Creando nuevo empleado DNI: {}", externo.getDocumentoIdentidad());
+            Empleado empleado = existente.get();
+            empleado.setNombre(externo.getNombres());
+            empleado.setApellido(externo.getApellidoCompleto());
+            empleado.setCorreo(externo.getEmail());
+            empleado.setNumeroCelular(externo.getTelefono());
+            empleado.setFechaNacimiento(externo.getFechaNacimiento());
+            empleado.setArea(externo.getArea());
+            empleadoRepository.save(empleado);
+            log.debug("Actualizado empleado existente DNI: {}", externo.getDocumentoIdentidad());
+            return;
         }
 
-        // Mapear campos del DTO externo a la entidad local
-        empleado.setNombre(externo.getNombres());
-        empleado.setApellido(externo.getApellidoCompleto());
-        empleado.setDni(externo.getDocumentoIdentidad());
-        empleado.setCorreo(externo.getEmail());
-        empleado.setNumeroCelular(externo.getTelefono());
-        empleado.setFechaNacimiento(externo.getFechaNacimiento());
-        empleado.setArea(externo.getArea());
-
-        empleado = empleadoRepository.save(empleado);
-
-        // Asignar tipo usando SQL nativo (alternar entre LLAMADA y PRESENCIAL)
-        // Índices pares = AGENTE_LLAMADA, impares = AGENTE_PRESENCIAL
-        String tipoAsignado = (index % 2 == 0) 
-                ? TipoEmpleado.AGENTE_LLAMADA.name() 
-                : TipoEmpleado.AGENTE_PRESENCIAL.name();
+        // Obtener supervisor por defecto (ID 1)
+        Supervisor supervisorDefault = supervisorRepository.findById(1L).orElse(null);
         
-        empleadoRepository.actualizarTipoEmpleado(empleado.getIdEmpleado(), tipoAsignado);
-        log.debug("Empleado {} asignado como {}", empleado.getDni(), tipoAsignado);
+        // Crear nuevo empleado usando la clase correcta según índice
+        boolean esAgenteLlamada = (index % 2 == 0);
+        
+        if (esAgenteLlamada) {
+            AgenteLlamada agente = AgenteLlamada.builder()
+                    .nombre(externo.getNombres())
+                    .apellido(externo.getApellidoCompleto())
+                    .dni(externo.getDocumentoIdentidad())
+                    .correo(externo.getEmail())
+                    .numeroCelular(externo.getTelefono())
+                    .fechaNacimiento(externo.getFechaNacimiento())
+                    .area(externo.getArea())
+                    .canalOrigen(OrigenTicket.LLAMADA)
+                    .supervisor(supervisorDefault)
+                    .estaOcupado(false)
+                    .extensionTelefonica(String.format("1%02d", 10 + index)) // 110, 112, 114...
+                    .llamadasAtendidasHoy(0)
+                    .tiempoPromedioLlamada(0)
+                    .llamadasActivas(0)
+                    .build();
+            agenteLlamadaRepository.save(agente);
+            log.info("Creado AgenteLlamada: {} {} (DNI: {})", 
+                    externo.getNombres(), externo.getApellidoCompleto(), externo.getDocumentoIdentidad());
+        } else {
+            AgentePresencial agente = AgentePresencial.builder()
+                    .nombre(externo.getNombres())
+                    .apellido(externo.getApellidoCompleto())
+                    .dni(externo.getDocumentoIdentidad())
+                    .correo(externo.getEmail())
+                    .numeroCelular(externo.getTelefono())
+                    .fechaNacimiento(externo.getFechaNacimiento())
+                    .area(externo.getArea())
+                    .canalOrigen(OrigenTicket.PRESENCIAL)
+                    .supervisor(supervisorDefault)
+                    .estaOcupado(false)
+                    .ventanilla(String.format("V-%02d", 10 + index)) // V-11, V-13, V-15...
+                    .sede("Sede Central")
+                    .clientesAtendidosHoy(0)
+                    .build();
+            agentePresencialRepository.save(agente);
+            log.info("Creado AgentePresencial: {} {} (DNI: {})", 
+                    externo.getNombres(), externo.getApellidoCompleto(), externo.getDocumentoIdentidad());
+        }
     }
 
     /**

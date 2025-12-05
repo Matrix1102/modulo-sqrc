@@ -135,17 +135,19 @@ const DYNAMIC_ROUTES = [
   },
 ];
 
-// Helper functions para obtener información del usuario según el rol
+// Empleados sincronizados de la API externa:
+// - ID 11: Rosa Martínez López (AGENTE_LLAMADA)
+// - ID 12: Diego Fernández Ruiz (AGENTE_PRESENCIAL)
 const getUserName = (role: MainLayoutProps["role"]): string => {
   switch (role) {
     case "SUPERVISOR":
       return "Juan Pérez";
     case "BACKOFFICE":
-      return "Carlos García";
+      return "Jorge Resolver";
     case "AGENTE_LLAMADA":
-      return "Ana Llamada";
+      return "Rosa Martínez";  // ID 11 - API externa
     case "AGENTE_PRESENCIAL":
-      return "María Presencial";
+      return "Diego Fernández"; // ID 12 - API externa
   }
 };
 
