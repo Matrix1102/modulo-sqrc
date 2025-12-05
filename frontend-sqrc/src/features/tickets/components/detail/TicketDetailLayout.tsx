@@ -15,6 +15,7 @@ interface TicketDetailLayoutProps {
   activeTab: TicketTabKey;
   onTabChange: (tab: TicketTabKey) => void;
   children: React.ReactNode;
+  actions?: React.ReactNode;
 }
 
 const EstadoSelect: React.FC<{ estado: EstadoTicket }> = ({ estado }) => {
@@ -152,6 +153,7 @@ export const TicketDetailLayout: React.FC<TicketDetailLayoutProps> = ({
   activeTab,
   onTabChange,
   children,
+  actions,
 }) => {
   const tabs: { key: TicketTabKey; label: string; icon: React.ReactNode }[] = [
     {
@@ -193,7 +195,7 @@ export const TicketDetailLayout: React.FC<TicketDetailLayoutProps> = ({
       {/* Panel Derecho - Tabs y contenido */}
       <div className="flex-1 flex flex-col min-w-0">
         {/* Header con Tabs */}
-        <div className="bg-white border-b border-gray-200 px-6 py-3">
+        <div className="bg-white border-b border-gray-200 px-6 py-3 flex justify-between items-center">
           <div className="flex items-center gap-2">
             {tabs.map((tab) => (
               <button
@@ -209,6 +211,10 @@ export const TicketDetailLayout: React.FC<TicketDetailLayoutProps> = ({
                 {tab.label}
               </button>
             ))}
+          </div>
+          {/* 2. ✅ AQUÍ RENDERIZAS EL BOTÓN (A la derecha) */}
+          <div className="ml-4">
+            {actions}
           </div>
         </div>
 

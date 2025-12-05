@@ -339,6 +339,13 @@ public class RespuestaService {
         if (request.variables() != null) {
             variables.putAll(request.variables());
         }
+        // Agregamos 'titulo' al mapa porque el HTML lo exige (${titulo})
+        // Usamos lo que viene en 'asunto' del request, o el título de la plantilla por defecto
+        String tituloParaHtml = (request.asunto() != null && !request.asunto().isEmpty())
+                ? request.asunto()
+                : plantilla.getTituloVisible();
+
+        variables.put("titulo", tituloParaHtml);
 
         // 4. Preparar HTML e Inyectar cuerpo manualmente
         String htmlLayout = plantilla.getHtmlModel();

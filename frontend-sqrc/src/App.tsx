@@ -9,6 +9,7 @@ import DashboardPage from "./pages/supervisor/DashboardPage";
 import EncuestasPage from "./pages/supervisor/SurveyPage";
 import SurveyCategoryPage from "./pages/supervisor/SurveyCategoryPage";
 import SurveyExecutionPage from "./pages/public/SurveyExecutionPage";
+import { ResponderTicketPage } from "./features/plantilla_respuestas/pages/ResponderTicketPage";
 
 // Tickets Feature - Pages
 import { TicketDetailPage as AgenteTicketDetailPage } from "./features/tickets";
@@ -78,6 +79,8 @@ export default function App() {
             <Route path="tickets" element={<TicketingPage />} />
             {/* Detalle del ticket para agentes */}
             <Route path="tickets/:ticketId" element={<AgenteTicketDetailPage />} />
+            {/*Ruta para Responder al cliente */}
+            <Route path="tickets/responder/:ticketId" element={<ResponderTicketPage />} />
           </Route>
 
           {/* Vista 360 del cliente para agentes */}

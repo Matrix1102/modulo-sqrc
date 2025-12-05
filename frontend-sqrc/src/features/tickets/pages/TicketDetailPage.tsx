@@ -3,6 +3,7 @@
  */
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
+import { FaPaperPlane } from 'react-icons/fa';
 import { 
   TicketDetailLayout, 
   DetallesTab, 
@@ -68,6 +69,29 @@ export const TicketDetailPage = () => {
       setDocLoading(false);
     }
   };
+  //LÓGICA PARA IR A LA PANTALLA DE RESPONDER
+  const handleAtender = () => {
+    if (!ticket) return;
+
+    navigate(`/agente/tickets/responder/${ticket.idTicket}`, { 
+        state: { 
+            ticket: {
+                id: ticket.idTicket,
+                tipo: ticket.tipoTicket, // Asegúrate que este campo venga en tu DTO TicketDetail
+                clienteCorreo: ticket.cliente?.correo || '', 
+                numeroTicket: ticket.idTicket.toString()
+            } 
+        } 
+    });
+  };
+  const botonAtender = (
+    <button
+      onClick={handleAtender}
+      className="bg-blue-600 text-white px-4 py-2 rounded-lg flex items-center gap-2 hover:bg-blue-700 transition shadow-sm font-medium text-sm"
+    >
+      <FaPaperPlane /> Responder / Atender
+    </button>
+  );
 
   if (loading) {
     return (
@@ -104,6 +128,7 @@ export const TicketDetailPage = () => {
       ticket={ticket}
       activeTab={activeTab}
       onTabChange={setActiveTab}
+      actions={botonAtender}  
     >
       {activeTab === 'detalles' && (
         <DetallesTab 

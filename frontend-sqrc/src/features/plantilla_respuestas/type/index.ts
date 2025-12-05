@@ -44,3 +44,25 @@ export interface ActualizarPlantillaRequest {
     despedida: string;
     activo: boolean;
 }
+// DTOs para el flujo de RESPUESTAS
+export interface RespuestaBorradorDTO {
+    titulo: string;
+    cuerpo: string;
+    despedida: string;
+    htmlPreview: string;
+}
+
+export interface PreviewResponseDTO {
+    idPlantilla: number;
+    titulo: string;
+    htmlRenderizado: string;
+}
+
+export interface EnviarRespuestaRequest {
+    idAsignacion: number;
+    idPlantilla: number;
+    correoDestino: string;
+    asunto: string;
+    variables: Record<string, any>; // { cuerpo: "..." }
+    cerrarTicket: boolean;
+}
