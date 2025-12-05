@@ -1,6 +1,7 @@
 package com.sqrc.module.backendsqrc.plantillaRespuesta.Service;
 
 import com.sqrc.module.backendsqrc.plantillaRespuesta.DTO.EnviarRespuestaRequestDTO;
+import com.sqrc.module.backendsqrc.plantillaRespuesta.DTO.PreviewResponseDTO;
 import com.sqrc.module.backendsqrc.plantillaRespuesta.DTO.RespuestaBorradorDTO;
 import com.sqrc.module.backendsqrc.plantillaRespuesta.Repository.PlantillaRepository;
 import com.sqrc.module.backendsqrc.plantillaRespuesta.Repository.RespuestaRepository;
@@ -10,6 +11,7 @@ import com.sqrc.module.backendsqrc.plantillaRespuesta.model.Plantilla;
 import com.sqrc.module.backendsqrc.plantillaRespuesta.model.PlantillaDefault;
 import com.sqrc.module.backendsqrc.plantillaRespuesta.model.RespuestaCliente;
 import com.sqrc.module.backendsqrc.plantillaRespuesta.observer.IRespuestaObserver;
+import com.sqrc.module.backendsqrc.ticket.repository.AsignacionRepository;
 import com.sqrc.module.backendsqrc.vista360.model.ClienteEntity;
 import com.sqrc.module.backendsqrc.ticket.model.*;
 import com.sqrc.module.backendsqrc.ticket.repository.TicketRepository;
@@ -40,6 +42,7 @@ public class RespuestaService {
     // Asegúrate de agregar findByNombre en PlantillaRepository
     private final PlantillaRepository plantillaRepository;
     private final TicketRepository ticketRepository;
+    private final AsignacionRepository asignacionRepository;
     // Lista de observadores (Patrón Observer Manual)
     private final List<IRespuestaObserver> observadores = new ArrayList<>();
 
@@ -58,7 +61,7 @@ public class RespuestaService {
             RenderService renderService,
             PdfService pdfService,
             EmailService emailService,
-            com.sqrc.module.backendsqrc.plantillaRespuesta.Repository.PlantillaRepository plantillaRepo, TicketRepository ticketRepository,
+            com.sqrc.module.backendsqrc.plantillaRespuesta.Repository.PlantillaRepository plantillaRepo, TicketRepository ticketRepository, AsignacionRepository asignacionRepository,
             ValidarEstadoTicket validarEstado,
             ValidarDestinatario validarDestino,
             ValidarCoherenciaTipo validarCoherencia,
@@ -70,6 +73,7 @@ public class RespuestaService {
         this.emailService = emailService;
         this.plantillaRepository = plantillaRepo;
         this.ticketRepository = ticketRepository;
+        this.asignacionRepository = asignacionRepository;
         this.validarEstado = validarEstado;
         this.validarDestino = validarDestino;
         this.validarCoherencia = validarCoherencia;
@@ -120,8 +124,13 @@ public class RespuestaService {
                 nombreArchivo
         );
 
-        // 5. Guardar
+        // 5. Guardar (CORREGIDO)
+        // Buscamos la asignación real para vincularla
+        Asignacion asignacion = asignacionRepository.findById(request.idAsignacion())
+                .orElseThrow(() -> new RuntimeException("Asignación no encontrada"));
+
         RespuestaCliente respuesta = new RespuestaCliente();
+        respuesta.setAsignacion(asignacion); // <--- ¡VITAL! Sin esto falla.
         respuesta.setPlantilla(plantilla);
         respuesta.setAsunto(request.asunto());
         respuesta.setCorreoDestino(request.correoDestino());
@@ -129,9 +138,6 @@ public class RespuestaService {
         respuesta.setFechaEnvio(LocalDateTime.now());
         respuesta.setFechaCreacion(LocalDateTime.now());
         respuesta.setUrlPdfGenerado("GENERADO_MANUAL");
-
-        // (OJO: Aquí deberías setear la Asignación real buscando por ID si la entidad lo requiere)
-        // respuesta.setAsignacion(asignacionRepository.findById(request.idAsignacion()).get());
 
         respuestaRepository.save(respuesta);
 
@@ -308,6 +314,56 @@ public class RespuestaService {
                 cuerpoPrellenado, // Texto plano para que el agente edite
                 plantilla.getDespedida(),
                 htmlPreview       // HTML visual para el iframe
+        );
+    }
+
+    @Transactional(readOnly = true)
+    public PreviewResponseDTO generarVistaPrevia(EnviarRespuestaRequestDTO request) {
+
+        // 1. Obtener los datos reales de la BD
+        Ticket ticket = ticketRepository.findById(request.idAsignacion())
+                .orElseThrow(() -> new RuntimeException("Ticket no encontrado"));
+
+        Plantilla plantilla = plantillaService.obtenerPorId(request.idPlantilla());
+        ClienteEntity cliente = ticket.getCliente();
+
+        // 2. Cargar las variables del sistema
+        Map<String, Object> variables = new HashMap<>();
+        variables.put("numero_ticket", ticket.getIdTicket().toString());
+        variables.put("fecha_actual", LocalDateTime.now().toLocalDate().toString());
+        variables.put("nombre_cliente", cliente != null ? cliente.getNombres() + " " + cliente.getApellidos() : "Cliente");
+        variables.put("identificador_servicio", cliente != null ? cliente.getDni() : "");
+        variables.put("asunto_ticket", ticket.getAsunto());
+
+        // 3. Fusionar con variables del Frontend
+        if (request.variables() != null) {
+            variables.putAll(request.variables());
+        }
+
+        // 4. Preparar HTML e Inyectar cuerpo manualmente
+        String htmlLayout = plantilla.getHtmlModel();
+
+        // Seguridad: Si la plantilla no tiene HTML (null), usamos el default
+        if (htmlLayout == null || htmlLayout.isBlank()) {
+            htmlLayout = PlantillaDefault.HTML_FORMAL;
+        }
+
+        String cuerpoEditado = (String) variables.getOrDefault("cuerpo", "");
+        cuerpoEditado = cuerpoEditado.replace("\n", "<br>");
+
+        String htmlConContenido = htmlLayout.replace("${cuerpo}", cuerpoEditado);
+
+        // 5. Renderizar final
+        String htmlRenderizado = renderService.renderizar(htmlConContenido, variables);
+
+        // 6. RETORNAR EL DTO DIRECTAMENTE
+        // Usamos el asunto del request como título, o un default si viene nulo
+        String tituloPreview = request.asunto() != null ? request.asunto() : "Vista Previa";
+
+        return new PreviewResponseDTO(
+                request.idPlantilla(),
+                tituloPreview,
+                htmlRenderizado
         );
     }
 }

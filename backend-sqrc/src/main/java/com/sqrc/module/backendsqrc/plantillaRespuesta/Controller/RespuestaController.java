@@ -26,4 +26,19 @@ public class RespuestaController {
         return ResponseEntity.ok(respuestaService.generarBorrador(ticketId, plantillaId));
     }
 
+    @PostMapping("/enviar")
+    public ResponseEntity<String> enviarRespuesta(@RequestBody EnviarRespuestaRequestDTO request) {
+
+        // Llamamos a tu método maestro
+        respuestaService.procesarYEnviarRespuesta(request);
+
+        return ResponseEntity.ok("Respuesta enviada y procesada correctamente.");
+    }
+
+    @PostMapping("/preview")
+    public ResponseEntity<PreviewResponseDTO> obtenerVistaPrevia(@RequestBody EnviarRespuestaRequestDTO request) {
+        // El servicio ya devuelve el objeto completo
+        return ResponseEntity.ok(respuestaService.generarVistaPrevia(request));
+    }
+
 }
