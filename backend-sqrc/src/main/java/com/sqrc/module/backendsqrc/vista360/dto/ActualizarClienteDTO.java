@@ -1,19 +1,16 @@
 package com.sqrc.module.backendsqrc.vista360.dto;
 
 import jakarta.validation.constraints.Email;
-import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Pattern;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-import java.time.LocalDate;
-
 /**
  * DTO para actualizar información del cliente.
- * Contiene todos los campos editables excepto idCliente.
+ * Adaptado para la integración con el API externo de clientes (mod-ventas).
+ * Todos los campos son editables excepto el ID del cliente.
  */
 @Data
 @Builder
@@ -22,46 +19,50 @@ import java.time.LocalDate;
 public class ActualizarClienteDTO {
 
     /**
-     * Documento Nacional de Identidad (DNI)
+     * DNI del cliente
      */
-    @NotBlank(message = "El DNI es obligatorio")
-    @Pattern(regexp = "^\\d{8}$", message = "El DNI debe tener 8 dígitos")
+    @Pattern(regexp = "^[0-9]{8}$", message = "El DNI debe tener 8 dígitos")
     private String dni;
 
     /**
-     * Nombre del cliente
+     * Nombre del cliente (firstName en API externo)
      */
-    @NotBlank(message = "El nombre es obligatorio")
     private String nombre;
 
     /**
-     * Apellido del cliente
+     * Apellido del cliente (lastName en API externo)
      */
-    @NotBlank(message = "El apellido es obligatorio")
     private String apellido;
 
     /**
-     * Fecha de nacimiento del cliente
+     * Correo electrónico del cliente (email en API externo)
      */
-    @NotNull(message = "La fecha de nacimiento es obligatoria")
-    private LocalDate fechaNacimiento;
-
-    /**
-     * Correo electrónico del cliente
-     */
-    @NotBlank(message = "El correo electrónico es obligatorio")
     @Email(message = "El formato del correo electrónico no es válido")
     private String correo;
 
     /**
-     * Teléfono fijo del cliente (opcional)
+     * Teléfono del cliente (phoneNumber en API externo)
      */
     private String telefono;
 
     /**
-     * Teléfono celular del cliente
+     * Dirección del cliente (address en API externo)
      */
-    @NotBlank(message = "El celular es obligatorio")
-    @Pattern(regexp = "^\\d{9}$", message = "El celular debe tener 9 dígitos")
-    private String celular;
+    private String direccion;
+
+    /**
+     * Fecha de registro del cliente (registrationDate en API externo)
+     * Formato: yyyy-MM-dd
+     */
+    private String fechaRegistro;
+
+    /**
+     * Estado del cliente (ACTIVO, INACTIVO, etc.)
+     */
+    private String estado;
+
+    /**
+     * Categoría del cliente (Estándar, Premium, etc.)
+     */
+    private String categoria;
 }

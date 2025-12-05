@@ -10,6 +10,32 @@ const Labeled = ({ label, children }: { label: string; children: React.ReactNode
   </div>
 );
 
+// Badge para mostrar el estado del cliente
+const EstadoBadge = ({ estado }: { estado: string }) => {
+  const colorClass = estado?.toUpperCase() === "ACTIVO" 
+    ? "bg-green-100 text-green-800 border-green-200"
+    : "bg-red-100 text-red-800 border-red-200";
+  
+  return (
+    <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium border ${colorClass}`}>
+      {estado || "N/A"}
+    </span>
+  );
+};
+
+// Badge para mostrar la categoría del cliente
+const CategoriaBadge = ({ categoria }: { categoria: string }) => {
+  const colorClass = categoria?.toLowerCase() === "premium" 
+    ? "bg-purple-100 text-purple-800 border-purple-200"
+    : "bg-blue-100 text-blue-800 border-blue-200";
+  
+  return (
+    <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium border ${colorClass}`}>
+      {categoria || "Estándar"}
+    </span>
+  );
+};
+
 interface Props {
   cliente: ClienteBasicoDTO | null;
   loading?: boolean;
@@ -20,13 +46,18 @@ const CustomerProfileForm: React.FC<Props> = ({ cliente, loading, onClienteUpdat
   const [isEditing, setIsEditing] = useState<boolean>(false);
   const [isSaving, setIsSaving] = useState<boolean>(false);
   const [showConfirmModal, setShowConfirmModal] = useState<boolean>(false);
+  
+  // Campos editables
   const [dni, setDni] = useState<string>("");
   const [nombre, setNombre] = useState<string>("");
   const [apellido, setApellido] = useState<string>("");
-  const [birthdate, setBirthdate] = useState<string>("");
   const [correo, setCorreo] = useState<string>("");
   const [telefono, setTelefono] = useState<string>("");
-  const [celular, setCelular] = useState<string>("");
+  const [direccion, setDireccion] = useState<string>("");
+  const [fechaRegistro, setFechaRegistro] = useState<string>("");
+  const [estado, setEstado] = useState<string>("");
+  const [categoria, setCategoria] = useState<string>("");
+  
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -34,10 +65,12 @@ const CustomerProfileForm: React.FC<Props> = ({ cliente, loading, onClienteUpdat
       setDni(cliente.dni || "");
       setNombre(cliente.nombre || "");
       setApellido(cliente.apellido || "");
-      setBirthdate(cliente.fechaNacimiento?.toString() || "");
       setCorreo(cliente.correo || "");
       setTelefono(cliente.telefono || "");
-      setCelular(cliente.celular || "");
+      setDireccion(cliente.direccion || "");
+      setFechaRegistro(cliente.fechaRegistro || "");
+      setEstado(cliente.estado || "ACTIVO");
+      setCategoria(cliente.categoria || "Estándar");
       setIsEditing(false);
       setError(null);
     }
@@ -55,13 +88,15 @@ const CustomerProfileForm: React.FC<Props> = ({ cliente, loading, onClienteUpdat
 
     try {
       const datosActualizados = {
-        dni: dni.trim(),
-        nombre: nombre.trim(),
-        apellido: apellido.trim(),
-        fechaNacimiento: birthdate,
-        correo: correo.trim(),
+        dni: dni.trim() || undefined,
+        nombre: nombre.trim() || undefined,
+        apellido: apellido.trim() || undefined,
+        correo: correo.trim() || undefined,
         telefono: telefono.trim() || undefined,
-        celular: celular.trim(),
+        direccion: direccion.trim() || undefined,
+        fechaRegistro: fechaRegistro || undefined,
+        estado: estado || undefined,
+        categoria: categoria || undefined,
       };
 
       const clienteActualizado = await actualizarInformacionCliente(
@@ -85,10 +120,12 @@ const CustomerProfileForm: React.FC<Props> = ({ cliente, loading, onClienteUpdat
       setDni(cliente.dni || "");
       setNombre(cliente.nombre || "");
       setApellido(cliente.apellido || "");
-      setBirthdate(cliente.fechaNacimiento?.toString() || "");
       setCorreo(cliente.correo || "");
       setTelefono(cliente.telefono || "");
-      setCelular(cliente.celular || "");
+      setDireccion(cliente.direccion || "");
+      setFechaRegistro(cliente.fechaRegistro || "");
+      setEstado(cliente.estado || "ACTIVO");
+      setCategoria(cliente.categoria || "Estándar");
       setIsEditing(false);
       setError(null);
     }
@@ -133,7 +170,7 @@ const CustomerProfileForm: React.FC<Props> = ({ cliente, loading, onClienteUpdat
               />
             </svg>
             <p className="text-sm font-medium">No hay cliente seleccionado</p>
-            <p className="text-xs mt-1">Busca un cliente por DNI o ID</p>
+            <p className="text-xs mt-1">Busca un cliente por ID</p>
           </div>
         </div>
       </div>
@@ -142,15 +179,18 @@ const CustomerProfileForm: React.FC<Props> = ({ cliente, loading, onClienteUpdat
 
   return (
     <div className="flex h-full flex-col rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
-      <div className="mb-2">
-        <Labeled label="ID">
-          <input
-            readOnly
-            value={cliente.idCliente}
-            placeholder="ID del cliente"
-            className="w-full rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 placeholder:text-gray-400/60"
-          />
-        </Labeled>
+      {/* Header con ID, Estado y Categoría */}
+      <div className="mb-4 flex items-center justify-between">
+        <div className="flex items-center gap-3">
+          <span className="text-sm font-medium text-gray-600">ID: {cliente.idCliente}</span>
+          <EstadoBadge estado={cliente.estado} />
+          <CategoriaBadge categoria={cliente.categoria} />
+        </div>
+        {cliente.fechaRegistro && (
+          <span className="text-xs text-gray-500">
+            Registro: {new Date(cliente.fechaRegistro).toLocaleDateString()}
+          </span>
+        )}
       </div>
 
       <CollapsibleSection title="Datos personales" defaultOpen>
@@ -160,6 +200,7 @@ const CustomerProfileForm: React.FC<Props> = ({ cliente, loading, onClienteUpdat
             value={dni}
             onChange={(e) => setDni(e.target.value)}
             placeholder="Documento de identidad"
+            maxLength={8}
             className={inputClassName(isEditing)}
           />
         </Labeled>
@@ -181,13 +222,12 @@ const CustomerProfileForm: React.FC<Props> = ({ cliente, loading, onClienteUpdat
             className={inputClassName(isEditing)}
           />
         </Labeled>
-        <Labeled label="Fecha nacimiento">
+        <Labeled label="Nombre completo">
           <input
-            type="date"
-            disabled={!isEditing}
-            value={birthdate}
-            onChange={(event) => setBirthdate(event.target.value)}
-            className={`${inputClassName(isEditing)} ${!isEditing && "cursor-not-allowed"}`}
+            readOnly
+            value={`${nombre} ${apellido}`.trim() || cliente.nombreCompleto || ""}
+            placeholder="Nombre completo"
+            className="w-full rounded-lg border border-gray-200 bg-gray-100 px-3 py-2 cursor-not-allowed"
           />
         </Labeled>
       </CollapsibleSection>
@@ -207,16 +247,65 @@ const CustomerProfileForm: React.FC<Props> = ({ cliente, loading, onClienteUpdat
             readOnly={!isEditing}
             value={telefono}
             onChange={(e) => setTelefono(e.target.value)}
-            placeholder="Teléfono fijo"
+            placeholder="Número de teléfono"
             className={inputClassName(isEditing)}
           />
         </Labeled>
-        <Labeled label="Celular">
+        <Labeled label="Dirección">
           <input
             readOnly={!isEditing}
-            value={celular}
-            onChange={(e) => setCelular(e.target.value)}
-            placeholder="Número de celular"
+            value={direccion}
+            onChange={(e) => setDireccion(e.target.value)}
+            placeholder="Dirección del cliente"
+            className={inputClassName(isEditing)}
+          />
+        </Labeled>
+      </CollapsibleSection>
+
+      <CollapsibleSection title="Estado y Categoría" defaultOpen={false}>
+        <Labeled label="Estado">
+          {isEditing ? (
+            <select
+              value={estado}
+              onChange={(e) => setEstado(e.target.value)}
+              className="w-full rounded-lg border border-blue-300 bg-white px-3 py-2 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+            >
+              <option value="ACTIVO">ACTIVO</option>
+              <option value="INACTIVO">INACTIVO</option>
+            </select>
+          ) : (
+            <input
+              readOnly
+              value={estado}
+              className="w-full rounded-lg border border-gray-200 bg-gray-50 px-3 py-2"
+            />
+          )}
+        </Labeled>
+        <Labeled label="Categoría">
+          {isEditing ? (
+            <select
+              value={categoria}
+              onChange={(e) => setCategoria(e.target.value)}
+              className="w-full rounded-lg border border-blue-300 bg-white px-3 py-2 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+            >
+              <option value="Estándar">Estándar</option>
+              <option value="Premium">Premium</option>
+              <option value="VIP">VIP</option>
+            </select>
+          ) : (
+            <input
+              readOnly
+              value={categoria}
+              className="w-full rounded-lg border border-gray-200 bg-gray-50 px-3 py-2"
+            />
+          )}
+        </Labeled>
+        <Labeled label="Fecha de registro">
+          <input
+            type="date"
+            readOnly={!isEditing}
+            value={fechaRegistro}
+            onChange={(e) => setFechaRegistro(e.target.value)}
             className={inputClassName(isEditing)}
           />
         </Labeled>

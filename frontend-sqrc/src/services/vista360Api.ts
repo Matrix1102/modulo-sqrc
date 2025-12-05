@@ -1,6 +1,7 @@
 /**
  * API Service para Vista 360 Cliente
  * Conecta el frontend React con el backend Spring Boot
+ * Integración con API externa de clientes (mod-ventas)
  */
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080';
@@ -13,10 +14,13 @@ export interface ClienteBasicoDTO {
   dni: string;
   nombre: string;
   apellido: string;
-  fechaNacimiento: string; // ISO format: "YYYY-MM-DD"
+  nombreCompleto: string;
   correo: string;
   telefono: string;
-  celular: string;
+  direccion: string;
+  fechaRegistro: string; // ISO format: "YYYY-MM-DD"
+  estado: string; // "ACTIVO", "INACTIVO", etc.
+  categoria: string; // "Estándar", "Premium", etc.
 }
 
 export interface MetricaKPI {
@@ -28,13 +32,15 @@ export interface MetricaKPI {
 }
 
 export interface ActualizarClienteDTO {
-  dni: string;
-  nombre: string;
-  apellido: string;
-  fechaNacimiento: string;
-  correo: string;
+  dni?: string;
+  nombre?: string;
+  apellido?: string;
+  correo?: string;
   telefono?: string;
-  celular: string;
+  direccion?: string;
+  fechaRegistro?: string;
+  estado?: string;
+  categoria?: string;
 }
 
 export interface ErrorResponse {

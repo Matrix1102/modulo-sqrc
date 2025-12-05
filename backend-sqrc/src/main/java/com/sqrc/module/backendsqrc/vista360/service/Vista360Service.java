@@ -5,18 +5,18 @@ import com.sqrc.module.backendsqrc.encuesta.repository.EncuestaRepository;
 import com.sqrc.module.backendsqrc.ticket.model.EstadoTicket;
 import com.sqrc.module.backendsqrc.ticket.model.Ticket;
 import com.sqrc.module.backendsqrc.ticket.repository.TicketRepository;
+import com.sqrc.module.backendsqrc.vista360.dto.ActualizarClienteDTO;
+import com.sqrc.module.backendsqrc.vista360.dto.ActualizarClienteExternoDTO;
 import com.sqrc.module.backendsqrc.vista360.dto.ClienteBasicoDTO;
+import com.sqrc.module.backendsqrc.vista360.dto.ClienteExternoDTO;
 import com.sqrc.module.backendsqrc.vista360.dto.MetricaKPI_DTO;
 import com.sqrc.module.backendsqrc.vista360.exception.ClienteNotFoundException;
-import com.sqrc.module.backendsqrc.vista360.model.ClienteEntity;
-import com.sqrc.module.backendsqrc.vista360.repository.ClienteRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Duration;
-import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
@@ -24,19 +24,16 @@ import java.util.Set;
 
 /**
  * Servicio de aplicación para gestionar la Vista 360 del cliente.
- * Proporciona operaciones de consulta y actualización de información básica del
- * cliente,
- * así como el cálculo de métricas KPI basadas en datos reales.
+ * Ahora obtiene los datos del cliente desde un API externo (mod-ventas).
  */
 @Service
 @RequiredArgsConstructor
 @Slf4j
 public class Vista360Service {
 
-        private final ClienteRepository clienteRepository;
         private final TicketRepository ticketRepository;
-
         private final EncuestaRepository encuestaRepository;
+        private final ClienteApiClient clienteApiClient;
 
         // Estados que se consideran "abiertos" (no resueltos)
         private static final Set<EstadoTicket> ESTADOS_ABIERTOS = Set.of(
@@ -45,103 +42,75 @@ public class Vista360Service {
                         EstadoTicket.DERIVADO);
 
         /**
-         * Obtiene los datos básicos de un cliente por su ID.
+         * Obtiene los datos básicos de un cliente por su ID desde el API externo.
          *
          * @param id ID del cliente
          * @return DTO con información básica del cliente
          * @throws ClienteNotFoundException si el cliente no existe
          */
-        @Transactional(readOnly = true)
         public ClienteBasicoDTO obtenerClientePorId(Integer id) {
                 log.debug("Buscando cliente por ID: {}", id);
 
-                ClienteEntity cliente = clienteRepository.findById(id)
-                                .orElseThrow(() -> new ClienteNotFoundException(id));
+                ClienteExternoDTO clienteExterno = clienteApiClient.obtenerClientePorId(id);
 
-                return mapearADTO(cliente);
+                return mapearDeExterno(clienteExterno);
         }
 
         /**
-         * Obtiene los datos básicos de un cliente por su DNI.
+         * Busca un cliente por su DNI.
+         * NOTA: Actualmente el endpoint de búsqueda por DNI no está habilitado en el API externo.
+         * Por ahora lanza una excepción indicando que la funcionalidad no está disponible.
          *
          * @param dni Documento Nacional de Identidad
          * @return DTO con información básica del cliente
-         * @throws ClienteNotFoundException si el cliente no existe
+         * @throws UnsupportedOperationException siempre, ya que el endpoint no está habilitado
          */
-        @Transactional(readOnly = true)
         public ClienteBasicoDTO obtenerClientePorDni(String dni) {
-                log.debug("Buscando cliente por DNI: {}", dni);
-
-                ClienteEntity cliente = clienteRepository.findByDni(dni)
-                                .orElseThrow(() -> new ClienteNotFoundException("DNI", dni));
-
-                return mapearADTO(cliente);
+                log.warn("Intento de búsqueda por DNI: {} - Endpoint no disponible", dni);
+                throw new UnsupportedOperationException(
+                        "La búsqueda por DNI no está disponible actualmente. Por favor, busque por ID de cliente.");
         }
 
         /**
-         * Actualiza la información del cliente (todos los campos excepto idCliente).
-         * Implementa operación PATCH para actualización completa.
+         * Actualiza la información del cliente en el API externo.
          *
          * @param id    ID del cliente a actualizar
          * @param datos DTO con los datos actualizados
          * @return DTO con la información actualizada del cliente
          * @throws ClienteNotFoundException si el cliente no existe
          */
-        @Transactional
-        public ClienteBasicoDTO actualizarInformacionCliente(Integer id,
-                        com.sqrc.module.backendsqrc.vista360.dto.ActualizarClienteDTO datos) {
+        public ClienteBasicoDTO actualizarInformacionCliente(Integer id, ActualizarClienteDTO datos) {
                 log.debug("Actualizando información del cliente ID: {}", id);
 
-                ClienteEntity cliente = clienteRepository.findById(id)
-                                .orElseThrow(() -> new ClienteNotFoundException(id));
+                // Mapear a DTO del API externo - todos los campos editables
+                ActualizarClienteExternoDTO datosExternos = ActualizarClienteExternoDTO.builder()
+                        .dni(datos.getDni())
+                        .firstName(datos.getNombre())
+                        .lastName(datos.getApellido())
+                        .email(datos.getCorreo())
+                        .phoneNumber(datos.getTelefono())
+                        .address(datos.getDireccion())
+                        .registrationDate(datos.getFechaRegistro())
+                        .estado(datos.getEstado())
+                        .categoria(datos.getCategoria())
+                        .build();
 
-                // Actualizar datos personales
-                if (datos.getDni() != null && !datos.getDni().isBlank()) {
-                        cliente.setDni(datos.getDni());
-                }
-                if (datos.getNombre() != null && !datos.getNombre().isBlank()) {
-                        cliente.setNombres(datos.getNombre());
-                }
-                if (datos.getApellido() != null && !datos.getApellido().isBlank()) {
-                        cliente.setApellidos(datos.getApellido());
-                }
-                if (datos.getFechaNacimiento() != null) {
-                        cliente.setFechaNacimiento(datos.getFechaNacimiento());
-                }
-
-                // Actualizar datos de contacto
-                if (datos.getCorreo() != null && !datos.getCorreo().isBlank()) {
-                        cliente.setCorreo(datos.getCorreo());
-                }
-                if (datos.getTelefono() != null) {
-                        cliente.setTelefono(datos.getTelefono());
-                }
-                if (datos.getCelular() != null && !datos.getCelular().isBlank()) {
-                        cliente.setCelular(datos.getCelular());
-                }
-
-                ClienteEntity clienteActualizado = clienteRepository.save(cliente);
+                ClienteExternoDTO clienteActualizado = clienteApiClient.actualizarCliente(id, datosExternos);
                 log.info("Información del cliente actualizada para ID: {}", id);
 
-                return mapearADTO(clienteActualizado);
+                return mapearDeExterno(clienteActualizado);
         }
 
         /**
          * Obtiene las métricas KPI de un cliente.
-         * Calcula o simula los 4 indicadores principales mostrados en la vista.
+         * Calcula los 4 indicadores principales mostrados en la vista.
          *
          * @param id ID del cliente
          * @return Lista con 4 métricas KPI
-         * @throws ClienteNotFoundException si el cliente no existe
          */
         @Transactional(readOnly = true)
         public List<MetricaKPI_DTO> obtenerMetricasCliente(Integer id) {
                 log.debug("Calculando métricas para cliente ID: {}", id);
-
-                // Verificar que el cliente existe
-                if (!clienteRepository.existsById(id)) {
-                        throw new ClienteNotFoundException(id);
-                }
 
                 List<MetricaKPI_DTO> metricas = new ArrayList<>();
 
@@ -163,18 +132,21 @@ public class Vista360Service {
         // ==================== Métodos Privados ====================
 
         /**
-         * Mapea una entidad ClienteEntity a ClienteBasicoDTO.
+         * Mapea un ClienteExternoDTO a ClienteBasicoDTO.
          */
-        private ClienteBasicoDTO mapearADTO(ClienteEntity cliente) {
+        private ClienteBasicoDTO mapearDeExterno(ClienteExternoDTO externo) {
                 return ClienteBasicoDTO.builder()
-                                .idCliente(cliente.getIdCliente())
-                                .dni(cliente.getDni())
-                                .nombre(cliente.getNombres())
-                                .apellido(cliente.getApellidos())
-                                .fechaNacimiento(cliente.getFechaNacimiento())
-                                .correo(cliente.getCorreo())
-                                .telefono(cliente.getTelefono())
-                                .celular(cliente.getCelular())
+                                .idCliente(externo.getClienteId())
+                                .dni(externo.getDni())
+                                .nombre(externo.getFirstName())
+                                .apellido(externo.getLastName())
+                                .nombreCompleto(externo.getFullName())
+                                .correo(externo.getEmail())
+                                .telefono(externo.getPhoneNumber())
+                                .direccion(externo.getAddress())
+                                .fechaRegistro(externo.getRegistrationDate())
+                                .estado(externo.getEstado())
+                                .categoria(externo.getCategoria())
                                 .build();
         }
 
