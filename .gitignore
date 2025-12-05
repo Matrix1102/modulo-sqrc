@@ -57,6 +57,9 @@ Thumbs.db
 # Archivo de ayuda de Spring
 /backend-sqrc/HELP.md
 
+# Archivos de configuración local con credenciales (¡Importante!)
+/backend-sqrc/src/main/resources/application-local.properties
+
 # =========================================
 # frontend-sqrc (Node, Vite, React)
 # Reglas prefijadas con /frontend-sqrc/

@@ -6,7 +6,10 @@ import com.sqrc.module.backendsqrc.baseDeConocimientos.model.*;
 import com.sqrc.module.backendsqrc.baseDeConocimientos.repository.ArticuloRepository;
 import com.sqrc.module.backendsqrc.baseDeConocimientos.repository.ArticuloVersionRepository;
 import com.sqrc.module.backendsqrc.baseDeConocimientos.repository.FeedbackArticuloRepository;
+import com.sqrc.module.backendsqrc.ticket.model.Documentacion;
 import com.sqrc.module.backendsqrc.ticket.model.Empleado;
+import com.sqrc.module.backendsqrc.ticket.model.Ticket;
+import com.sqrc.module.backendsqrc.ticket.repository.DocumentacionRepository;
 import com.sqrc.module.backendsqrc.ticket.repository.EmpleadoRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -36,6 +39,8 @@ public class ArticuloService {
     private final ArticuloVersionRepository versionRepository;
     private final FeedbackArticuloRepository feedbackRepository;
     private final EmpleadoRepository empleadoRepository;
+    private final DocumentacionRepository documentacionRepository;
+    private final GeminiService geminiService;
 
     private static final DateTimeFormatter FECHA_FORMATTER = DateTimeFormatter.ofPattern("dd/MM/yyyy");
 
@@ -188,7 +193,8 @@ public class ArticuloService {
     public PaginaResponse<ArticuloResumenResponse> buscarArticulos(BusquedaArticuloRequest request) {
         log.debug("Buscando artículos con filtros: {}", request);
 
-        // Para nativeQuery no podemos usar Sort de Spring directamente con nombres de campo Java
+        // Para nativeQuery no podemos usar Sort de Spring directamente con nombres de
+        // campo Java
         // El ORDER BY está incluido en la query nativa
         Pageable pageable = PageRequest.of(
                 request.getPagina() != null ? request.getPagina() : 0,
@@ -198,8 +204,9 @@ public class ArticuloService {
         String etiquetaStr = request.getEtiqueta() != null ? request.getEtiqueta().name() : null;
         String visibilidadStr = request.getVisibilidad() != null ? request.getVisibilidad().name() : null;
         String tipoCasoStr = request.getTipoCaso() != null ? request.getTipoCaso().name() : null;
-        
-        // Preparar texto de búsqueda para FULLTEXT (agregar * para búsqueda por prefijo si tiene contenido)
+
+        // Preparar texto de búsqueda para FULLTEXT (agregar * para búsqueda por prefijo
+        // si tiene contenido)
         String textoSearch = request.getTexto();
         if (textoSearch != null && !textoSearch.trim().isEmpty()) {
             textoSearch = textoSearch.trim();
@@ -498,5 +505,117 @@ public class ArticuloService {
                 .estaVigente(articulo.estaVigente())
                 .estado(estado)
                 .build();
+    }
+
+    /**
+     * Genera un artículo de conocimiento a partir de una documentación usando IA (Gemini 2.5 Flash).
+     * Hace un join desde documentación con asignaciones para obtener el contexto completo.
+     * 
+     * @param idDocumentacion ID de la documentación
+     * @param idEmpleado ID del empleado que solicita (será el propietario)
+     * @param instruccionesAdicionales Instrucciones extra para la IA (opcional)
+     * @param guardarComoBorrador Si es true, guarda el artículo automáticamente
+     * @return ArticuloGeneradoIA con el contenido generado
+     */
+    public ArticuloGeneradoIA generarArticuloDesdeDocumentacion(
+            Long idDocumentacion, 
+            Long idEmpleado,
+            String instruccionesAdicionales,
+            boolean guardarComoBorrador) {
+        
+        log.info("🤖 Generando artículo con IA desde documentación ID: {}", idDocumentacion);
+
+        // Verificar que Gemini está configurado
+        if (!geminiService.estaConfigurado()) {
+            throw new OperacionInvalidaException("El servicio de IA (Gemini) no está configurado correctamente");
+        }
+
+        // Buscar la documentación con su asignación y ticket
+        Documentacion documentacion = documentacionRepository.findById(idDocumentacion)
+                .orElseThrow(() -> new OperacionInvalidaException(
+                        "Documentación no encontrada con ID: " + idDocumentacion));
+
+        // Obtener el contexto completo (join con asignación y ticket)
+        ContextoDocumentacionDTO contexto = construirContextoDesdeDocumentacion(documentacion);
+
+        // Llamar a Gemini para generar el artículo
+        ArticuloGeneradoIA articuloGenerado = geminiService.generarArticuloDesdeContexto(
+                contexto, instruccionesAdicionales);
+
+        // Si se solicita guardar como borrador
+        if (guardarComoBorrador && idEmpleado != null) {
+            ArticuloResponse articuloGuardado = guardarArticuloGenerado(articuloGenerado, idEmpleado, idDocumentacion);
+            articuloGenerado.setIdArticuloCreado(articuloGuardado.getIdArticulo());
+            articuloGenerado.setCodigoArticuloCreado(articuloGuardado.getCodigo());
+            log.info("✅ Artículo generado y guardado con código: {}", articuloGuardado.getCodigo());
+        }
+
+        return articuloGenerado;
+    }
+
+    /**
+     * Construye el DTO de contexto desde la documentación con join a asignación y ticket.
+     */
+    private ContextoDocumentacionDTO construirContextoDesdeDocumentacion(Documentacion documentacion) {
+        // Obtener ticket desde la asignación
+        Ticket ticket = documentacion.getAsignacion().getTicket();
+        
+        ContextoDocumentacionDTO.ContextoDocumentacionDTOBuilder builder = ContextoDocumentacionDTO.builder()
+                .idDocumentacion(documentacion.getIdDocumentacion())
+                .problema(documentacion.getProblema())
+                .solucion(documentacion.getSolucion())
+                .fechaDocumentacion(documentacion.getFechaCreacion() != null 
+                        ? documentacion.getFechaCreacion().format(FECHA_FORMATTER) : null)
+                .idAsignacion(documentacion.getAsignacion().getIdAsignacion())
+                .fechaInicioAsignacion(documentacion.getAsignacion().getFechaInicio() != null 
+                        ? documentacion.getAsignacion().getFechaInicio().format(FECHA_FORMATTER) : null)
+                .fechaFinAsignacion(documentacion.getAsignacion().getFechaFin() != null 
+                        ? documentacion.getAsignacion().getFechaFin().format(FECHA_FORMATTER) : null);
+
+        // Datos del agente
+        if (documentacion.getAsignacion().getEmpleado() != null) {
+            builder.nombreAgente(documentacion.getAsignacion().getEmpleado().getNombre() + " " + 
+                    documentacion.getAsignacion().getEmpleado().getApellido());
+        }
+
+        // Datos del ticket
+        if (ticket != null) {
+            builder.idTicket(ticket.getIdTicket())
+                    .asuntoTicket(ticket.getAsunto())
+                    .descripcionTicket(ticket.getDescripcion())
+                    .tipoTicket(ticket.getTipoTicket() != null ? ticket.getTipoTicket().name() : null)
+                    .estadoTicket(ticket.getEstado() != null ? ticket.getEstado().name() : null)
+                    .origenTicket(ticket.getOrigen() != null ? ticket.getOrigen().name() : null);
+            
+            // Motivo del ticket
+            if (ticket.getMotivo() != null) {
+                builder.motivoTicket(ticket.getMotivo().getNombre());
+            }
+        }
+
+        return builder.build();
+    }
+
+    /**
+     * Guarda el artículo generado por IA como borrador.
+     */
+    private ArticuloResponse guardarArticuloGenerado(ArticuloGeneradoIA generado, Long idEmpleado, Long idDocumentacion) {
+        // Generar código único basado en documentación
+        String codigo = "IA-DOC" + idDocumentacion + "-" + UUID.randomUUID().toString().substring(0, 4).toUpperCase();
+
+        CrearArticuloRequest request = CrearArticuloRequest.builder()
+                .codigo(codigo)
+                .titulo(generado.getTitulo())
+                .resumen(generado.getResumen())
+                .etiqueta(generado.getEtiqueta())
+                .tipoCaso(generado.getTipoCaso())
+                .visibilidad(generado.getVisibilidad())
+                .tags(generado.getTags())
+                .idPropietario(idEmpleado)
+                .contenidoInicial(generado.getContenido())
+                .notaCambioInicial("Generado automáticamente con IA desde documentación #" + idDocumentacion)
+                .build();
+
+        return crearArticulo(request);
     }
 }

@@ -23,7 +23,7 @@ export const ArticuloSearchPanel: React.FC<ArticuloSearchPanelProps> = ({
 }) => {
   // Estado local para el input de búsqueda (sin debounce)
   const [searchText, setSearchText] = useState(filtros.texto || "");
-  
+
   // Valor con debounce que dispara la búsqueda
   const debouncedSearchText = useDebouncedValue(searchText, 400);
 

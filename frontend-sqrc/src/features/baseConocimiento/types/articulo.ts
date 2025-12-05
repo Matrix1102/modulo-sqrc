@@ -292,3 +292,43 @@ export const mapToArticuloResumen = (
   versionActual: response.versionActual,
   feedbacksPositivos: response.feedbacksPositivos,
 });
+
+// ============ IA GENERATION TYPES ============
+
+/** Request para generar artículo con IA */
+export interface GenerarArticuloIARequest {
+  idDocumentacion?: number;
+  idCreador: number;
+  instruccionesAdicionales?: string;
+  tema?: string;
+  etiquetaSugerida?: string;
+  tipoCasoSugerido?: string;
+}
+
+/** Contenido generado por IA */
+export interface ArticuloGeneradoIA {
+  titulo: string;
+  resumen: string;
+  contenido: string;
+  etiqueta: Etiqueta;
+  tipoCaso: TipoCaso;
+  visibilidad: Visibilidad;
+  tags: string;
+  notaCambio: string;
+  confianza: number;
+  sugerencias: string[];
+  idArticuloCreado?: number;
+  codigoArticuloCreado?: string;
+}
+
+/** Response de generación con IA */
+export interface GenerarArticuloIAResponse {
+  exito: boolean;
+  mensaje: string;
+  articulo?: ArticuloResponse;
+  contenidoGenerado?: ArticuloGeneradoIA;
+  idDocumentacionOrigen?: number;
+  idTicketOrigen?: number;
+  tiempoProcesamiento?: number;
+  errores?: string[];
+}

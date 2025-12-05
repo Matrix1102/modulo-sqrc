@@ -13,6 +13,8 @@ import type {
   FeedbackEstadisticasResponse,
   PaginaResponse,
   Visibilidad,
+  GenerarArticuloIARequest,
+  GenerarArticuloIAResponse,
 } from "../types/articulo";
 
 const BASE_URL = "/api/articulos";
@@ -385,6 +387,35 @@ const articuloService = {
     await http.delete(`${BASE_URL}/feedback/${idFeedback}`, {
       params: { idEmpleado },
     });
+  },
+
+  // ==================== GENERACIÓN CON IA ====================
+
+  /**
+   * Genera un preview del artículo con IA sin guardarlo.
+   * Útil para revisar antes de confirmar.
+   */
+  async previewArticuloIA(
+    request: GenerarArticuloIARequest
+  ): Promise<GenerarArticuloIAResponse> {
+    const response = await http.post<GenerarArticuloIAResponse>(
+      `${BASE_URL}/preview-ia`,
+      request
+    );
+    return response.data;
+  },
+
+  /**
+   * Genera y guarda un artículo con IA desde documentación.
+   */
+  async generarArticuloIA(
+    request: GenerarArticuloIARequest
+  ): Promise<GenerarArticuloIAResponse> {
+    const response = await http.post<GenerarArticuloIAResponse>(
+      `${BASE_URL}/generar-ia`,
+      request
+    );
+    return response.data;
   },
 };
 
