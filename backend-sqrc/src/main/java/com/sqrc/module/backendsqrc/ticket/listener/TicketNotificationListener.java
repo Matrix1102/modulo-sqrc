@@ -20,7 +20,9 @@ public class TicketNotificationListener {
 
     /**
      * Escucha el evento de ticket escalado.
-     * Notifica al jefe de soporte sobre el escalamiento.
+     * NOTA: El envío de correo ahora se realiza directamente en TicketWorkflowFacade
+     * con toda la información del formulario (asunto, problemática, justificación).
+     * Este listener solo registra el evento para auditoría futura.
      *
      * @param event Evento con la información del ticket escalado
      */
@@ -28,25 +30,9 @@ public class TicketNotificationListener {
     @EventListener
     public void onTicketEscalado(TicketEscaladoEvent event) {
         System.out.println("🔔 [LISTENER] Evento capturado: Ticket escalado ID " + event.getTicketId());
-
-        // Simulación: Enviar correo al jefe de soporte
-        String destinatario = "jefe.soporte@empresa.com";
-        String asunto = "⚠️ Ticket #" + event.getTicketId() + " escalado a Backoffice";
-        String cuerpoHtml = """
-                <html>
-                <body>
-                    <h2>Notificación de Escalamiento</h2>
-                    <p>El Ticket <strong>#%d</strong> ha sido escalado al área de Backoffice.</p>
-                    <p>Se requiere atención de nivel superior.</p>
-                    <br/>
-                    <p><em>Sistema de Gestión de Tickets SQRC</em></p>
-                </body>
-                </html>
-                """.formatted(event.getTicketId());
-
-        emailService.enviarCorreoHtmlAsync(destinatario, asunto, cuerpoHtml);
-
-        System.out.println("    → Correo de escalamiento enviado a: " + destinatario);
+        // El correo ya se envió y guardó en TicketWorkflowFacade.enviarYGuardarCorreoEscalamiento()
+        // Aquí solo registramos el evento para auditoría
+        System.out.println("    → Correo de escalamiento ya procesado en el flujo principal");
     }
 
     /**

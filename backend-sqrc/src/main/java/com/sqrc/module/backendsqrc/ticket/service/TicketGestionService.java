@@ -61,7 +61,7 @@ public class TicketGestionService {
     private final BackOfficeRepository backOfficeRepository;
     private final TicketFactory ticketFactory;
     private final DefaultEstadoTransitionValidator transitionValidator;
-    
+
     // Dependencias para el patrón Observer (encuestas al cerrar ticket)
     private final ApplicationEventPublisher eventPublisher;
     private final EncuestaService encuestaService;
@@ -339,12 +339,12 @@ public class TicketGestionService {
      * 3. Finalizar asignación del Agente
      * 4. Crear nueva asignación al BackOffice
      * 5. Cambiar estado a ESCALADO
-     * 
+     *
      * Reglas de Negocio:
      * - Solo tickets ABIERTO pueden escalarse
      * - El destinatario debe ser un BackOffice
      * - Se libera al Agente que tenía el ticket
-     * 
+     *
      * @param ticketId ID del ticket
      * @param request DTO con datos de escalamiento
      * @return TicketOperationResponse con el resultado
@@ -371,13 +371,15 @@ public class TicketGestionService {
         // Obtener asignación activa y finalizarla
         Optional<Asignacion> asignacionActiva = asignacionRepository.findAsignacionActiva(ticketId);
         Asignacion asignacionAnterior = null;
+        Empleado empleadoAnterior = null;
+
         if (asignacionActiva.isPresent()) {
             asignacionAnterior = asignacionActiva.get();
+            empleadoAnterior = asignacionAnterior.getEmpleado();
             asignacionAnterior.setFechaFin(LocalDateTime.now());
             asignacionRepository.save(asignacionAnterior);
             
             // Liberar al Agente si estaba ocupado
-            Empleado empleadoAnterior = asignacionAnterior.getEmpleado();
             if (empleadoAnterior instanceof Agente) {
                 ((Agente) empleadoAnterior).setEstaOcupado(false);
                 empleadoRepository.save(empleadoAnterior);
@@ -390,12 +392,15 @@ public class TicketGestionService {
                 .empleado(backoffice)
                 .asignacionPadre(asignacionAnterior)
                 .build();
-        asignacionRepository.save(nuevaAsignacion);
+        nuevaAsignacion = asignacionRepository.save(nuevaAsignacion);
 
         // Cambiar estado a ESCALADO
         String estadoAnterior = ticket.getEstado().name();
         ticket.setEstado(EstadoTicket.ESCALADO);
         ticketRepository.save(ticket);
+
+        // Nota: El envío y guardado de correos se maneja en TicketWorkflowFacade
+        // si se usa ese flujo. Este método es más directo para casos simples.
 
         return TicketOperationResponse.builder()
                 .ticketId(ticketId)
@@ -473,10 +478,10 @@ public class TicketGestionService {
 
     /**
      * Devuelve un ticket al estado anterior (rechaza escalamiento o derivación).
-     * 
+     *
      * - Si está ESCALADO -> vuelve a ABIERTO (BackOffice rechaza al Agente)
      * - Si está DERIVADO -> vuelve a ESCALADO (Área rechaza al BackOffice)
-     * 
+     *
      * @param ticketId ID del ticket
      * @param empleadoId ID del empleado que recibe el ticket devuelto
      * @param motivo Motivo de la devolución
@@ -516,8 +521,8 @@ public class TicketGestionService {
 
         // Determinar nuevo estado
         String estadoAnterior = ticket.getEstado().name();
-        EstadoTicket nuevoEstado = ticket.getEstado() == EstadoTicket.ESCALADO 
-                ? EstadoTicket.ABIERTO 
+        EstadoTicket nuevoEstado = ticket.getEstado() == EstadoTicket.ESCALADO
+                ? EstadoTicket.ABIERTO
                 : EstadoTicket.ESCALADO;
 
         ticket.setEstado(nuevoEstado);
@@ -634,6 +639,7 @@ public class TicketGestionService {
             asignacionRepository.save(asignacion);
         }
     }
+
 
     /**
      * Obtiene el detalle completo de un ticket incluyendo la información del cliente.

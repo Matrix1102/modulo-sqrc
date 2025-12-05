@@ -1,10 +1,12 @@
 package com.sqrc.module.backendsqrc.ticket.controller;
 
+import com.sqrc.module.backendsqrc.ticket.dto.CorreoDTO;
 import com.sqrc.module.backendsqrc.ticket.dto.DocumentacionDto;
 import com.sqrc.module.backendsqrc.ticket.dto.request.*;
 import com.sqrc.module.backendsqrc.ticket.dto.response.*;
 import com.sqrc.module.backendsqrc.ticket.model.Ticket;
 import com.sqrc.module.backendsqrc.ticket.repository.TicketRepository;
+import com.sqrc.module.backendsqrc.ticket.service.CorreoService;
 import com.sqrc.module.backendsqrc.ticket.service.DocumentacionService;
 import com.sqrc.module.backendsqrc.ticket.service.TicketGestionService;
 import jakarta.validation.Valid;
@@ -34,6 +36,7 @@ import java.util.stream.Collectors;
  * - POST   /api/tickets/{id}/cerrar               -> Cerrar ticket
  * - GET    /api/tickets/{id}/documentacion        -> Listar documentación
  * - POST   /api/tickets/{id}/documentacion        -> Crear documentación
+ * - GET    /api/tickets/{id}/correos              -> Obtener hilo de correos
  */
 @RestController
 @RequestMapping("/api/tickets")
@@ -43,6 +46,7 @@ public class TicketGestionController {
 
     private final TicketGestionService ticketGestionService;
     private final DocumentacionService documentacionService;
+    private final CorreoService correoService;
     private final TicketRepository ticketRepository;
 
     /**
@@ -261,5 +265,23 @@ public class TicketGestionController {
         DocumentacionCreatedResponse response = documentacionService.crearDocumentacion(request);
         
         return new ResponseEntity<>(response, HttpStatus.CREATED);
+    }
+
+    // ==================== Correos / Hilo ====================
+
+    /**
+     * Obtiene el hilo de correos (historial de comunicaciones) de un ticket.
+     * Incluye todos los correos enviados durante escalamientos, derivaciones, etc.
+     * 
+     * @param id ID del ticket
+     * @return Lista de correos ordenados por fecha (más recientes primero)
+     */
+    @GetMapping("/{id}/correos")
+    public ResponseEntity<List<CorreoDTO>> obtenerCorreos(@PathVariable Long id) {
+        log.info("GET /api/tickets/{}/correos - Obteniendo hilo de correos", id);
+        
+        List<CorreoDTO> correos = correoService.obtenerCorreosPorTicket(id);
+        
+        return ResponseEntity.ok(correos);
     }
 }

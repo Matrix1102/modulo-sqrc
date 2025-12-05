@@ -120,7 +120,7 @@ export const TicketDetailPage = () => {
         />
       )}
       
-      {activeTab === 'hilo' && <HiloTab />}
+      {activeTab === 'hilo' && ticketId && <HiloTab ticketId={Number(ticketId)} />}
     </TicketDetailLayout>
   );
 };

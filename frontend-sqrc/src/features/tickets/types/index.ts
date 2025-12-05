@@ -220,25 +220,24 @@ export interface RespuestaDerivacionDTO {
 
 // ==================== Correo / Hilo ====================
 
-export type TipoCorreo = 'ABIERTO' | 'CERRADO' | 'DERIVADO';
+export type TipoCorreo = 'SOLICITUD_ESCALAMIENTO' | 'RESPUESTA_INTERNA' | 'DERIVACION_EXTERNA';
 
 /**
- * Representa un correo/movimiento en el hilo del ticket
- * Coincide con Correo.java
+ * Representa un correo/movimiento en el hilo del ticket.
+ * Coincide con CorreoDTO.java del backend.
  */
 export interface CorreoDTO {
   idCorreo: number;
   asunto: string;
   cuerpo: string;
-  tipoCorreo: TipoCorreo;
   fechaEnvio: string;
-  asignacion?: {
-    idAsignacion: number;
-    tipo: string;
-    empleado?: {
-      idEmpleado: number;
-      nombre: string;
-      apellido: string;
-    };
-  };
+  tipoCorreo: TipoCorreo;
+  // Información de la asignación relacionada
+  idAsignacion: number;
+  ticketId: number;
+  // Información del empleado (destinatario)
+  empleadoId: number;
+  empleadoNombre: string;
+  empleadoCorreo: string;
+  empleadoArea: string;
 }

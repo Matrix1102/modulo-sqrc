@@ -29,7 +29,7 @@ public class AsignacionService {
     }
 
     @Transactional
-    public void reasignarTicket(Ticket ticket, String areaDestino) {
+    public Asignacion reasignarTicket(Ticket ticket, String areaDestino) {
         // 1. Obtener la asignación actual (Será el PADRE)
         Optional<Asignacion> asignacionActualOpt = repository.findAsignacionActiva(ticket.getIdTicket());
         Asignacion asignacionPadre = null;
@@ -57,8 +57,10 @@ public class AsignacionService {
                 .fechaInicio(LocalDateTime.now())
                 .build();
 
-        repository.save(nueva);
+        nueva = repository.save(nueva);
 
         System.out.println("✅ [ASIGNACION] Ticket " + ticket.getIdTicket() + " movido al agente ID: " + nuevoResponsableId);
+
+        return nueva; // Retornar la asignación creada
     }
 }

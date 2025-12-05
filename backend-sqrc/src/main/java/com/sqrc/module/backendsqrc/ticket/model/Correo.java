@@ -2,11 +2,13 @@ package com.sqrc.module.backendsqrc.ticket.model;
 
 import jakarta.persistence.*;
 import lombok.*;
+
 import java.time.LocalDateTime;
 
 @Entity
-@Table(name = "correo")
-@Data
+@Table(name = "correo", schema = "bd_sqrc")
+@Getter
+@Setter
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
@@ -18,27 +20,26 @@ public class Correo {
     private Long idCorreo;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "asignacion_id", nullable = false)
+    @JoinColumn(name = "id_asignacion", nullable = false)
     private Asignacion asignacion;
 
-    @Column(name = "asunto")
+    @Column(nullable = false, length = 255)
     private String asunto;
 
-    @Lob
-    @Column(name = "cuerpo", columnDefinition = "TEXT")
+    @Column(columnDefinition = "TEXT", nullable = false)
     private String cuerpo;
-
-    @Enumerated(EnumType.STRING)
-    @Column(name = "tipo_correo")
-    private TipoCorreo tipoCorreo;
 
     @Column(name = "fecha_envio")
     private LocalDateTime fechaEnvio;
 
+    @Enumerated(EnumType.STRING)
+    @Column(name = "tipo_correo", nullable = false)
+    private TipoCorreo tipoCorreo;
+
     @PrePersist
-    public void prePersist() {
-        if (this.fechaEnvio == null) {
-            this.fechaEnvio = LocalDateTime.now();
+    protected void onCreate() {
+        if (fechaEnvio == null) {
+            fechaEnvio = LocalDateTime.now();
         }
     }
 }

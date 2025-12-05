@@ -13,6 +13,7 @@ import type {
   AsignacionDTO,
   TicketFilter,
   ClienteDTO,
+  CorreoDTO,
 } from '../types';
 
 const TICKETS_ENDPOINT = '/api/tickets';
@@ -117,6 +118,17 @@ export async function getAsignaciones(ticketId: number): Promise<AsignacionDTO[]
   return response.data;
 }
 
+// ==================== Correos / Hilo ====================
+
+/**
+ * Obtiene el hilo de correos (historial de comunicaciones) de un ticket.
+ * Incluye correos de escalamiento, derivación y respuestas.
+ */
+export async function getCorreos(ticketId: number): Promise<CorreoDTO[]> {
+  const response = await http.get<CorreoDTO[]>(`${TICKETS_ENDPOINT}/${ticketId}/correos`);
+  return response.data;
+}
+
 // ==================== Clientes ====================
 
 /**
@@ -149,6 +161,7 @@ export const ticketApi = {
   getDocumentacion,
   addDocumentacion,
   getAsignaciones,
+  getCorreos,
   buscarClientePorDni,
   getClienteById,
 };
