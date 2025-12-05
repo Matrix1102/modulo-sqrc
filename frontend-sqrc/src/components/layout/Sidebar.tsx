@@ -22,7 +22,7 @@ interface SidebarProps {
   role?: RoleType;
 }
 
-export const Sidebar: React.FC<SidebarProps> = ({ role = "AGENT" }) => {
+export const Sidebar: React.FC<SidebarProps> = ({ role = "AGENTE_LLAMADA" }) => {
   const navigate = useNavigate();
   const [isCollapsed, setIsCollapsed] = useState<boolean>(false);
   const [activePath, setActivePath] = useState<string>("/dashboard");
