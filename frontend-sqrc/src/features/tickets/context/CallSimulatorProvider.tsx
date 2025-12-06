@@ -3,6 +3,7 @@
  * entre diferentes componentes
  */
 import type { ReactNode } from 'react';
+import { useLocation } from 'react-router-dom';
 import { useCallSimulator } from '../hooks/useCallSimulator';
 import { useUser } from '../../../context/UserContext';
 import { CallSimulatorContext } from './callSimulatorContext';
@@ -13,13 +14,16 @@ interface CallSimulatorProviderProps {
 
 export function CallSimulatorProvider({ children }: CallSimulatorProviderProps) {
   const { user } = useUser();
+  const location = useLocation();
   
-  // Solo activar para agentes de llamada (ID 6, 7, 8) - NO para agentes presenciales (ID 9)
-  const isCallAgent = user?.id === 6 || user?.id === 7 || user?.id === 8;
+  // Solo activar en la zona de agente de llamada y para rol AGENTE
+  const isCallAgentPath = location.pathname.startsWith('/agente-llamada');
+  const isCallAgentRole = user?.rol === 'AGENTE';
+  const enableSimulator = isCallAgentPath && isCallAgentRole;
   
   const callSimulator = useCallSimulator({
-    empleadoId: user?.id || 6,
-    enabled: isCallAgent,
+    empleadoId: user?.id || 0,
+    enabled: enableSimulator,
   });
 
   return (

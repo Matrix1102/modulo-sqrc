@@ -98,18 +98,21 @@ public class TicketGestionController {
                 })
                 .filter(ticket -> {
                     if (search == null || search.isEmpty()) return true;
-                    String searchLower = search.toLowerCase();
-                    
-                    // Búsqueda por ID de ticket
-                    boolean matchId = String.valueOf(ticket.getIdTicket()).contains(searchLower);
-                    
-                    boolean matchAsunto = ticket.getAsunto() != null && 
-                            ticket.getAsunto().toLowerCase().contains(searchLower);
+                    String searchLower = search.toLowerCase().trim();
+
+                    // Permitir buscar por ID con formatos como "TC-0001" extrayendo solo los dígitos
+                    String numericSearch = searchLower.replaceAll("[^0-9]", "");
+                    boolean matchId = (!numericSearch.isEmpty() &&
+                        String.valueOf(ticket.getIdTicket()).contains(numericSearch)) ||
+                        String.valueOf(ticket.getIdTicket()).contains(searchLower);
+
+                    boolean matchAsunto = ticket.getAsunto() != null &&
+                        ticket.getAsunto().toLowerCase().contains(searchLower);
                     boolean matchCliente = ticket.getCliente() != null && (
-                            (ticket.getCliente().getNombres() != null && 
-                             ticket.getCliente().getNombres().toLowerCase().contains(searchLower)) ||
-                            (ticket.getCliente().getApellidos() != null && 
-                             ticket.getCliente().getApellidos().toLowerCase().contains(searchLower))
+                        (ticket.getCliente().getNombres() != null &&
+                         ticket.getCliente().getNombres().toLowerCase().contains(searchLower)) ||
+                        (ticket.getCliente().getApellidos() != null &&
+                         ticket.getCliente().getApellidos().toLowerCase().contains(searchLower))
                     );
                     return matchId || matchAsunto || matchCliente;
                 })
