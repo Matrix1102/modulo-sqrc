@@ -4,6 +4,7 @@ import { TicketListTable } from "../../features/tickets/components/TicketListTab
 import { ClienteAuthModal } from "../../features/tickets/components/ClienteAuthModal";
 import { CreateTicketModal } from "../../features/tickets/components/CreateTicketModal";
 import { useTickets } from "../../features/tickets/hooks/useTickets";
+import { useCallSimulatorContext } from "../../features/tickets/hooks/useCallSimulatorContext";
 import type { ClienteDTO, TicketFilters as ITicketFilters } from "../../features/tickets/types";
 
 const TicketingPage = () => {
@@ -17,6 +18,9 @@ const TicketingPage = () => {
 
   // Hook para obtener tickets
   const { tickets, loading, error, refetch } = useTickets(filters);
+
+  // Obtener estado del simulador de llamadas desde el context
+  const { currentCall, isActive } = useCallSimulatorContext();
 
   // Handler para abrir el flujo de creación de ticket
   const handleOpenCreateFlow = useCallback(() => {
@@ -113,6 +117,7 @@ const TicketingPage = () => {
           onClose={handleCloseCreateModal}
           cliente={clienteAutenticado}
           onTicketCreated={handleTicketCreated}
+          activeLlamadaId={isActive ? currentCall?.idLlamada : null}
         />
       )}
     </div>
