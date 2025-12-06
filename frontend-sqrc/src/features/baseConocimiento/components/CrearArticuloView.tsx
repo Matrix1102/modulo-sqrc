@@ -25,7 +25,8 @@ import {
   Palette,
   RotateCcw,
   RotateCw,
-  Sparkles,
+  FileText,
+  Upload,
 } from "lucide-react";
 import articuloService from "../services/articuloService";
 import { useUserId } from "../../../context";
@@ -42,7 +43,8 @@ import {
   TIPO_CASO_OPTIONS,
   VISIBILIDAD_OPTIONS,
 } from "../types/articulo";
-import GenerarArticuloIAModal from "./GenerarArticuloIAModal";
+import GenerarDesdeDocumentacionModal from "./GenerarDesdeDocumentacionModal";
+import GenerarDesdeDocumentoModal from "./GenerarDesdeDocumentoModal";
 
 interface CrearArticuloViewProps {
   onArticuloCreated?: () => void;
@@ -59,7 +61,8 @@ const CrearArticuloView = forwardRef<
 >(({ onArticuloCreated }, ref) => {
   const userId = useUserId();
   const [loading, setLoading] = useState(false);
-  const [showIAModal, setShowIAModal] = useState(false);
+  const [showDocumentacionModal, setShowDocumentacionModal] = useState(false);
+  const [showDocumentoModal, setShowDocumentoModal] = useState(false);
 
   const [formData, setFormData] = useState({
     categoria: "TROUBLESHOOTING" as Etiqueta,
@@ -527,15 +530,25 @@ const CrearArticuloView = forwardRef<
           >
             Pegar Imagen
           </button>
-          {/* Botón Generar con IA */}
+          {/* Botón Generar desde Documentación */}
           <button
             type="button"
-            onClick={() => setShowIAModal(true)}
+            onClick={() => setShowDocumentacionModal(true)}
             disabled={loading}
             className="px-4 py-2 bg-gradient-to-r from-purple-500 to-indigo-500 text-white rounded-lg text-sm font-medium hover:from-purple-600 hover:to-indigo-600 transition-all disabled:opacity-50 flex items-center gap-2 shadow-md shadow-purple-500/25"
           >
-            <Sparkles size={16} />
-            Generar con IA
+            <FileText size={16} />
+            Desde Documentación
+          </button>
+          {/* Botón Generar desde Documento */}
+          <button
+            type="button"
+            onClick={() => setShowDocumentoModal(true)}
+            disabled={loading}
+            className="px-4 py-2 bg-gradient-to-r from-emerald-500 to-teal-500 text-white rounded-lg text-sm font-medium hover:from-emerald-600 hover:to-teal-600 transition-all disabled:opacity-50 flex items-center gap-2 shadow-md shadow-emerald-500/25"
+          >
+            <Upload size={16} />
+            Subir Documento
           </button>
         </div>
 
@@ -567,10 +580,18 @@ const CrearArticuloView = forwardRef<
         </div>
       </div>
 
-      {/* Modal de Generación con IA */}
-      <GenerarArticuloIAModal
-        isOpen={showIAModal}
-        onClose={() => setShowIAModal(false)}
+      {/* Modal de Generación desde Documentación */}
+      <GenerarDesdeDocumentacionModal
+        isOpen={showDocumentacionModal}
+        onClose={() => setShowDocumentacionModal(false)}
+        idCreador={userId}
+        onArticuloGenerado={handleArticuloGenerado}
+      />
+
+      {/* Modal de Generación desde Documento */}
+      <GenerarDesdeDocumentoModal
+        isOpen={showDocumentoModal}
+        onClose={() => setShowDocumentoModal(false)}
         idCreador={userId}
         onArticuloGenerado={handleArticuloGenerado}
       />
