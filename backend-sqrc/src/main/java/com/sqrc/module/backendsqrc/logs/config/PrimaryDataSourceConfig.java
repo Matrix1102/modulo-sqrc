@@ -83,7 +83,7 @@ public class PrimaryDataSourceConfig {
                         "com.sqrc.module.backendsqrc.vista360.model",
                         "com.sqrc.module.backendsqrc.baseDeConocimientos.model",
                         "com.sqrc.module.backendsqrc.reporte.model",
-                        "com.sqrc.module.backendsqrc.plantillaRespuesta.Model",
+                        "com.sqrc.module.backendsqrc.plantillaRespuesta.model",
                         "com.sqrc.module.backendsqrc.comunicacion.model"
                 )
                 .persistenceUnit("primary")
