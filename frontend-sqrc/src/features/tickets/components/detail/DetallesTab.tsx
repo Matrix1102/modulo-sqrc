@@ -8,6 +8,7 @@ import { EscalarTicketModal } from '../EscalarTicketModal';
 import { RechazarEscalamientoModal } from '../RechazarEscalamientoModal';
 import { DerivarTicketModal } from '../DerivarTicketModal';
 import { RespuestaExternaModal } from '../RespuestaExternaModal';
+import { useUser } from '../../../../context/UserContext';
 
 interface DetallesTabProps {
   ticket: TicketDetail;
@@ -15,6 +16,7 @@ interface DetallesTabProps {
 }
 
 export const DetallesTab: React.FC<DetallesTabProps> = ({ ticket, onRefresh }) => {
+  const { user } = useUser();
   const [isEscalarModalOpen, setIsEscalarModalOpen] = useState(false);
   const [isRechazarEscalamientoModalOpen, setIsRechazarEscalamientoModalOpen] = useState(false);
   const [isDerivarModalOpen, setIsDerivarModalOpen] = useState(false);
@@ -95,8 +97,8 @@ export const DetallesTab: React.FC<DetallesTabProps> = ({ ticket, onRefresh }) =
         </div>
       )}
 
-      {/* Botón de Derivar (solo si el ticket está ABIERTO o ESCALADO) */}
-      {(ticket.estado === 'ABIERTO' || ticket.estado === 'ESCALADO') && (
+      {/* Botón de Derivar (solo BackOffice: SUPERVISOR o ADMIN, y ticket ABIERTO o ESCALADO) */}
+      {(user?.rol === 'SUPERVISOR' || user?.rol === 'ADMIN') && (ticket.estado === 'ABIERTO' || ticket.estado === 'ESCALADO') && (
         <div className="bg-gradient-to-r from-purple-50 to-indigo-50 rounded-xl border border-purple-200 p-4 shadow-sm">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">

@@ -64,14 +64,9 @@ public class TicketWorkflowFacade {
         ticketRepository.save(ticket);
 
         // E. Enviar y guardar correo de escalamiento
-        log.info("🔄 Iniciando envío de correo para ticket {}", ticketId);
-        try {
-            enviarYGuardarCorreoEscalamiento(ticket, request, nuevaAsignacion);
-            log.info("✅ Correo de escalamiento enviado y guardado para ticket {}", ticketId);
-        } catch (Exception ex) {
-            log.error("❌ Error al enviar/guardar correo de escalamiento para ticket {}: {}", ticketId, ex.getMessage(), ex);
-            // No bloqueamos el escalamiento si falla el envío del correo
-        }
+        log.info("🔄 Iniciando envío y guardado de correo para ticket {}", ticketId);
+        enviarYGuardarCorreoEscalamiento(ticket, request, nuevaAsignacion);
+        log.info("✅ Correo de escalamiento enviado y guardado para ticket {}", ticketId);
 
         // F. Notificar evento
         eventPublisher.publishEvent(new TicketEscaladoEvent(this, ticket.getIdTicket()));
@@ -127,27 +122,9 @@ public class TicketWorkflowFacade {
         notificacionExternaRepository.save(notificacion);
         log.info("✅ Respuesta registrada en notificación externa ID: {}", notificacion.getIdNotificacion());
 
-        // 4. Crear documentación para historial interno (opcional)
-        try {
-            Asignacion asignacionActiva = asignacionRepository.findAsignacionActiva(ticketId)
-                    .orElseThrow(() -> new RuntimeException("No hay asignación activa"));
-            
-            Long backofficeId = asignacionActiva.getEmpleado().getIdEmpleado();
-            documentacionService.registrarRespuestaExterna(ticket, respuesta.getRespuestaExterna(), backofficeId);
-            log.info("📝 Documentación creada para ticket #{}", ticketId);
-        } catch (Exception ex) {
-            log.warn("⚠️ No se pudo crear documentación: {}", ex.getMessage());
-        }
-
-        // 5. Cambiar estado del ticket según si está solucionado
-        if (Boolean.TRUE.equals(respuesta.getSolucionado())) {
-            ticket.setEstado(EstadoTicket.CERRADO);
-            ticket.setFechaCierre(LocalDateTime.now());
-            log.info("🔒 Ticket #{} marcado como CERRADO (solucionado por área externa)", ticketId);
-        } else {
-            ticket.setEstado(EstadoTicket.ABIERTO);
-            log.info("🔓 Ticket #{} regresa a ABIERTO para seguimiento del BackOffice", ticketId);
-        }
+        // 4. El ticket permanece en estado DERIVADO
+        // El BackOffice decide si cerrarlo o tomar otras acciones después de revisar la respuesta
+        log.info("📋 Ticket #{} permanece en estado DERIVADO - BackOffice debe revisar la respuesta", ticketId);
 
         ticketRepository.save(ticket);
     }
