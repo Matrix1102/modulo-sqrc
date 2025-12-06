@@ -1,6 +1,9 @@
 import { Outlet, useLocation } from "react-router-dom";
 import { Sidebar } from "./Sidebar";
 import { Navbar } from "./Navbar";
+import { IncomingCallWidget } from "../../features/tickets/components/IncomingCallWidget";
+import { useCallSimulatorContext } from "../../features/tickets/hooks/useCallSimulatorContext";
+import { useUser } from "../../context/UserContext";
 
 interface MainLayoutProps {
   role: "SUPERVISOR" | "BACKOFFICE" | "AGENTE_LLAMADA" | "AGENTE_PRESENCIAL";
@@ -171,6 +174,17 @@ const getUserRole = (role: MainLayoutProps["role"]): string => {
 export default function MainLayout({ role }: Readonly<MainLayoutProps>) {
   const location = useLocation();
   const currentPath = location.pathname;
+  const { user } = useUser();
+
+  // Obtener el estado del simulador de llamadas desde el context
+  const isCallAgent = role === "AGENTE_LLAMADA" || user?.id === 6 || user?.id === 7 || user?.id === 8;
+  const {
+    currentCall,
+    isActive,
+    acceptCall,
+    declineCall,
+    finalizeCall,
+  } = useCallSimulatorContext();
 
   // 2. Lógica de Selección de Título Inteligente
   const getPageInfo = () => {
@@ -209,6 +223,17 @@ export default function MainLayout({ role }: Readonly<MainLayoutProps>) {
           <Outlet />
         </main>
       </div>
+
+      {/* Widget de llamada entrante (solo para agentes de llamada) */}
+      {isCallAgent && (
+        <IncomingCallWidget
+          call={currentCall}
+          onAccept={acceptCall}
+          onDecline={declineCall}
+          onFinalize={finalizeCall}
+          isActive={isActive}
+        />
+      )}
     </div>
   );
 }

@@ -37,6 +37,9 @@ public class TicketFullDetailDTO {
     // Motivo del ticket
     private MotivoDTO motivo;
     
+    // Información de llamada asociada (si existe)
+    private LlamadaDTO llamada;
+    
     // Información específica por tipo
     private ConsultaInfoDTO consultaInfo;
     private QuejaInfoDTO quejaInfo;
@@ -65,6 +68,17 @@ public class TicketFullDetailDTO {
     public static class MotivoDTO {
         private Long idMotivo;
         private String descripcion;
+    }
+
+    @Data
+    @Builder
+    @NoArgsConstructor
+    @AllArgsConstructor
+    public static class LlamadaDTO {
+        private Long idLlamada;
+        private String numeroOrigen;
+        private Integer duracionSegundos;
+        private String duracionFormateada;
     }
 
     @Data

@@ -59,6 +59,7 @@ public class TicketGestionService {
     private final MotivoRepository motivoRepository;
     private final ClienteRepository clienteRepository;
     private final BackOfficeRepository backOfficeRepository;
+    private final LlamadaRepository llamadaRepository;
     private final TicketFactory ticketFactory;
     private final DefaultEstadoTransitionValidator transitionValidator;
 
@@ -775,6 +776,29 @@ public class TicketGestionService {
                     .descripcion(ticket.getMotivo().getNombre())
                     .build());
         }
+
+        // Mapear información de llamada (si existe)
+        Optional<Llamada> llamadaOpt = llamadaRepository.findByTicketIdTicket(ticketId);
+        log.debug("Buscando llamada para ticket {}: {}", ticketId, llamadaOpt.isPresent() ? "ENCONTRADA" : "NO ENCONTRADA");
+        
+        llamadaOpt.ifPresent(llamada -> {
+            log.info("Llamada encontrada - ID: {}, Número: {}, Duración: {} seg", 
+                    llamada.getIdLlamada(), llamada.getNumeroOrigen(), llamada.getDuracionSegundos());
+            
+            String duracionFormateada = null;
+            if (llamada.getDuracionSegundos() != null && llamada.getDuracionSegundos() > 0) {
+                int minutos = llamada.getDuracionSegundos() / 60;
+                int segundos = llamada.getDuracionSegundos() % 60;
+                duracionFormateada = String.format("%d:%02d", minutos, segundos);
+            }
+            
+            builder.llamada(TicketFullDetailDTO.LlamadaDTO.builder()
+                    .idLlamada(llamada.getIdLlamada())
+                    .numeroOrigen(llamada.getNumeroOrigen())
+                    .duracionSegundos(llamada.getDuracionSegundos())
+                    .duracionFormateada(duracionFormateada)
+                    .build());
+        });
 
         // Mapear información específica por tipo
         if (ticket.getTipoTicket() != null) {
