@@ -25,9 +25,12 @@ const EstadoBadge = ({ estado }: { estado: string }) => {
 
 // Badge para mostrar la categoría del cliente
 const CategoriaBadge = ({ categoria }: { categoria: string }) => {
-  const colorClass = categoria?.toLowerCase() === "premium" 
-    ? "bg-purple-100 text-purple-800 border-purple-200"
-    : "bg-blue-100 text-blue-800 border-blue-200";
+  let colorClass = "bg-blue-100 text-blue-800 border-blue-200"; // Estándar
+  if (categoria?.toUpperCase() === "VIP") {
+    colorClass = "bg-purple-100 text-purple-800 border-purple-200";
+  } else if (categoria?.toUpperCase() === "PLATINO") {
+    colorClass = "bg-yellow-100 text-yellow-800 border-yellow-200";
+  }
   
   return (
     <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium border ${colorClass}`}>
@@ -52,11 +55,11 @@ const CustomerProfileForm: React.FC<Props> = ({ cliente, loading, onClienteUpdat
   const [nombre, setNombre] = useState<string>("");
   const [apellido, setApellido] = useState<string>("");
   const [correo, setCorreo] = useState<string>("");
-  const [telefono, setTelefono] = useState<string>("");
+  const [celular, setCelular] = useState<string>("");
+  const [telefonoFijo, setTelefonoFijo] = useState<string>("");
   const [direccion, setDireccion] = useState<string>("");
-  const [fechaRegistro, setFechaRegistro] = useState<string>("");
+  const [fechaNacimiento, setFechaNacimiento] = useState<string>("");
   const [estado, setEstado] = useState<string>("");
-  const [categoria, setCategoria] = useState<string>("");
   
   const [error, setError] = useState<string | null>(null);
 
@@ -66,11 +69,11 @@ const CustomerProfileForm: React.FC<Props> = ({ cliente, loading, onClienteUpdat
       setNombre(cliente.nombre || "");
       setApellido(cliente.apellido || "");
       setCorreo(cliente.correo || "");
-      setTelefono(cliente.telefono || "");
+      setCelular(cliente.celular || "");
+      setTelefonoFijo(cliente.telefonoFijo || "");
       setDireccion(cliente.direccion || "");
-      setFechaRegistro(cliente.fechaRegistro || "");
+      setFechaNacimiento(cliente.fechaNacimiento || "");
       setEstado(cliente.estado || "ACTIVO");
-      setCategoria(cliente.categoria || "Estándar");
       setIsEditing(false);
       setError(null);
     }
@@ -87,16 +90,17 @@ const CustomerProfileForm: React.FC<Props> = ({ cliente, loading, onClienteUpdat
     setError(null);
 
     try {
+      // Solo enviar campos editables (NO: idCliente, fechaRegistro, categoria)
       const datosActualizados = {
         dni: dni.trim() || undefined,
         nombre: nombre.trim() || undefined,
         apellido: apellido.trim() || undefined,
         correo: correo.trim() || undefined,
-        telefono: telefono.trim() || undefined,
+        celular: celular.trim() || undefined,
+        telefonoFijo: telefonoFijo.trim() || undefined,
         direccion: direccion.trim() || undefined,
-        fechaRegistro: fechaRegistro || undefined,
+        fechaNacimiento: fechaNacimiento || undefined,
         estado: estado || undefined,
-        categoria: categoria || undefined,
       };
 
       const clienteActualizado = await actualizarInformacionCliente(
@@ -121,11 +125,11 @@ const CustomerProfileForm: React.FC<Props> = ({ cliente, loading, onClienteUpdat
       setNombre(cliente.nombre || "");
       setApellido(cliente.apellido || "");
       setCorreo(cliente.correo || "");
-      setTelefono(cliente.telefono || "");
+      setCelular(cliente.celular || "");
+      setTelefonoFijo(cliente.telefonoFijo || "");
       setDireccion(cliente.direccion || "");
-      setFechaRegistro(cliente.fechaRegistro || "");
+      setFechaNacimiento(cliente.fechaNacimiento || "");
       setEstado(cliente.estado || "ACTIVO");
-      setCategoria(cliente.categoria || "Estándar");
       setIsEditing(false);
       setError(null);
     }
@@ -137,6 +141,8 @@ const CustomerProfileForm: React.FC<Props> = ({ cliente, loading, onClienteUpdat
         ? "border-blue-300 bg-white focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
         : "border-gray-200 bg-gray-50"
     }`;
+
+  const readOnlyInputClass = "w-full rounded-lg border border-gray-200 bg-gray-100 px-3 py-2 cursor-not-allowed text-gray-500";
 
   if (loading) {
     return (
@@ -170,7 +176,7 @@ const CustomerProfileForm: React.FC<Props> = ({ cliente, loading, onClienteUpdat
               />
             </svg>
             <p className="text-sm font-medium">No hay cliente seleccionado</p>
-            <p className="text-xs mt-1">Busca un cliente por ID</p>
+            <p className="text-xs mt-1">Busca un cliente por ID o DNI</p>
           </div>
         </div>
       </div>
@@ -227,7 +233,16 @@ const CustomerProfileForm: React.FC<Props> = ({ cliente, loading, onClienteUpdat
             readOnly
             value={`${nombre} ${apellido}`.trim() || cliente.nombreCompleto || ""}
             placeholder="Nombre completo"
-            className="w-full rounded-lg border border-gray-200 bg-gray-100 px-3 py-2 cursor-not-allowed"
+            className={readOnlyInputClass}
+          />
+        </Labeled>
+        <Labeled label="Fecha de Nac.">
+          <input
+            type="date"
+            readOnly={!isEditing}
+            value={fechaNacimiento}
+            onChange={(e) => setFechaNacimiento(e.target.value)}
+            className={inputClassName(isEditing)}
           />
         </Labeled>
       </CollapsibleSection>
@@ -242,12 +257,21 @@ const CustomerProfileForm: React.FC<Props> = ({ cliente, loading, onClienteUpdat
             className={inputClassName(isEditing)}
           />
         </Labeled>
-        <Labeled label="Teléfono">
+        <Labeled label="Celular">
           <input
             readOnly={!isEditing}
-            value={telefono}
-            onChange={(e) => setTelefono(e.target.value)}
-            placeholder="Número de teléfono"
+            value={celular}
+            onChange={(e) => setCelular(e.target.value)}
+            placeholder="Número de celular"
+            className={inputClassName(isEditing)}
+          />
+        </Labeled>
+        <Labeled label="Teléfono fijo">
+          <input
+            readOnly={!isEditing}
+            value={telefonoFijo}
+            onChange={(e) => setTelefonoFijo(e.target.value)}
+            placeholder="Número de teléfono fijo"
             className={inputClassName(isEditing)}
           />
         </Labeled>
@@ -282,32 +306,23 @@ const CustomerProfileForm: React.FC<Props> = ({ cliente, loading, onClienteUpdat
           )}
         </Labeled>
         <Labeled label="Categoría">
-          {isEditing ? (
-            <select
-              value={categoria}
-              onChange={(e) => setCategoria(e.target.value)}
-              className="w-full rounded-lg border border-blue-300 bg-white px-3 py-2 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
-            >
-              <option value="Estándar">Estándar</option>
-              <option value="Premium">Premium</option>
-              <option value="VIP">VIP</option>
-            </select>
-          ) : (
-            <input
-              readOnly
-              value={categoria}
-              className="w-full rounded-lg border border-gray-200 bg-gray-50 px-3 py-2"
-            />
-          )}
+          <input
+            readOnly
+            value={cliente.categoria || "Estándar"}
+            className={readOnlyInputClass}
+            title="La categoría no es editable"
+          />
+          <p className="text-xs text-gray-400 mt-1">Solo lectura</p>
         </Labeled>
         <Labeled label="Fecha de registro">
           <input
             type="date"
-            readOnly={!isEditing}
-            value={fechaRegistro}
-            onChange={(e) => setFechaRegistro(e.target.value)}
-            className={inputClassName(isEditing)}
+            readOnly
+            value={cliente.fechaRegistro || ""}
+            className={readOnlyInputClass}
+            title="La fecha de registro no es editable"
           />
+          <p className="text-xs text-gray-400 mt-1">Solo lectura</p>
         </Labeled>
       </CollapsibleSection>
 

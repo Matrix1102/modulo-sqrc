@@ -72,16 +72,15 @@ public class ClienteApiClient {
     }
 
     /**
-     * Busca un cliente por su DNI en el API externo.
-     * Endpoint: GET /api/clientes/integracion/atencion-cliente/buscar?dni={dni}
+     * Obtiene los datos de un cliente por su DNI desde el API externo.
      *
-     * @param dni DNI del cliente
+     * @param dni DNI del cliente (8 dígitos)
      * @return ClienteExternoDTO con los datos del cliente
      * @throws ClienteNotFoundException si el cliente no existe
      */
     public ClienteExternoDTO obtenerClientePorDni(String dni) {
-        String url = apiBaseUrl + "/buscar?dni=" + dni;
-        log.info("GET {} - Buscando cliente por DNI desde API externa", url);
+        String url = apiBaseUrl + "/dni/" + dni;
+        log.info("GET {} - Obteniendo cliente por DNI desde API externa", url);
 
         try {
             ClienteExternoDTO cliente = webClient.get()
@@ -90,7 +89,7 @@ public class ClienteApiClient {
                     .retrieve()
                     .onStatus(HttpStatusCode::is4xxClientError, response -> {
                         if (response.statusCode().value() == 404) {
-                            return Mono.error(new ClienteNotFoundException("Cliente con DNI " + dni + " no encontrado"));
+                            return Mono.error(new ClienteNotFoundException("dni", dni));
                         }
                         return response.bodyToMono(String.class)
                                 .flatMap(body -> Mono.error(new RuntimeException("Error del cliente: " + body)));
@@ -98,17 +97,16 @@ public class ClienteApiClient {
                     .bodyToMono(ClienteExternoDTO.class)
                     .block();
 
-            log.info("Cliente encontrado por DNI {}: {} {}", 
-                    dni,
+            log.info("Cliente obtenido por DNI exitosamente: {} {}", 
                     cliente != null ? cliente.getFirstName() : "null",
                     cliente != null ? cliente.getLastName() : "null");
             return cliente;
 
         } catch (ClienteNotFoundException e) {
-            log.warn("Cliente con DNI {} no encontrado en API externa", dni);
+            log.warn("Cliente no encontrado por DNI en API externa: {}", dni);
             throw e;
         } catch (Exception e) {
-            log.error("Error al buscar cliente por DNI desde API externa: {}", e.getMessage());
+            log.error("Error al obtener cliente por DNI desde API externa: {}", e.getMessage());
             throw new RuntimeException("Error al comunicarse con el servicio de clientes: " + e.getMessage(), e);
         }
     }
