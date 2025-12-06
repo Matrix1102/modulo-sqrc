@@ -24,6 +24,8 @@ export function useTickets(filters: TicketFilters = {}): UseTicketsResult {
   const fetchTickets = useCallback(async () => {
     setLoading(true);
     setError(null);
+    // Limpiar tickets inmediatamente para evitar mostrar datos del rol anterior
+    setTickets([]);
 
     try {
       const response = await ticketApi.getTickets({

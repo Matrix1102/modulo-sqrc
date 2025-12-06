@@ -32,6 +32,7 @@ export async function getTickets(filter?: TicketFilter): Promise<TicketListItem[
   if (filter?.estado) params.append('estado', filter.estado);
   if (filter?.fecha) params.append('fecha', filter.fecha);
   if (filter?.search) params.append('search', filter.search);
+  if (filter?.empleadoId) params.append('empleadoId', filter.empleadoId.toString());
 
   const queryString = params.toString();
   const url = queryString ? `${TICKETS_ENDPOINT}?${queryString}` : TICKETS_ENDPOINT;

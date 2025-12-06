@@ -1,23 +1,66 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useMemo, useEffect } from "react";
 import { TicketFilters } from "../../features/tickets/components/TicketFilters";
 import { TicketListTable } from "../../features/tickets/components/TicketListTable";
 import { ClienteAuthModal } from "../../features/tickets/components/ClienteAuthModal";
 import { CreateTicketModal } from "../../features/tickets/components/CreateTicketModal";
 import { useTickets } from "../../features/tickets/hooks/useTickets";
 import { useCallSimulatorContext } from "../../features/tickets/hooks/useCallSimulatorContext";
+import { useUser } from "../../context/UserContext";
 import type { ClienteDTO, TicketFilters as ITicketFilters } from "../../features/tickets/types";
 
 const TicketingPage = () => {
+  const { user } = useUser();
+  
+  // Calcular filtros iniciales basados en el usuario (memoizado)
+  const initialFilters = useMemo((): ITicketFilters => {
+    const baseFilters: ITicketFilters = {};
+    
+    if (user?.id) {
+      // Solo AGENTES filtran por empleado
+      if (user.rol === "AGENTE") {
+        baseFilters.empleadoId = user.id;
+      }
+      
+      // BackOffice: sin filtro por empleado ni estado (se filtra en frontend a ESCALADO/DERIVADO)
+    }
+    
+    return baseFilters;
+  }, [user]); // Usar objeto completo para satisfacer React Compiler
+  
   // Estado para modales
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [clienteAutenticado, setClienteAutenticado] = useState<ClienteDTO | null>(null);
 
   // Estado para filtros
-  const [filters, setFilters] = useState<ITicketFilters>({});
+  const [filters, setFilters] = useState<ITicketFilters>(() => initialFilters);
+
+  // Resetear filtros cuando cambia el usuario
+  useEffect(() => {
+    setFilters(initialFilters);
+  }, [initialFilters]);
 
   // Hook para obtener tickets
   const { tickets, loading, error, refetch } = useTickets(filters);
+
+  // Filtrado adicional por rol (seguridad en frontend)
+  const filteredTickets = useMemo(() => {
+    if (user?.id === 3) {
+      // BackOffice: solo escalados y derivados (de cualquier backoffice)
+      return tickets.filter(
+        (t) => t.estado === "ESCALADO" || t.estado === "DERIVADO"
+      );
+    }
+
+    if (user?.rol === "AGENTE") {
+      // Agentes: solo abiertos y cerrados
+      return tickets.filter(
+        (t) => t.estado === "ABIERTO" || t.estado === "CERRADO"
+      );
+    }
+
+    return tickets;
+  }, [tickets, user]);
 
   // Obtener estado del simulador de llamadas desde el context
   const callSimulator = useCallSimulatorContext();
@@ -55,10 +98,17 @@ const TicketingPage = () => {
     setClienteAutenticado(null);
   }, []);
 
-  // Handler para cambios en filtros
+  // Handler para cambios en filtros (preservar empleadoId solo para agentes)
   const handleFiltersChange = useCallback((newFilters: ITicketFilters) => {
-    setFilters(newFilters);
-  }, []);
+    const updatedFilters: ITicketFilters = { ...newFilters };
+    
+    // Solo mantener filtro de empleado para AGENTES (no para BackOffice)
+    if (user?.rol === "AGENTE" && user?.id) {
+      updatedFilters.empleadoId = user.id;
+    }
+    
+    setFilters(updatedFilters);
+  }, [user]);
 
   return (
     <div className="flex flex-col h-full">
@@ -102,7 +152,7 @@ const TicketingPage = () => {
           </div>
         )}
 
-        <TicketListTable tickets={tickets} loading={loading} />
+        <TicketListTable tickets={filteredTickets} loading={loading} />
       </div>
 
       {/* Modal de autenticación de cliente */}

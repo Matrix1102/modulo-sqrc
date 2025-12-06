@@ -177,26 +177,28 @@ export default function MainLayout({ role }: Readonly<MainLayoutProps>) {
   const currentPath = location.pathname;
   const { user, setUser } = useUser();
 
+  const getUserData = (role: MainLayoutProps["role"]) => {
+    switch (role) {
+      case "SUPERVISOR":
+        return { id: 1, nombre: "Roberto Manager", email: "roberto@sqrc.com", rol: "SUPERVISOR" as const };
+      case "BACKOFFICE":
+        return { id: 3, nombre: "Jorge Resolver", email: "jorge@sqrc.com", rol: "SUPERVISOR" as const }; // Backoffice usa rol SUPERVISOR en el sistema
+      case "AGENTE_LLAMADA":
+        return { id: 6, nombre: "Sofia Call", email: "sofia@sqrc.com", rol: "AGENTE" as const };
+      case "AGENTE_PRESENCIAL":
+        return { id: 9, nombre: "Fernando Face", email: "fernando@sqrc.com", rol: "AGENTE" as const };
+    }
+  };
+
+  const desiredUser = getUserData(role);
+  const userReady = user?.id === desiredUser.id;
+
   // Sincronizar el usuario del contexto con el role prop de la ruta
   useEffect(() => {
-    const getUserData = (role: MainLayoutProps["role"]) => {
-      switch (role) {
-        case "SUPERVISOR":
-          return { id: 1, nombre: "Roberto Manager", email: "roberto@sqrc.com", rol: "SUPERVISOR" as const };
-        case "BACKOFFICE":
-          return { id: 3, nombre: "Jorge Resolver", email: "jorge@sqrc.com", rol: "SUPERVISOR" as const }; // Backoffice usa rol SUPERVISOR en el sistema
-        case "AGENTE_LLAMADA":
-          return { id: 6, nombre: "Sofia Call", email: "sofia@sqrc.com", rol: "AGENTE" as const };
-        case "AGENTE_PRESENCIAL":
-          return { id: 9, nombre: "Fernando Face", email: "fernando@sqrc.com", rol: "AGENTE" as const };
-      }
-    };
-
-    const userData = getUserData(role);
-    if (!user || user.id !== userData.id) {
-      setUser(userData);
+    if (!userReady) {
+      setUser(desiredUser);
     }
-  }, [role, user, setUser]);
+  }, [userReady, desiredUser, setUser]);
 
   // Obtener el estado del simulador de llamadas desde el context (solo para agentes de llamada)
   const isCallAgent = role === "AGENTE_LLAMADA";
@@ -227,6 +229,15 @@ export default function MainLayout({ role }: Readonly<MainLayoutProps>) {
   };
 
   const pageInfo = getPageInfo();
+
+  // Evitar renderizar el contenido hasta que el usuario correcto esté en contexto
+  if (!userReady) {
+    return (
+      <div className="flex h-screen items-center justify-center bg-light-200 text-gray-600">
+        Cargando vista...
+      </div>
+    );
+  }
 
   return (
     <div className="flex h-screen bg-light-200">
