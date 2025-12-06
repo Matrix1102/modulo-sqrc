@@ -1,15 +1,42 @@
 import React, { useEffect, useMemo, useState } from "react";
+import { ShoppingBag } from "lucide-react";
 import {
   ProductFilterBar,
   ProductMasterList,
   PaymentHistoryTable,
 } from "./products";
 import type { PaymentDocument, VistaProduct } from "./products";
+import { useCustomer } from "../../context/CustomerContext";
 
 // URL de contrato de Google Drive para productos
 const CONTRACT_URL_PRODUCTS = "https://drive.google.com/file/d/1zW8PmfMDr94mY4lLB3Ac9AW9hTRRNzYY/view";
 
-// 6 PRODUCTOS
+/**
+ * CÓDIGOS DE REFERENCIA USADOS:
+ * 
+ * FAC-YYYY-MM-XXXXX = Factura (documento de venta principal)
+ *   - FAC = Factura
+ *   - YYYY = Año de emisión
+ *   - MM = Mes de emisión  
+ *   - XXXXX = Número correlativo
+ * 
+ * CUO-YYYY-MM-XXXXX = Cuota de pago fraccionado
+ *   - CUO = Cuota
+ *   - Usado para pagos a plazos/crédito directo
+ * 
+ * GAR-YYYY-MM-XXXXX = Garantía extendida
+ *   - GAR = Garantía
+ *   - Documento de compra de garantía adicional
+ * 
+ * ACC-YYYY-MM-XXXXX = Accesorio
+ *   - ACC = Accesorio
+ *   - Compra de accesorios relacionados al producto
+ * 
+ * SKU-XXXXX = Stock Keeping Unit (Código de producto)
+ *   - Identificador único del producto en inventario
+ */
+
+// 6 PRODUCTOS con saldos reducidos y más documentos
 const MOCK_PRODUCTS: VistaProduct[] = [
   {
     id: "prd-001",
@@ -43,6 +70,17 @@ const MOCK_PRODUCTS: VistaProduct[] = [
         paymentMethod: "Visa Crédito •••• 4721",
         balance: 0,
       },
+      {
+        id: "doc-002b",
+        issueDate: "2025-02-15",
+        amount: 149.0,
+        status: "Pagado",
+        reference: "ACC-2025-02-00078",
+        downloadUrl: "#",
+        contractUrl: CONTRACT_URL_PRODUCTS,
+        paymentMethod: "Yape",
+        balance: 0,
+      },
     ],
   },
   {
@@ -59,12 +97,12 @@ const MOCK_PRODUCTS: VistaProduct[] = [
         id: "doc-003",
         issueDate: "2025-02-22",
         amount: 499.9,
-        status: "Pago parcial",
+        status: "Pagado",
         reference: "CUO-2025-02-00671",
         downloadUrl: "#",
         contractUrl: CONTRACT_URL_PRODUCTS,
         paymentMethod: "Crédito Directo (cuota 2 de 12)",
-        balance: 2499.5,
+        balance: 0,
       },
       {
         id: "doc-004",
@@ -77,13 +115,24 @@ const MOCK_PRODUCTS: VistaProduct[] = [
         paymentMethod: "Pago inicial - Yape",
         balance: 0,
       },
+      {
+        id: "doc-004b",
+        issueDate: "2025-03-22",
+        amount: 499.9,
+        status: "Pago parcial",
+        reference: "CUO-2025-03-00672",
+        downloadUrl: "#",
+        contractUrl: CONTRACT_URL_PRODUCTS,
+        paymentMethod: "Crédito Directo (cuota 3 de 12)",
+        balance: 249.95,
+      },
     ],
   },
   {
     id: "prd-003",
     name: "iPad Air 13'' M2 Wi-Fi",
     code: "SKU-IPAD-A13",
-    status: "Pendiente",
+    status: "Pagado",
     startDate: "2025-03-08",
     paymentForm: "Pago Único",
     nextBillingDate: "2025-03-21",
@@ -93,12 +142,23 @@ const MOCK_PRODUCTS: VistaProduct[] = [
         id: "doc-005",
         issueDate: "2025-03-08",
         amount: 3799.0,
-        status: "Pendiente",
+        status: "Pagado",
         reference: "FAC-2025-03-00012",
         downloadUrl: "#",
         contractUrl: CONTRACT_URL_PRODUCTS,
         paymentMethod: "Transferencia BCP",
-        balance: 3799.0,
+        balance: 0,
+      },
+      {
+        id: "doc-005b",
+        issueDate: "2025-03-10",
+        amount: 79.0,
+        status: "Pagado",
+        reference: "ACC-2025-03-00034",
+        downloadUrl: "#",
+        contractUrl: CONTRACT_URL_PRODUCTS,
+        paymentMethod: "Plin",
+        balance: 0,
       },
     ],
   },
@@ -132,7 +192,29 @@ const MOCK_PRODUCTS: VistaProduct[] = [
         downloadUrl: "#",
         contractUrl: CONTRACT_URL_PRODUCTS,
         paymentMethod: "Cuota 1 de 6 - Débito automático",
-        balance: 5000.0,
+        balance: 0,
+      },
+      {
+        id: "doc-007b",
+        issueDate: "2025-03-15",
+        amount: 1250.0,
+        status: "Pagado",
+        reference: "CUO-2025-03-00113",
+        downloadUrl: "#",
+        contractUrl: CONTRACT_URL_PRODUCTS,
+        paymentMethod: "Cuota 2 de 6 - Débito automático",
+        balance: 0,
+      },
+      {
+        id: "doc-007c",
+        issueDate: "2025-04-15",
+        amount: 1250.0,
+        status: "Pendiente",
+        reference: "CUO-2025-04-00114",
+        downloadUrl: "#",
+        contractUrl: CONTRACT_URL_PRODUCTS,
+        paymentMethod: "Cuota 3 de 6 - Débito automático",
+        balance: 150.0,
       },
     ],
   },
@@ -157,13 +239,24 @@ const MOCK_PRODUCTS: VistaProduct[] = [
         paymentMethod: "Yape",
         balance: 0,
       },
+      {
+        id: "doc-008b",
+        issueDate: "2025-03-01",
+        amount: 49.0,
+        status: "Pagado",
+        reference: "GAR-2025-03-00015",
+        downloadUrl: "#",
+        contractUrl: CONTRACT_URL_PRODUCTS,
+        paymentMethod: "Yape",
+        balance: 0,
+      },
     ],
   },
   {
     id: "prd-006",
     name: "Apple Watch Ultra 2",
     code: "SKU-AWU2-49",
-    status: "Pago parcial",
+    status: "Pagado",
     startDate: "2025-02-20",
     paymentForm: "Pago a Cuotas",
     nextBillingDate: "2025-05-20",
@@ -184,12 +277,34 @@ const MOCK_PRODUCTS: VistaProduct[] = [
         id: "doc-010",
         issueDate: "2025-03-20",
         amount: 600.0,
-        status: "Pago parcial",
+        status: "Pagado",
         reference: "CUO-2025-03-00034",
         downloadUrl: "#",
         contractUrl: CONTRACT_URL_PRODUCTS,
         paymentMethod: "Cuota 1 de 3",
-        balance: 1200.0,
+        balance: 0,
+      },
+      {
+        id: "doc-010b",
+        issueDate: "2025-04-20",
+        amount: 600.0,
+        status: "Pagado",
+        reference: "CUO-2025-04-00035",
+        downloadUrl: "#",
+        contractUrl: CONTRACT_URL_PRODUCTS,
+        paymentMethod: "Cuota 2 de 3",
+        balance: 0,
+      },
+      {
+        id: "doc-010c",
+        issueDate: "2025-05-20",
+        amount: 600.0,
+        status: "Pendiente",
+        reference: "CUO-2025-05-00036",
+        downloadUrl: "#",
+        contractUrl: CONTRACT_URL_PRODUCTS,
+        paymentMethod: "Cuota 3 de 3",
+        balance: 99.90,
       },
     ],
   },
@@ -212,8 +327,17 @@ const DEFAULT_FILTERS: ProductFilterState = {
 };
 
 const CustomerProductsView: React.FC = () => {
+  const { cliente } = useCustomer();
   const [filters, setFilters] = useState<ProductFilterState>(DEFAULT_FILTERS);
   const [selectedProductId, setSelectedProductId] = useState<string>(MOCK_PRODUCTS[0]?.id ?? "");
+
+  // Cálculo del saldo total de todos los productos
+  const totalOutstandingAllProducts = useMemo(() => {
+    return MOCK_PRODUCTS.reduce((total, product) => {
+      const productBalance = product.documents.reduce((subTotal, doc) => subTotal + doc.balance, 0);
+      return total + productBalance;
+    }, 0);
+  }, []);
 
   const filteredProducts = useMemo(() => {
     return MOCK_PRODUCTS.filter((product) => {
@@ -264,6 +388,23 @@ const CustomerProductsView: React.FC = () => {
     }
   }, [filteredProducts, selectedProductId]);
 
+  // Si no hay cliente, mostrar estado vacío
+  if (!cliente) {
+    return (
+      <section className="flex flex-col items-center justify-center gap-4 rounded-xl border border-dashed border-gray-300 bg-gradient-to-br from-gray-50 to-white p-12">
+        <div className="flex h-20 w-20 items-center justify-center rounded-full bg-gray-100">
+          <ShoppingBag size={40} className="text-gray-400" />
+        </div>
+        <div className="text-center">
+          <h3 className="text-lg font-semibold text-gray-700">Sin cliente seleccionado</h3>
+          <p className="mt-1 text-sm text-gray-500">
+            Busca un cliente en la pestaña "Básico" para ver sus productos
+          </p>
+        </div>
+      </section>
+    );
+  }
+
   return (
     <section className="flex flex-col gap-6">
       <div className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
@@ -284,6 +425,16 @@ const CustomerProductsView: React.FC = () => {
           productName={selectedProduct?.name ?? ""}
           documents={paymentHistory}
         />
+      </div>
+
+      <div
+        className={`rounded-xl border px-4 py-3 text-sm font-semibold ${
+          totalOutstandingAllProducts === 0
+            ? "border-emerald-200 bg-emerald-50 text-emerald-600"
+            : "border-red-200 bg-red-50 text-red-600"
+        }`}
+      >
+        Saldo total de productos: S/ {totalOutstandingAllProducts.toFixed(2)}
       </div>
     </section>
   );

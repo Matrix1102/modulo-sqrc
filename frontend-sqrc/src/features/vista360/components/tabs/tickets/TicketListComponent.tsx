@@ -1,4 +1,5 @@
 import React from "react";
+import { Ticket } from "lucide-react";
 import { formatShortDate, STATUS_BADGE_VARIANTS } from "./helpers";
 import type { TicketSummary } from "./types";
 
@@ -22,7 +23,12 @@ const TicketListComponent: React.FC<TicketListComponentProps> = ({
 
       <ul className="flex-1 divide-y divide-gray-100 overflow-y-auto">
         {tickets.length === 0 && (
-          <li className="p-6 text-center text-sm text-gray-500">Sin resultados. Ajusta los filtros.</li>
+          <li className="flex flex-col items-center justify-center gap-3 p-8">
+            <div className="flex h-14 w-14 items-center justify-center rounded-full bg-gray-100">
+              <Ticket size={28} className="text-gray-400" />
+            </div>
+            <p className="text-sm text-gray-500">Sin resultados. Ajusta los filtros.</p>
+          </li>
         )}
 
         {tickets.map((ticket) => {

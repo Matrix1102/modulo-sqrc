@@ -1,11 +1,13 @@
 import React from "react";
 import { StatCard, type StatCardVariant } from "../../common";
-import { Clock, TicketCheck, Star, CalendarCheck } from "lucide-react";
+import { Clock, TicketCheck, Star, CalendarCheck, Wallet, CreditCard } from "lucide-react";
 import type { MetricaKPI } from "../../../../../services/vista360Api";
 
 interface Props {
   metricas?: MetricaKPI[];
   loading?: boolean;
+  saldoProductos?: number;
+  saldoServicios?: number;
 }
 
 // Configuración de cada métrica con su ícono y variante de color
@@ -16,15 +18,23 @@ const metricConfig: Record<string, { icon: React.ReactNode; variant: StatCardVar
   },
   "Tickets Abiertos": { 
     icon: <TicketCheck size={24} strokeWidth={2} />, 
-    variant: "amber" 
+    variant: "blue" 
   },
   "Calificación de la Atención": { 
     icon: <Star size={24} strokeWidth={2} />, 
-    variant: "purple" 
+    variant: "blue" 
   },
   "Tickets del Último Mes": { 
     icon: <CalendarCheck size={24} strokeWidth={2} />, 
-    variant: "emerald" 
+    variant: "blue" 
+  },
+  "Saldo Productos": { 
+    icon: <CreditCard size={24} strokeWidth={2} />, 
+    variant: "blue" 
+  },
+  "Saldo Servicios": { 
+    icon: <Wallet size={24} strokeWidth={2} />, 
+    variant: "blue" 
   },
 };
 
@@ -58,7 +68,62 @@ const getMetricConfig = (titulo: string) => {
   return defaultConfig;
 };
 
-const ServiceStatsGrid: React.FC<Props> = ({ metricas = [], loading = false }) => {
+const ServiceStatsGrid: React.FC<Props> = ({ metricas = [], loading = false, saldoProductos = 0, saldoServicios = 0 }) => {
+  // Detectar si hay cliente (backend devuelve métricas cuando hay cliente)
+  const hasCliente = metricas.length > 0;
+
+  // Transformar métricas recibidas para aplicar reglas específicas (por ejemplo Tickets del Último Mes)
+  const transformedMetricas: MetricaKPI[] = metricas.map((m) => {
+    // Si es la métrica "Tickets del Último Mes" intentamos interpretar el valor como número
+    if (m.titulo && m.titulo.toLowerCase().includes("tickets del último mes")) {
+      // Extraer número del valor principal (puede venir como string)
+      const numericMatch = String(m.valorPrincipal).match(/\d+/);
+      const count = numericMatch ? parseInt(numericMatch[0], 10) : NaN;
+
+      if (!isNaN(count)) {
+        if (count > 5) {
+          // Más de 5 -> tendencia negativa
+          return {
+            ...m,
+            subtituloTendencia: `+${count - 5} del promedio`,
+            estadoTendencia: 'NEGATIVO',
+          } as MetricaKPI;
+        }
+        // <= 5 -> positivo / similar al promedio
+        return {
+          ...m,
+          subtituloTendencia: 'Similar al promedio',
+          estadoTendencia: 'POSITIVO',
+        } as MetricaKPI;
+      }
+    }
+
+    // Por defecto, devolver la métrica sin cambios
+    return m;
+  });
+
+  // Crear métricas adicionales de saldo solo si hay cliente
+  const saldoMetricas: MetricaKPI[] = hasCliente
+    ? [
+        {
+          titulo: 'Saldo Productos',
+          valorPrincipal: `S/ ${saldoProductos.toFixed(2)}`,
+          unidad: '',
+          subtituloTendencia: saldoProductos > 0 ? 'Deuda pendiente' : 'Sin deuda',
+          estadoTendencia: saldoProductos > 0 ? 'NEGATIVO' : 'POSITIVO',
+        },
+        {
+          titulo: 'Saldo Servicios',
+          valorPrincipal: `S/ ${saldoServicios.toFixed(2)}`,
+          unidad: '',
+          subtituloTendencia: saldoServicios > 0 ? 'Deuda pendiente' : 'Sin deuda',
+          estadoTendencia: saldoServicios > 0 ? 'NEGATIVO' : 'POSITIVO',
+        },
+      ]
+    : [];
+
+  // Combinar métricas transformadas con las de saldo
+  const allMetricas = [...transformedMetricas, ...saldoMetricas];
   if (loading) {
     return (
       <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
@@ -81,7 +146,7 @@ const ServiceStatsGrid: React.FC<Props> = ({ metricas = [], loading = false }) =
     );
   }
 
-  if (metricas.length === 0) {
+  if (allMetricas.length === 0) {
     return (
       <div className="flex items-center justify-center h-64 rounded-2xl bg-gradient-to-br from-gray-50 to-white border border-dashed border-gray-300">
         <div className="text-center">
@@ -96,12 +161,12 @@ const ServiceStatsGrid: React.FC<Props> = ({ metricas = [], loading = false }) =
   }
 
   return (
-    <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
-      {metricas.map((metrica, index) => {
+    <div className="grid grid-cols-1 gap-8 sm:grid-cols-2">
+      {allMetricas.map((metrica, index) => {
         const config = getMetricConfig(metrica.titulo);
         
         return (
-          <div key={index} className="h-[160px]">
+          <div key={index} className="h-[200px]">
             <StatCard
               title={metrica.titulo}
               value={

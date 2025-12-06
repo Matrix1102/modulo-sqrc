@@ -103,27 +103,62 @@ public class RespuestaService {
         this.cadenaValidacion = validarEstado;
     }
 
-    // =========================================================================
-    // CASO 1: RESPUESTA MANUAL DEL AGENTE (Usa Chain + Observer)
-    // =========================================================================
     @Transactional
     public void procesarYEnviarRespuesta(EnviarRespuestaRequestDTO request) {
         // 1. Validar
         cadenaValidacion.validar(request);
 
-        // 2. Obtener Plantilla y Renderizar
-        Plantilla plantilla = plantillaService.obtenerPorId(request.idPlantilla());
-        String htmlFinal = renderService.renderizar(plantilla.getHtmlModel(), request.variables());
+        // 2. BUSCAR DATOS (Esto faltaba: Traer el Ticket y Cliente de la BD)
+        Asignacion asignacion = asignacionRepository.findTopByTicket_IdTicketOrderByFechaInicioDesc(request.idAsignacion())
+                .orElseThrow(() -> new RuntimeException("No se encontró ninguna asignación para el Ticket ID: " + request.idAsignacion()));
 
-        // 3. Generar PDF
+        Ticket ticket = asignacion.getTicket();
+        ClienteEntity cliente = ticket.getCliente();
+
+        // 3. Obtener Plantilla
+        Plantilla plantilla = plantillaService.obtenerPorId(request.idPlantilla());
+
+        // 4. PREPARAR VARIABLES (Aquí "llenamos los huecos")
+        Map<String, Object> variablesCompletas = new HashMap<>();
+
+        // A) Variables del Frontend (lo que editó el agente)
+        if (request.variables() != null) {
+            variablesCompletas.putAll(request.variables());
+        }
+
+        // B) INYECTAR VARIABLES DEL SISTEMA (La cura para tu error)
+        // Java calcula "hoy" y se lo pasa a la plantilla
+        variablesCompletas.put("fecha_actual", LocalDate.now().toString());
+
+        // Java saca el ID del ticket y se lo pasa
+        variablesCompletas.put("numero_ticket", ticket.getIdTicket().toString());
+
+        // Java saca datos del cliente y se los pasa
+        String nombreCompleto = (cliente != null) ? cliente.getNombres() + " " + cliente.getApellidos() : "Cliente";
+        String dni = (cliente != null) ? cliente.getDni() : "";
+
+        variablesCompletas.put("nombre_cliente", nombreCompleto);
+        variablesCompletas.put("identificador_servicio", dni);
+        variablesCompletas.put("asunto_ticket", ticket.getAsunto());
+
+        // Titulo (si no viene en el request, usamos el de la plantilla)
+        String titulo = (request.asunto() != null && !request.asunto().isEmpty())
+                ? request.asunto()
+                : plantilla.getTituloVisible();
+        variablesCompletas.put("titulo", titulo);
+
+        // 5. RENDERIZAR (Ahora sí funcionará porque tiene todos los datos)
+        String htmlFinal = renderService.renderizar(plantilla.getHtmlModel(), variablesCompletas);
+
+        // 6. GENERAR PDF
         byte[] pdfBytes = pdfService.generarPdfDesdeHtml(htmlFinal);
         String nombreArchivo = "Respuesta_Caso_" + request.idAsignacion() + ".pdf";
 
-        // 3.1 Subir a Supabase (bucket manuales)
-        String rutaObjeto = "manuales/" + nombreArchivo; // puedes cambiar la carpeta lógica
-        String urlPublicaPdf = supabaseStorageService.uploadPdfManual(rutaObjeto, pdfBytes);
+        // 7. SUBIR A SUPABASE
+        // Importante: Ajusta el nombre del bucket a "respuestas_manuales" si es el que creaste
+        String urlPublicaPdf = supabaseStorageService.uploadPdfManual(nombreArchivo, pdfBytes);
 
-        // 4. Enviar Email
+        // 8. ENVIAR EMAIL
         emailService.enviarCorreoConAdjunto(
                 request.correoDestino(),
                 request.asunto(),
@@ -132,13 +167,9 @@ public class RespuestaService {
                 nombreArchivo
         );
 
-        // 5. Guardar (CORREGIDO)
-        // Buscamos la asignación real para vincularla
-        Asignacion asignacion = asignacionRepository.findById(request.idAsignacion())
-                .orElseThrow(() -> new RuntimeException("Asignación no encontrada"));
-
+        // 9. GUARDAR EN HISTORIAL
         RespuestaCliente respuesta = new RespuestaCliente();
-        respuesta.setAsignacion(asignacion); // <--- ¡VITAL! Sin esto falla.
+        respuesta.setAsignacion(asignacion);
         respuesta.setPlantilla(plantilla);
         respuesta.setAsunto(request.asunto());
         respuesta.setCorreoDestino(request.correoDestino());
@@ -146,11 +177,11 @@ public class RespuestaService {
         respuesta.setFechaEnvio(LocalDateTime.now());
         respuesta.setFechaCreacion(LocalDateTime.now());
         respuesta.setUrlPdfGenerado(urlPublicaPdf);
-        respuesta.setTipoRespuesta(TipoRespuesta.MANUAL); // Respuesta manual del agente
+        respuesta.setTipoRespuesta(TipoRespuesta.MANUAL);
 
         respuestaRepository.save(respuesta);
 
-        // 6. Notificar
+        // 10. CERRAR Y NOTIFICAR
         notificarObservadores(new RespuestaEnviadaEvent(request.idAsignacion(), request.cerrarTicket()));
     }
 

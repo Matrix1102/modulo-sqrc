@@ -2,6 +2,7 @@
  * Filtros para la tabla de tickets
  */
 import { useState } from 'react';
+import { useUser } from '../../../context/UserContext';
 import type { TipoTicket, EstadoTicket, TicketFilter } from '../types';
 
 interface TicketFiltersProps {
@@ -10,10 +11,15 @@ interface TicketFiltersProps {
 }
 
 export const TicketFilters = ({ onFiltersChange }: TicketFiltersProps) => {
+  const { user } = useUser();
   const [search, setSearch] = useState('');
   const [tipoFilter, setTipoFilter] = useState<TipoTicket | ''>('');
   const [estadoFilter, setEstadoFilter] = useState<EstadoTicket | ''>('');
   const [fecha, setFecha] = useState('');
+  
+  // Determinar rol
+  const isBackOffice = user?.id === 3;
+  const isAgente = user?.rol === 'AGENTE';
 
   const buildFilters = (
     tipo: TipoTicket | '',
@@ -101,11 +107,30 @@ export const TicketFilters = ({ onFiltersChange }: TicketFiltersProps) => {
           onChange={(e) => handleEstadoChange(e.target.value as EstadoTicket | '')}
           className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500"
         >
-          <option value="">Todos</option>
-          <option value="ABIERTO">Abierto</option>
-          <option value="ESCALADO">Escalado</option>
-          <option value="DERIVADO">Derivado</option>
-          <option value="CERRADO">Cerrado</option>
+          {isBackOffice ? (
+            // BackOffice: solo Escalado y Derivado
+            <>
+              <option value="">Todos</option>
+              <option value="ESCALADO">Escalado</option>
+              <option value="DERIVADO">Derivado</option>
+            </>
+          ) : isAgente ? (
+            // Agentes: solo Abierto y Cerrado
+            <>
+              <option value="">Todos</option>
+              <option value="ABIERTO">Abierto</option>
+              <option value="CERRADO">Cerrado</option>
+            </>
+          ) : (
+            // Otros roles: todos
+            <>
+              <option value="">Todos</option>
+              <option value="ABIERTO">Abierto</option>
+              <option value="ESCALADO">Escalado</option>
+              <option value="DERIVADO">Derivado</option>
+              <option value="CERRADO">Cerrado</option>
+            </>
+          )}
         </select>
       </div>
 

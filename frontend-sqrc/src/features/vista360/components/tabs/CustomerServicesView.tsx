@@ -1,10 +1,12 @@
 import React, { useEffect, useMemo, useState } from "react";
+import { Wifi } from "lucide-react";
 import {
   ServiceFilterBar,
   ServiceMasterList,
   ServiceBillingTable,
 } from "./services";
 import type { ServiceFilterState, ServiceContract, ServiceInvoice } from "./services";
+import { useCustomer } from "../../context/CustomerContext";
 
 // URL de contrato de Google Drive para servicios
 const CONTRACT_URL_SERVICES = "https://drive.google.com/file/d/1Lq44cW2TQMwqzm44nparLpiGlc5OP8On/view";
@@ -242,6 +244,7 @@ const DEFAULT_FILTERS: ServiceFilterState = {
 };
 
 const CustomerServicesView: React.FC = () => {
+  const { cliente } = useCustomer();
   const [filters, setFilters] = useState<ServiceFilterState>(DEFAULT_FILTERS);
   const [selectedServiceId, setSelectedServiceId] = useState<string>(MOCK_SERVICES[0]?.id ?? "");
 
@@ -298,6 +301,23 @@ const CustomerServicesView: React.FC = () => {
       setSelectedServiceId(filteredServices[0].id);
     }
   }, [filteredServices, selectedServiceId]);
+
+  // Si no hay cliente, mostrar estado vacío
+  if (!cliente) {
+    return (
+      <section className="flex flex-col items-center justify-center gap-4 rounded-xl border border-dashed border-gray-300 bg-gradient-to-br from-gray-50 to-white p-12">
+        <div className="flex h-20 w-20 items-center justify-center rounded-full bg-gray-100">
+          <Wifi size={40} className="text-gray-400" />
+        </div>
+        <div className="text-center">
+          <h3 className="text-lg font-semibold text-gray-700">Sin cliente seleccionado</h3>
+          <p className="mt-1 text-sm text-gray-500">
+            Busca un cliente en la pestaña "Básico" para ver sus servicios
+          </p>
+        </div>
+      </section>
+    );
+  }
 
   return (
     <section className="flex flex-col gap-6">

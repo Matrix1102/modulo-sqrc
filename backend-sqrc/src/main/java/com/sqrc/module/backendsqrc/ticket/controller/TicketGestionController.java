@@ -6,6 +6,7 @@ import com.sqrc.module.backendsqrc.ticket.dto.NotificacionExternaDTO;
 import com.sqrc.module.backendsqrc.ticket.dto.request.*;
 import com.sqrc.module.backendsqrc.ticket.dto.response.*;
 import com.sqrc.module.backendsqrc.ticket.model.Ticket;
+import com.sqrc.module.backendsqrc.ticket.repository.AsignacionRepository;
 import com.sqrc.module.backendsqrc.ticket.repository.TicketRepository;
 import com.sqrc.module.backendsqrc.ticket.service.CorreoService;
 import com.sqrc.module.backendsqrc.ticket.service.DocumentacionService;
@@ -52,14 +53,16 @@ public class TicketGestionController {
     private final CorreoService correoService;
     private final NotificacionExternaService notificacionExternaService;
     private final TicketRepository ticketRepository;
+    private final AsignacionRepository asignacionRepository;
 
     /**
      * Lista todos los tickets con filtros opcionales.
      * 
-     * @param tipo Filtro por tipo de ticket (CONSULTA, QUEJA, RECLAMO, SOLICITUD)
+     * @param tipo Filtro por tipo (LLAMADA, PRESENCIAL)
      * @param estado Filtro por estado (ABIERTO, ESCALADO, DERIVADO, CERRADO)
      * @param fecha Filtro por fecha específica de creación (formato: yyyy-MM-dd)
-     * @param search Búsqueda por texto en asunto o cliente
+     * @param search Búsqueda por texto en asunto, cliente o ID de ticket
+     * @param empleadoId Filtro por empleado creador (ID del agente)
      * @return Lista de tickets en formato DTO ordenados por fecha descendente
      */
     @GetMapping
@@ -67,11 +70,25 @@ public class TicketGestionController {
             @RequestParam(required = false) String tipo,
             @RequestParam(required = false) String estado,
             @RequestParam(required = false) String fecha,
-            @RequestParam(required = false) String search) {
-        log.info("GET /api/tickets - Listando tickets con filtros: tipo={}, estado={}, fecha={}, search={}", 
-                tipo, estado, fecha, search);
+            @RequestParam(required = false) String search,
+            @RequestParam(required = false) Long empleadoId) {
+        log.info("GET /api/tickets - Listando tickets con filtros: tipo={}, estado={}, fecha={}, search={}, empleadoId={}", 
+                tipo, estado, fecha, search, empleadoId);
         
-        List<TicketListItemDTO> tickets = ticketRepository.findAll().stream()
+        // Obtener tickets base (filtrar por empleado primero si está presente)
+        List<Ticket> ticketsBase;
+        if (empleadoId != null) {
+            // Optimización: obtener IDs de tickets del empleado en una sola query
+            List<Long> ticketIds = asignacionRepository.findTicketIdsByEmpleadoId(empleadoId);
+            if (ticketIds.isEmpty()) {
+                return ResponseEntity.ok(List.of()); // No hay tickets para este empleado
+            }
+            ticketsBase = ticketRepository.findAllById(ticketIds);
+        } else {
+            ticketsBase = ticketRepository.findAll();
+        }
+        
+        List<TicketListItemDTO> tickets = ticketsBase.stream()
                 .filter(ticket -> tipo == null || tipo.isEmpty() || ticket.getTipoTicket().name().equals(tipo))
                 .filter(ticket -> estado == null || estado.isEmpty() || ticket.getEstado().name().equals(estado))
                 .filter(ticket -> {
@@ -82,6 +99,10 @@ public class TicketGestionController {
                 .filter(ticket -> {
                     if (search == null || search.isEmpty()) return true;
                     String searchLower = search.toLowerCase();
+                    
+                    // Búsqueda por ID de ticket
+                    boolean matchId = String.valueOf(ticket.getIdTicket()).contains(searchLower);
+                    
                     boolean matchAsunto = ticket.getAsunto() != null && 
                             ticket.getAsunto().toLowerCase().contains(searchLower);
                     boolean matchCliente = ticket.getCliente() != null && (
@@ -90,7 +111,7 @@ public class TicketGestionController {
                             (ticket.getCliente().getApellidos() != null && 
                              ticket.getCliente().getApellidos().toLowerCase().contains(searchLower))
                     );
-                    return matchAsunto || matchCliente;
+                    return matchId || matchAsunto || matchCliente;
                 })
                 .sorted((t1, t2) -> t2.getFechaCreacion().compareTo(t1.getFechaCreacion())) // Orden descendente
                 .map(this::convertToListItemDTO)
