@@ -1,5 +1,5 @@
 import React from "react";
-import DocumentAction from "../products/DocumentAction";
+import { FileText } from "lucide-react";
 import StatusBadge from "../products/StatusBadge";
 import type { ServiceInvoice } from "./types";
 
@@ -10,7 +10,7 @@ interface ServiceBillingTableProps {
 }
 
 const ServiceBillingTable: React.FC<ServiceBillingTableProps> = ({ serviceName, invoices, monthlyFee }) => {
-  const handleDocumentAction = (url: string) => {
+  const handleContractClick = (url: string) => {
     if (!url || url === "#") {
       return;
     }
@@ -64,8 +64,17 @@ const ServiceBillingTable: React.FC<ServiceBillingTableProps> = ({ serviceName, 
                 <td className="px-4 py-3">
                   <StatusBadge status={invoice.status} />
                 </td>
-                <td className="px-4 py-3 text-center">
-                  <DocumentAction onClick={() => handleDocumentAction(invoice.downloadUrl)} />
+                <td className="px-4 py-3">
+                  <div className="flex items-center justify-center">
+                    <button
+                      type="button"
+                      onClick={() => handleContractClick(invoice.contractUrl)}
+                      className="rounded-lg p-2 text-gray-500 transition-colors hover:bg-blue-50 hover:text-blue-600"
+                      title="Ver contrato"
+                    >
+                      <FileText className="h-5 w-5" />
+                    </button>
+                  </div>
                 </td>
               </tr>
             ))}

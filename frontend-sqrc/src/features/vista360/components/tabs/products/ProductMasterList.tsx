@@ -14,11 +14,11 @@ const ProductMasterList: React.FC<ProductMasterListProps> = ({ products, selecte
       <header className="flex items-center justify-between">
         <div>
           <h3 className="text-base font-semibold text-gray-900">Productos contratados</h3>
-          <p className="text-xs text-gray-500">{products.length} resultados</p>
+          <p className="text-xs text-gray-500">{products.length} productos</p>
         </div>
       </header>
 
-      <div className="space-y-3 overflow-y-auto pr-1 max-h-[28rem]">
+      <div className="space-y-3 overflow-y-auto pr-1 max-h-[32rem]">
         {products.length === 0 && (
           <div className="rounded-lg border border-dashed border-gray-300 bg-gray-50 p-6 text-center text-sm text-gray-500">
             No se encontraron productos con los filtros actuales.

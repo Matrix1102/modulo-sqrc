@@ -96,12 +96,12 @@ const ServiceStatsGrid: React.FC<Props> = ({ metricas = [], loading = false }) =
   }
 
   return (
-    <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
+    <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
       {metricas.map((metrica, index) => {
         const config = getMetricConfig(metrica.titulo);
         
         return (
-          <div key={index} className="min-h-[180px]">
+          <div key={index} className="h-[160px]">
             <StatCard
               title={metrica.titulo}
               value={

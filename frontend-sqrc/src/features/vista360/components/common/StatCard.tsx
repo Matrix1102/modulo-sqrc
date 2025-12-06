@@ -103,39 +103,37 @@ const StatCard: React.FC<Props> = ({
     <div 
       className={`
         relative flex h-full flex-col rounded-2xl border ${styles.border} ${styles.bg} 
-        p-6 shadow-lg ${styles.glow} transition-all duration-300 
+        p-5 shadow-lg ${styles.glow} transition-all duration-300 
         hover:shadow-xl hover:scale-[1.02] hover:-translate-y-1
       `}
     >
-      {/* Icono centrado arriba */}
-      {icon && (
-        <div className="flex justify-center mb-4">
+      {/* Header con título e ícono en esquina derecha */}
+      <div className="flex items-start justify-between mb-3">
+        <h3 className="text-sm font-semibold text-gray-600 leading-tight pr-2">
+          {title}
+        </h3>
+        {icon && (
           <div className={`
-            flex items-center justify-center w-14 h-14 rounded-xl 
+            flex items-center justify-center w-11 h-11 rounded-xl shrink-0
             ${styles.iconBg} ${styles.iconText} shadow-lg
           `}>
             {icon}
           </div>
-        </div>
-      )}
+        )}
+      </div>
 
-      {/* Título centrado */}
-      <h3 className="text-sm font-semibold text-gray-600 text-center mb-3">
-        {title}
-      </h3>
-
-      {/* Valor principal centrado */}
-      <div className="flex-1 flex items-center justify-center">
-        <div className="text-4xl font-bold text-gray-900 tracking-tight text-center">
+      {/* Valor principal alineado a la izquierda */}
+      <div className="flex-1 flex items-center">
+        <div className="text-3xl font-bold text-gray-900 tracking-tight">
           {value}
         </div>
       </div>
 
-      {/* Tendencia centrada */}
+      {/* Tendencia en la parte inferior */}
       {trendValue && (
-        <div className="mt-4 pt-4 border-t border-gray-200/50 flex justify-center">
+        <div className="mt-3 pt-3 border-t border-gray-200/50">
           <div className={`
-            inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full 
+            inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full 
             ${trendStyles.bg} ${trendStyles.text} text-xs font-semibold
           `}>
             {trendStyles.icon}
