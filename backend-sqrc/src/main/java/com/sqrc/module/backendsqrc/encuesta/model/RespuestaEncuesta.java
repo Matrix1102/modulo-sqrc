@@ -15,7 +15,7 @@ public class RespuestaEncuesta {
     private Long idRespuestaEncuesta;
 
     // Vinculación con la encuesta enviada
-    @OneToOne
+    @OneToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "encuesta_id", nullable = false)
     private Encuesta encuesta;
 
