@@ -7,6 +7,8 @@ import com.sqrc.module.backendsqrc.vista360.dto.ClienteBasicoDTO;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.event.EventListener;
+import org.springframework.transaction.annotation.Transactional;
+import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Component;
 
 /**
@@ -22,6 +24,7 @@ public class TicketClosedListener {
     private final Vista360Service vista360Service;
 
     @EventListener
+    @Transactional
     public void onTicketClosed(TicketClosedEvent event) {
         log.info("TicketClosedEvent received: ticketId={} encuestaId={} clienteId={}", event.ticketId(), event.encuestaId(), event.clienteId());
 

@@ -19,6 +19,7 @@ import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import lombok.extern.slf4j.Slf4j;
+import jakarta.persistence.PersistenceContext;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -43,6 +44,9 @@ public class EncuestaService {
     @Autowired private ApplicationEventPublisher eventPublisher;       // Patrón Observer
     @Autowired private EmailService emailService;
     @Autowired private PdfService pdfService;
+    @Autowired private com.sqrc.module.backendsqrc.ticket.repository.EmpleadoRepository empleadoRepository;
+    @PersistenceContext
+    private jakarta.persistence.EntityManager entityManager;
     @Value("${app.test.recipient:}")
     private String testRecipient;
     @Value("${app.frontend.url:http://localhost:5173}")
@@ -250,21 +254,35 @@ public class EncuestaService {
      */
     @Transactional(propagation = org.springframework.transaction.annotation.Propagation.REQUIRES_NEW, noRollbackFor = Exception.class)
     public Encuesta crearEncuestaParaTicket(Long plantillaId, Ticket ticket, Long agenteId, ClienteEntity cliente) {
-        // El agente se puede obtener de las asignaciones del ticket si no se proporciona
+        // Resolver agente por ID si se proporcionó
         Agente agente = null;
         if (agenteId != null) {
-            // Se necesitaría inyectar AgenteRepository, por ahora lo dejamos null
-            // y se obtiene del ticket si es necesario
+            try {
+                var empOpt = empleadoRepository.findById(agenteId);
+                if (empOpt.isPresent() && empOpt.get() instanceof Agente) {
+                    agente = (Agente) empOpt.get();
+                    String nombre = agente.getNombreCompleto();
+                    String correo = agente.getCorreo() != null ? agente.getCorreo() : "N/A";
+                    log.debug("Agente resuelto por ID {} en crearEncuestaParaTicket: nombre={}, correo={}", agenteId, nombre, correo);
+                } else {
+                    log.debug("Empleado con ID {} no es Agente o no existe", agenteId);
+                }
+            } catch (Exception ex) {
+                log.warn("Error buscando empleado por id {}: {}", agenteId, ex.getMessage(), ex);
+            }
         }
-        
-        // Si no hay agenteId pero hay ticket, intentar obtener el último agente asignado
+
+        // Si no hay agenteId o no se resolvió, intentar obtener el último agente asignado del ticket
         if (agente == null && ticket != null && ticket.getAsignaciones() != null && !ticket.getAsignaciones().isEmpty()) {
             var ultimaAsignacion = ticket.getAsignaciones().stream()
                 .filter(a -> a.getEmpleado() instanceof Agente)
                 .reduce((first, second) -> second); // Obtener la última
-            
+
             if (ultimaAsignacion.isPresent()) {
                 agente = (Agente) ultimaAsignacion.get().getEmpleado();
+                String nombre = agente.getNombreCompleto();
+                String correo = agente.getCorreo() != null ? agente.getCorreo() : "N/A";
+                log.debug("Agente resuelto desde asignaciones en crearEncuestaParaTicket: id={} nombre={} correo={}", agente.getIdEmpleado(), nombre, correo);
             }
         }
 
@@ -846,7 +864,7 @@ public class EncuestaService {
         }
     }
 
-    @Transactional
+    @Transactional(propagation = org.springframework.transaction.annotation.Propagation.REQUIRES_NEW)
     public void enviarEncuestaManual(String idStr, String correoDestino, String asunto, boolean attachPdf) {
         Long id = Long.parseLong(idStr);
 

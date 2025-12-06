@@ -23,6 +23,8 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.Optional;
+import jakarta.persistence.EntityManager;
+import jakarta.persistence.PersistenceContext;
 
 /**
  * Servicio para la gestión completa del ciclo de vida de tickets.
@@ -69,6 +71,8 @@ public class TicketGestionService {
     private final PlantillaEncuestaRepository plantillaEncuestaRepository;
 
     private final RespuestaService respuestaService;
+    @PersistenceContext
+    private EntityManager entityManager;
 
     // Dependencias para validación de cierre
     private final DocumentacionRepository documentacionRepository;
@@ -605,41 +609,36 @@ public class TicketGestionService {
         ticket.setFechaCierre(LocalDateTime.now());
         ticketRepository.save(ticket);
 
-        // ==================== PATRÓN OBSERVER: Crear encuesta y notificar ====================
-        Long encuestaId = null;
+        // ==================== PATRÓN OBSERVER: solicitar creación de encuesta después del commit ====================
+        boolean encuestaEventPublished = false;
         try {
-            encuestaId = crearEncuestaParaTicket(ticket);
-            log.info("Encuesta {} creada para ticket {}", encuestaId, ticketId);
+            var plantillaOpt = plantillaEncuestaRepository.findFirstByVigenteTrue();
+            if (plantillaOpt.isPresent() && ticket.getCliente() != null) {
+                Long plantillaId = plantillaOpt.get().getIdPlantillaEncuesta();
+                // Publicamos un evento para que un listener AFTER_COMMIT cree la encuesta
+                eventPublisher.publishEvent(new com.sqrc.module.backendsqrc.encuesta.event.TicketClosedForEncuestaEvent(
+                    plantillaId,
+                    ticketId,
+                    ticket.getCliente().getIdCliente()
+                ));
+                encuestaEventPublished = true;
+                log.info("Publicado TicketClosedForEncuestaEvent: ticketId={}, plantillaId={}, clienteId={}", ticketId, plantillaId, ticket.getCliente().getIdCliente());
+            } else {
+                log.warn("No hay plantilla vigente o no hay cliente para ticket {}. No se publicará evento de encuesta.", ticketId);
+            }
         } catch (Exception ex) {
-            log.warn("No se pudo crear encuesta para ticket {}: {}", ticketId, ex.getMessage());
-            // IMPORTANTE: evitar que la transacción quede marcada como rollback-only
-            // Si la encuesta falla, NO hacemos rollback del cierre del ticket
-            // Al estar en la misma transacción, necesitamos limpiar el estado de rollback.
-            // Re-lanzar solo excepciones checked como Runtime no es opción.
-            // Alternativa simple: no marcar rollback (catch y continuar). Si aun así queda rollback-only,
-            // mover la creación de encuesta a una nueva transacción:
-        }
-
-        // Publicar evento para que TicketClosedListener envíe el correo
-        if (encuestaId != null && ticket.getCliente() != null) {
-            eventPublisher.publishEvent(new TicketClosedEvent(
-                ticketId, 
-                encuestaId, 
-                ticket.getCliente().getIdCliente()
-            ));
-            log.info("TicketClosedEvent publicado: ticketId={}, encuestaId={}, clienteId={}", 
-                ticketId, encuestaId, ticket.getCliente().getIdCliente());
+            log.error("Error publicando evento de creación de encuesta para ticket {}: {}", ticketId, ex.getMessage(), ex);
         }
 
         return TicketOperationResponse.builder()
-                .ticketId(ticketId)
-                .estadoAnterior(estadoAnterior)
-                .estadoActual(EstadoTicket.CERRADO.name())
-                .operacion("CERRAR")
-                .fechaOperacion(LocalDateTime.now())
-                .mensaje("Ticket cerrado exitosamente" + (encuestaId != null ? ". Encuesta enviada." : ""))
-                .exitoso(true)
-                .build();
+            .ticketId(ticketId)
+            .estadoAnterior(estadoAnterior)
+            .estadoActual(EstadoTicket.CERRADO.name())
+            .operacion("CERRAR")
+            .fechaOperacion(LocalDateTime.now())
+            .mensaje("Ticket cerrado exitosamente" + (encuestaEventPublished ? ". Encuesta solicitada." : ""))
+            .exitoso(true)
+            .build();
     }
 
     /**
@@ -700,23 +699,83 @@ public class TicketGestionService {
      * Busca la primera plantilla vigente y crea la encuesta asociada al ticket, agente y cliente.
      */
     private Long crearEncuestaParaTicket(Ticket ticket) {
+        log.debug("crearEncuestaParaTicket: ticketId={}", ticket != null ? ticket.getIdTicket() : "null");
         // Buscar plantilla vigente (por defecto la primera disponible)
         PlantillaEncuesta plantilla = plantillaEncuestaRepository.findFirstByVigenteTrue()
             .orElseThrow(() -> new IllegalStateException("No hay plantillas de encuesta vigentes"));
+        log.debug("Plantilla vigente encontrada: id={}", plantilla.getIdPlantillaEncuesta());
 
         ClienteEntity cliente = ticket.getCliente();
         if (cliente == null) {
             throw new IllegalStateException("El ticket no tiene cliente asociado");
         }
 
+        // Intentar resolver el agente evaluado a partir de las asignaciones del ticket.
+        Agente agente = null;
+        try {
+            // Preferir obtener la última asignación desde el repositorio para evitar depender de
+            // colecciones lazy no inicializadas en la entidad Ticket.
+            var ultimaOpt = asignacionRepository.findTopByTicket_IdTicketOrderByFechaInicioDesc(ticket.getIdTicket());
+            if (ultimaOpt.isPresent()) {
+                Asignacion ultima = ultimaOpt.get();
+                Long empId = ultima.getEmpleado() != null ? ultima.getEmpleado().getIdEmpleado() : null;
+                log.debug("Última asignación encontrada: asignacionId={} empleadoId={}", ultima.getIdAsignacion(), empId);
+                if (empId != null) {
+                    var empleadoOpt = empleadoRepository.findById(empId);
+                    if (empleadoOpt.isPresent() && empleadoOpt.get() instanceof Agente) {
+                        agente = (Agente) empleadoOpt.get();
+                        log.debug("Agente resuelto desde asignación (repo): empleadoId={} nombre={}", empId, agente.getNombreCompleto());
+                    } else {
+                        // Fallback: si la entidad devuelta no es instancia de Agente, pero la
+                        // base de datos indica que el tipo es AGENTE_*, intentar cargar la
+                        // entidad concreta usando EntityManager para el subclass mapping.
+                        log.debug("Empleado de la última asignación no es instancia de Agente (repo returned {}). Intentando EntityManager.find(Agente)", empleadoOpt.map(Object::getClass).orElse(null));
+                        try {
+                            Agente agenteFromEm = entityManager.find(Agente.class, empId);
+                            if (agenteFromEm != null) {
+                                agente = agenteFromEm;
+                                log.debug("Agente resuelto por EntityManager: empleadoId={} nombre={}", empId, agente.getNombreCompleto());
+                            } else {
+                                log.debug("EntityManager.find(Agente, {}) devolvió null", empId);
+                            }
+                        } catch (Exception ex2) {
+                            log.warn("Error al intentar cargar Agente via EntityManager para empleado {}: {}", empId, ex2.getMessage(), ex2);
+                        }
+                    }
+                }
+            } else {
+                // Fallback: revisar coleccion de asignaciones en la entidad Ticket
+                if (ticket.getAsignaciones() != null && !ticket.getAsignaciones().isEmpty()) {
+                    for (Asignacion a : ticket.getAsignaciones()) {
+                        if (a.getEmpleado() == null) continue;
+                        Long empId = a.getEmpleado().getIdEmpleado();
+                        if (empId == null) continue;
+                        var empleadoOpt = empleadoRepository.findById(empId);
+                        if (empleadoOpt.isPresent() && empleadoOpt.get() instanceof Agente) {
+                            agente = (Agente) empleadoOpt.get();
+                            log.debug("Agente resuelto desde colección Ticket: empleadoId={} nombre={}", empId, agente.getNombreCompleto());
+                            break;
+                        }
+                    }
+                }
+            }
+        } catch (Exception ex) {
+            log.warn("Error resolviendo agente desde asignaciones para ticket {}: {}", ticket.getIdTicket(), ex.getMessage(), ex);
+        }
+
+        if (agente == null) {
+            log.info("No se encontró agente asociado al ticket {}. Se pasará null al servicio de encuestas.", ticket.getIdTicket());
+        }
+
         // Crear la encuesta usando el servicio
         Encuesta encuesta = encuestaService.crearEncuestaParaTicket(
             plantilla.getIdPlantillaEncuesta(),
             ticket,
-            null, // El agente se obtiene de las asignaciones del ticket
+            agente != null ? agente.getIdEmpleado() : null,
             cliente
         );
 
+        log.info("Encuesta creada (servicio) para ticket {}: encuestaId={}", ticket.getIdTicket(), encuesta.getIdEncuesta());
         return encuesta.getIdEncuesta();
     }
 
