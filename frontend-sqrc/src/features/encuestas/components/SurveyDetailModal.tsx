@@ -65,14 +65,15 @@ export const SurveyDetailModal: React.FC<SurveyDetailModalProps> = ({
     let mounted = true;
     const load = async () => {
       if (!isOpen) return;
-      // Si data ya contiene los resultados, usamos eso
-      if (data && data.resultados) {
+      
+      // Si data ya contiene resultados con contenido, usamos eso
+      if (data && data.resultados && data.resultados.length > 0) {
         setDetail(data);
         return;
       }
 
       // Si tenemos responseId, fetcheamos el detalle
-      const responseId = data?.responseId || data?.id || data?.responseId;
+      const responseId = data?.responseId || data?.id;
       if (!responseId) {
         setDetail(data || null);
         return;
@@ -81,8 +82,10 @@ export const SurveyDetailModal: React.FC<SurveyDetailModalProps> = ({
       setLoading(true);
       try {
         const d = await reportService.fetchEncuestaDetalle(String(responseId));
+        console.log("Detalle encuesta recibido:", d); // Debug
         if (mounted) setDetail(d);
       } catch (err) {
+        console.error("Error fetching detalle:", err);
         if (mounted) setDetail(data || null);
       } finally {
         if (mounted) setLoading(false);
@@ -100,8 +103,8 @@ export const SurveyDetailModal: React.FC<SurveyDetailModalProps> = ({
   // Si no está abierto o no hay datos (ni detalle), no renderizamos nada
   if (!isOpen || (!data && !detail)) return null;
 
-  // Protección contra undefined
-  const answers = detail?.resultados || detail?.answers || data?.answers || [];
+  // Protección contra undefined - buscar resultados en todas las fuentes posibles
+  const answers = detail?.resultados || detail?.answers || data?.resultados || data?.answers || [];
 
   return (
     /* --- OVERLAY (FONDO OSCURO) --- */

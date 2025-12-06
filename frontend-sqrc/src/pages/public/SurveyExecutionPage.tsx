@@ -13,7 +13,7 @@ interface Opcion {
 interface Pregunta {
   idPregunta: number;
   texto: string;
-  tipo: "RADIO" | "BOOLEANA" | "TEXTO";
+  tipo: "RADIO" | "BOOLEANA" | "BOOLEAN" | "TEXTO" | "TEXT";
   obligatoria: boolean;
   orden: number;
   esCalificacion: boolean;
@@ -320,7 +320,7 @@ export default function SurveyExecutionPage() {
             </>
           )}
 
-          {pregunta.tipo === "BOOLEANA" && (
+          {(pregunta.tipo === "BOOLEANA" || pregunta.tipo === "BOOLEAN") && (
             <div className="flex gap-4">
               {[
                 { value: "true", label: "Sí", emoji: "👍" },
@@ -349,7 +349,7 @@ export default function SurveyExecutionPage() {
             </div>
           )}
 
-          {pregunta.tipo === "TEXTO" && (
+          {(pregunta.tipo === "TEXTO" || pregunta.tipo === "TEXT") && (
             <textarea
               value={valor as string || ""}
               onChange={(e) => handleRespuestaChange(pregunta.idPregunta, e.target.value)}

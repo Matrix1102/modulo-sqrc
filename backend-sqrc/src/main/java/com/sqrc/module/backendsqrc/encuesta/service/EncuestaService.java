@@ -393,7 +393,7 @@ public class EncuestaService {
                 }
 
                 // Lógica de negocio para detectar alertas (calificación baja = crítica)
-                if (pregunta instanceof PreguntaRadio && Boolean.TRUE.equals(pregunta.getEsCalificacion())) {
+                if ("RADIO".equals(pregunta.getTipoPregunta()) && Boolean.TRUE.equals(pregunta.getEsCalificacion())) {
                     if (calificacionExtraida != null && calificacionExtraida <= 2) {
                         esCritica = true;
                     }
@@ -431,8 +431,11 @@ public class EncuestaService {
      * Para otros tipos, intenta parsear el valor directamente.
      */
     private Integer extraerCalificacionDeRespuesta(Pregunta pregunta, String valor) {
-        if (pregunta instanceof PreguntaRadio) {
-            PreguntaRadio radio = (PreguntaRadio) pregunta;
+        if ("RADIO".equals(pregunta.getTipoPregunta())) {
+            // Obtener la pregunta completa desde el repository para acceder a las opciones
+            Pregunta preguntaCompleta = preguntaRepository.findById(pregunta.getIdPregunta()).orElse(pregunta);
+            if (!(preguntaCompleta instanceof PreguntaRadio)) return null;
+            PreguntaRadio radio = (PreguntaRadio) preguntaCompleta;
             try {
                 Long idOpcion = Long.parseLong(valor);
                 // Buscar la opción y obtener su orden (1, 2, 3, 4, 5)
@@ -632,6 +635,31 @@ public class EncuestaService {
      * Mapea una entidad Encuesta a EncuestaSummaryDTO incluyendo información del contexto.
      */
     private EncuestaSummaryDTO mapToEncuestaSummaryDTO(Encuesta e) {
+        // Extraer datos del agente de forma segura (puede haber sido eliminado)
+        Long agenteId = null;
+        String agenteNombre = null;
+        if (e.getAgente() != null) {
+            try {
+                agenteId = e.getAgente().getIdEmpleado();
+                agenteNombre = e.getAgente().getNombre() + " " + e.getAgente().getApellido();
+            } catch (jakarta.persistence.EntityNotFoundException ex) {
+                // Agente fue eliminado, usar valores por defecto
+                agenteNombre = "Agente eliminado";
+            }
+        }
+        
+        // Extraer datos del cliente de forma segura
+        Integer clienteId = null;
+        String clienteNombre = null;
+        if (e.getCliente() != null) {
+            try {
+                clienteId = e.getCliente().getIdCliente();
+                clienteNombre = e.getCliente().getNombres() + " " + e.getCliente().getApellidos();
+            } catch (jakarta.persistence.EntityNotFoundException ex) {
+                clienteNombre = "Cliente eliminado";
+            }
+        }
+        
         return EncuestaSummaryDTO.builder()
             .idEncuesta(e.getIdEncuesta())
             .plantillaId(e.getPlantilla() != null ? e.getPlantilla().getIdPlantillaEncuesta() : null)
@@ -644,10 +672,10 @@ public class EncuestaService {
             .lastSentAt(e.getLastSentAt() != null ? e.getLastSentAt().toString() : null)
             // Información del contexto
             .ticketId(e.getTicket() != null ? e.getTicket().getIdTicket() : null)
-            .agenteId(e.getAgente() != null ? e.getAgente().getIdEmpleado() : null)
-            .agenteNombre(e.getAgente() != null ? e.getAgente().getNombre() + " " + e.getAgente().getApellido() : null)
-            .clienteId(e.getCliente() != null ? e.getCliente().getIdCliente() : null)
-            .clienteNombre(e.getCliente() != null ? e.getCliente().getNombres() + " " + e.getCliente().getApellidos() : null)
+            .agenteId(agenteId)
+            .agenteNombre(agenteNombre)
+            .clienteId(clienteId)
+            .clienteNombre(clienteNombre)
             .build();
     }
 
@@ -657,19 +685,38 @@ public class EncuestaService {
         RespuestaEncuesta respuestaDB = respuestaEncuestaRepository.findById(id)
             .orElseThrow(() -> new org.springframework.web.server.ResponseStatusException(org.springframework.http.HttpStatus.NOT_FOUND, "Respuesta no encontrada"));
 
-        // Obtener datos de la encuesta (cliente, agente)
+        // Obtener datos de la encuesta (cliente, agente) de forma segura
         Encuesta encuesta = respuestaDB.getEncuesta();
-        String clienteEmail = encuesta.getCliente() != null ? encuesta.getCliente().getCorreo() : "N/A";
-        String agenteNombre = encuesta.getAgente() != null ? encuesta.getAgente().getNombreCompleto() : "N/A";
+        
+        String clienteEmail = "N/A";
+        if (encuesta.getCliente() != null) {
+            try {
+                clienteEmail = encuesta.getCliente().getCorreo();
+            } catch (jakarta.persistence.EntityNotFoundException ex) {
+                clienteEmail = "Cliente eliminado";
+            }
+        }
+        
+        String agenteNombre = "N/A";
+        if (encuesta.getAgente() != null) {
+            try {
+                agenteNombre = encuesta.getAgente().getNombreCompleto();
+            } catch (jakarta.persistence.EntityNotFoundException ex) {
+                agenteNombre = "Agente eliminado";
+            }
+        }
 
         // Transformamos las respuestas para el detalle
         List<ResultadoPreguntaDTO> detalles = respuestaDB.getRespuestas().stream().map(resp -> {
             String valorMostrar = resp.getValor();
             Pregunta p = resp.getPregunta();
             String tipo = "TEXT"; // Default
+            
+            // Usar tipoPregunta (columna del discriminador) en lugar de instanceof
+            String tipoPregunta = p.getTipoPregunta();
 
-            // Determinar el tipo según la clase de pregunta
-            if (p instanceof PreguntaBooleana) {
+            // Determinar el tipo según el discriminador de la pregunta
+            if ("BOOLEANA".equals(tipoPregunta)) {
                 tipo = "BOOLEAN";
                 // Convertir true/false a Sí/No
                 if ("true".equalsIgnoreCase(valorMostrar)) {
@@ -677,27 +724,32 @@ public class EncuestaService {
                 } else if ("false".equalsIgnoreCase(valorMostrar)) {
                     valorMostrar = "No";
                 }
-            } else if (p instanceof PreguntaRadio) {
+            } else if ("RADIO".equals(tipoPregunta)) {
                 tipo = "RATING";
                 try {
                     Long idOpcion = Long.parseLong(valorMostrar);
-                    // Buscamos en la lista de opciones de la pregunta
-                    OpcionPregunta opcionEncontrada = ((PreguntaRadio) p).getOpciones().stream()
-                            .filter(op -> op.getIdOpcion().equals(idOpcion))
-                            .findFirst()
-                            .orElse(null);
-                    
-                    if (opcionEncontrada != null && opcionEncontrada.getOrden() != null) {
-                        // Devolver el orden (1-5) para que el frontend muestre la calificación
-                        valorMostrar = String.valueOf(opcionEncontrada.getOrden());
-                    } else if (opcionEncontrada != null) {
-                        valorMostrar = opcionEncontrada.getTexto();
-                    } else {
-                        valorMostrar = valorMostrar + " (Opción no encontrada)";
+                    // Obtener la pregunta completa desde el repository para acceder a las opciones
+                    Pregunta preguntaCompleta = preguntaRepository.findById(p.getIdPregunta()).orElse(null);
+                    if (preguntaCompleta instanceof PreguntaRadio) {
+                        OpcionPregunta opcionEncontrada = ((PreguntaRadio) preguntaCompleta).getOpciones().stream()
+                                .filter(op -> op.getIdOpcion().equals(idOpcion))
+                                .findFirst()
+                                .orElse(null);
+                        
+                        if (opcionEncontrada != null && opcionEncontrada.getOrden() != null) {
+                            // Devolver el orden (1-5) para que el frontend muestre la calificación
+                            valorMostrar = String.valueOf(opcionEncontrada.getOrden());
+                        } else if (opcionEncontrada != null) {
+                            valorMostrar = opcionEncontrada.getTexto();
+                        } else {
+                            valorMostrar = valorMostrar + " (Opción no encontrada)";
+                        }
                     }
                 } catch (NumberFormatException e) {
                     // Si no era un número, lo mostramos tal cual
                 }
+            } else if ("TEXTO".equals(tipoPregunta)) {
+                tipo = "TEXT";
             }
             // else TEXT ya está por default
 
@@ -751,26 +803,30 @@ public class EncuestaService {
                 List<EncuestaEjecucionDTO.PreguntaEjecucionDTO> preguntasDTO = plantilla.getPreguntas().stream()
             .map(p -> {
                 List<EncuestaEjecucionDTO.OpcionDTO> opciones = null;
+                String tipoPregunta = p.getTipoPregunta();
                 String tipo = "TEXT";
                 
-                if (p instanceof PreguntaRadio) {
+                if ("RADIO".equals(tipoPregunta)) {
                     tipo = "RADIO";
-                    PreguntaRadio preguntaRadio = (PreguntaRadio) p;
-                    // Forzar inicialización de opciones (lazy)
-                    List<OpcionPregunta> opcionesRadio = preguntaRadio.getOpciones();
-                    if (opcionesRadio != null) {
-                        opcionesRadio.size(); // Inicializar la colección lazy
-                        opciones = opcionesRadio.stream()
-                            .map(op -> EncuestaEjecucionDTO.OpcionDTO.builder()
-                                .idOpcion(op.getIdOpcion())
-                                .texto(op.getTexto())
-                                .orden(op.getOrden())
-                                .valor(op.getOrden()) // Usar orden como valor numérico
-                                .build())
-                            .sorted((a, b) -> (a.getOrden() != null ? a.getOrden() : 0) - (b.getOrden() != null ? b.getOrden() : 0))
-                            .collect(Collectors.toList());
+                    // Cargar pregunta completa para obtener las opciones
+                    Pregunta preguntaCompleta = preguntaRepository.findById(p.getIdPregunta()).orElse(p);
+                    if (preguntaCompleta instanceof PreguntaRadio) {
+                        PreguntaRadio preguntaRadio = (PreguntaRadio) preguntaCompleta;
+                        List<OpcionPregunta> opcionesRadio = preguntaRadio.getOpciones();
+                        if (opcionesRadio != null) {
+                            opcionesRadio.size(); // Inicializar la colección lazy
+                            opciones = opcionesRadio.stream()
+                                .map(op -> EncuestaEjecucionDTO.OpcionDTO.builder()
+                                    .idOpcion(op.getIdOpcion())
+                                    .texto(op.getTexto())
+                                    .orden(op.getOrden())
+                                    .valor(op.getOrden()) // Usar orden como valor numérico
+                                    .build())
+                                .sorted((a, b) -> (a.getOrden() != null ? a.getOrden() : 0) - (b.getOrden() != null ? b.getOrden() : 0))
+                                .collect(Collectors.toList());
+                        }
                     }
-                } else if (p instanceof PreguntaBooleana) {
+                } else if ("BOOLEANA".equals(tipoPregunta)) {
                     tipo = "BOOLEAN";
                 }
                 
@@ -922,15 +978,19 @@ public class EncuestaService {
     private PlantillaResponseDTO convertirADTO(PlantillaEncuesta entidad) {
             List<PreguntaDTO> preguntasDTO = entidad.getPreguntas().stream().map(p -> {
             List<String> opciones = null;
+            String tipoPregunta = p.getTipoPregunta();
             String tipo = "TEXT";
 
-            if (p instanceof PreguntaRadio) {
+            if ("RADIO".equals(tipoPregunta)) {
                 tipo = "RADIO";
-                // Convertimos las entidades OpcionPregunta a una lista de Strings simple para el Frontend
-                opciones = ((PreguntaRadio) p).getOpciones().stream()
-                        .map(OpcionPregunta::getTexto)
-                        .collect(Collectors.toList());
-            } else if (p instanceof PreguntaBooleana) {
+                // Cargar pregunta completa para obtener las opciones
+                Pregunta preguntaCompleta = preguntaRepository.findById(p.getIdPregunta()).orElse(p);
+                if (preguntaCompleta instanceof PreguntaRadio) {
+                    opciones = ((PreguntaRadio) preguntaCompleta).getOpciones().stream()
+                            .map(OpcionPregunta::getTexto)
+                            .collect(Collectors.toList());
+                }
+            } else if ("BOOLEANA".equals(tipoPregunta)) {
                 tipo = "BOOLEAN";
             }
 

@@ -11,6 +11,7 @@ import showConfirm from '../../../services/confirm';
 // Definición exportada para que otros componentes (como el Modal) la usen
 export interface SurveyResponse {
   id: number;
+  responseId?: string; // ID real de la respuesta en el backend
   ticketId: string;
   puntaje: number;
   comentario: string;
@@ -26,6 +27,7 @@ export interface SurveyResponse {
     question: string;
     answer: any;
   }[];
+  resultados?: any[]; // Resultados en formato del backend
 }
 
 interface SurveyTableProps {
@@ -83,6 +85,7 @@ export const SurveyTable: React.FC<SurveyTableProps> = ({
       }))
     : (responses || []).map((r: any, idx: number) => ({
         id: idx + 1,
+        responseId: r.responseId, // ID real de la respuesta para fetch de detalle
         ticketId: r.ticketId || `T-${r.responseId || idx}`,
         puntaje: typeof r.puntaje === "number" ? r.puntaje : (parseFloat(r.puntaje) || 0),
         comentario: r.comentario || "",
@@ -91,6 +94,7 @@ export const SurveyTable: React.FC<SurveyTableProps> = ({
         clientEmail: r.cliente || r.clientEmail || "",
         responseDate: r.fechaRespuesta || "",
         answers: r.resultados || [],
+        resultados: r.resultados || [], // También incluir con el nombre original
       })));
 
   const handleViewAll = () => {
