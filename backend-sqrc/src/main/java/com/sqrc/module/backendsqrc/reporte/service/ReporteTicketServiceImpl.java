@@ -50,27 +50,48 @@ public class ReporteTicketServiceImpl implements ReporteTicketService {
                 .map(Agente::getNombreCompleto)
                 .orElse("Agente " + agenteId);
 
-        // Obtener asignaciones del agente con sus tickets
-        List<Asignacion> asignaciones = asignacionRepository.findByEmpleadoIdWithTicket(idAgente);
+                // Obtener asignaciones del agente con sus tickets
+                List<Asignacion> asignaciones = asignacionRepository.findByEmpleadoIdWithTicket(idAgente);
 
-        // Filtrar por fechas si se proporcionan
-        LocalDateTime startDateTime = startDate != null ? startDate.atStartOfDay() : null;
-        LocalDateTime endDateTime = endDate != null ? endDate.atTime(23, 59, 59) : null;
+                // Filtrar por fechas si se proporcionan
+                LocalDateTime startDateTime = startDate != null ? startDate.atStartOfDay() : null;
+                LocalDateTime endDateTime = endDate != null ? endDate.atTime(23, 59, 59) : null;
 
-        List<TicketReporteDTO> ticketDTOs = asignaciones.stream()
-                .map(Asignacion::getTicket)
-                .filter(ticket -> {
-                    if (startDateTime != null && ticket.getFechaCreacion().isBefore(startDateTime)) {
-                        return false;
-                    }
-                    if (endDateTime != null && ticket.getFechaCreacion().isAfter(endDateTime)) {
-                        return false;
-                    }
-                    return true;
-                })
-                .sorted(Comparator.comparing(Ticket::getFechaCreacion).reversed())
-                .map(this::mapToDTO)
-                .collect(Collectors.toList());
+                // Agrupar por ticketId y quedarnos con la asignación más reciente por ticket
+                java.util.Map<Long, java.util.Map.Entry<Ticket, Long>> porTicket = new java.util.HashMap<>();
+                for (Asignacion a : asignaciones) {
+                        Ticket t = a.getTicket();
+                        if (t == null || t.getIdTicket() == null) continue;
+                        if (startDateTime != null && t.getFechaCreacion().isBefore(startDateTime)) continue;
+                        if (endDateTime != null && t.getFechaCreacion().isAfter(endDateTime)) continue;
+                        Long tid = t.getIdTicket();
+                        Long aid = a.getIdAsignacion();
+                        java.util.Map.Entry<Ticket, Long> existing = porTicket.get(tid);
+                        if (existing == null) {
+                                porTicket.put(tid, new java.util.AbstractMap.SimpleEntry<>(t, aid));
+                        } else {
+                                // comparar por fechaInicio de la asignación y elegir la más reciente
+                                java.time.LocalDateTime existingFecha = null;
+                                java.time.LocalDateTime nuevaFecha = a.getFechaInicio();
+                                if (existing.getValue() != null) {
+                                        for (Asignacion aa : asignaciones) {
+                                                if (existing.getValue().equals(aa.getIdAsignacion())) {
+                                                        existingFecha = aa.getFechaInicio();
+                                                        break;
+                                                }
+                                        }
+                                }
+                                if (nuevaFecha != null && (existingFecha == null || nuevaFecha.isAfter(existingFecha))) {
+                                        porTicket.put(tid, new java.util.AbstractMap.SimpleEntry<>(t, aid));
+                                }
+                        }
+                }
+
+                List<TicketReporteDTO> ticketDTOs = porTicket.values().stream()
+                                .map(e -> new java.util.AbstractMap.SimpleEntry<>(e.getKey(), e.getValue()))
+                                .sorted((e1, e2) -> e2.getKey().getFechaCreacion().compareTo(e1.getKey().getFechaCreacion()))
+                                .map(e -> mapToDTO(e.getKey(), e.getValue()))
+                                .collect(Collectors.toList());
 
         return AgentTicketsDTO.builder()
                 .agenteId(agenteId)
@@ -79,7 +100,11 @@ public class ReporteTicketServiceImpl implements ReporteTicketService {
                 .build();
     }
 
-    private TicketReporteDTO mapToDTO(Ticket ticket) {
+        private TicketReporteDTO mapToDTO(Ticket ticket) {
+                return mapToDTO(ticket, null);
+        }
+
+        private TicketReporteDTO mapToDTO(Ticket ticket, Long asignacionId) {
         String clientName = ticket.getCliente() != null
                 ? ticket.getCliente().getNombres() + " " + ticket.getCliente().getApellidos()
                 : "Cliente desconocido";
@@ -97,7 +122,9 @@ public class ReporteTicketServiceImpl implements ReporteTicketService {
                 : "DESCONOCIDO";
 
         return TicketReporteDTO.builder()
-                .id(ticket.getIdTicket().toString())
+                .id(ticket.getIdTicket() != null ? ticket.getIdTicket().toString() : null)
+                .ticketId(ticket.getIdTicket())
+                .asignacionId(asignacionId)
                 .client(clientName)
                 .motive(motivo)
                 .date(fecha)
@@ -113,15 +140,40 @@ public class ReporteTicketServiceImpl implements ReporteTicketService {
         LocalDateTime fin = (endDate != null ? endDate : LocalDate.now()).atTime(23, 59, 59);
         int maxItems = limit != null ? limit : 50;
 
-        List<Asignacion> asignaciones = asignacionRepository.findRecentWithDetails(inicio, fin);
+                List<Asignacion> asignaciones = asignacionRepository.findRecentWithDetails(inicio, fin);
 
-        // Evitar duplicados de tickets (un ticket puede tener múltiples asignaciones)
-        return asignaciones.stream()
-                .map(Asignacion::getTicket)
-                .distinct()
-                .sorted(Comparator.comparing(Ticket::getFechaCreacion).reversed())
-                .limit(maxItems)
-                .map(this::mapToDTO)
-                .collect(Collectors.toList());
+                // Agrupar por ticketId y quedarnos con la asignación más reciente por ticket
+                java.util.Map<Long, java.util.Map.Entry<Ticket, Long>> porTicket = new java.util.HashMap<>();
+                for (Asignacion a : asignaciones) {
+                        Ticket t = a.getTicket();
+                        if (t == null || t.getIdTicket() == null) continue;
+                        Long tid = t.getIdTicket();
+                        Long aid = a.getIdAsignacion();
+                        java.util.Map.Entry<Ticket, Long> existing = porTicket.get(tid);
+                        if (existing == null) {
+                                porTicket.put(tid, new java.util.AbstractMap.SimpleEntry<>(t, aid));
+                        } else {
+                                java.time.LocalDateTime existingFecha = null;
+                                java.time.LocalDateTime nuevaFecha = a.getFechaInicio();
+                                if (existing.getValue() != null) {
+                                        for (Asignacion aa : asignaciones) {
+                                                if (existing.getValue().equals(aa.getIdAsignacion())) {
+                                                        existingFecha = aa.getFechaInicio();
+                                                        break;
+                                                }
+                                        }
+                                }
+                                if (nuevaFecha != null && (existingFecha == null || nuevaFecha.isAfter(existingFecha))) {
+                                        porTicket.put(tid, new java.util.AbstractMap.SimpleEntry<>(t, aid));
+                                }
+                        }
+                }
+
+                return porTicket.values().stream()
+                                .map(e -> new java.util.AbstractMap.SimpleEntry<>(e.getKey(), e.getValue()))
+                                .sorted((e1, e2) -> e2.getKey().getFechaCreacion().compareTo(e1.getKey().getFechaCreacion()))
+                                .limit(maxItems)
+                                .map(e -> mapToDTO(e.getKey(), e.getValue()))
+                                .collect(Collectors.toList());
     }
 }
