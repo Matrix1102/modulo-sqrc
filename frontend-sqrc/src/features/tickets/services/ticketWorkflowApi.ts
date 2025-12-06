@@ -3,6 +3,7 @@
  * 
  * Endpoints del Backend:
  * - POST /api/v1/tickets/{id}/escalar
+ * - POST /api/v1/tickets/{id}/rechazar-escalamiento
  * - POST /api/v1/tickets/{id}/derivar
  * - POST /api/v1/tickets/{id}/respuesta-externa
  */
@@ -10,6 +11,7 @@
 import http from '../../../services/http';
 import type {
   EscalarTicketRequest,
+  RechazarEscalamientoDTO,
   DerivarTicketRequest,
   RespuestaDerivacionDTO,
 } from '../types';
@@ -31,6 +33,26 @@ export async function escalarTicket(
 ): Promise<string> {
   const response = await http.post<string>(
     `${WORKFLOW_ENDPOINT}/${ticketId}/escalar`,
+    request
+  );
+  return response.data;
+}
+
+// ==================== Rechazo de Escalamiento ====================
+
+/**
+ * Rechaza un escalamiento y devuelve el ticket al Agente con feedback
+ * 
+ * @param ticketId ID del ticket escalado a rechazar
+ * @param request Datos del rechazo (asunto, motivo, instrucciones)
+ * @returns Mensaje de confirmación
+ */
+export async function rechazarEscalamiento(
+  ticketId: number,
+  request: RechazarEscalamientoDTO
+): Promise<string> {
+  const response = await http.post<string>(
+    `${WORKFLOW_ENDPOINT}/${ticketId}/rechazar-escalamiento`,
     request
   );
   return response.data;

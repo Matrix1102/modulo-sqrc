@@ -2,6 +2,7 @@ package com.sqrc.module.backendsqrc.ticket.facade;
 
 import com.sqrc.module.backendsqrc.ticket.dto.DerivarRequestDTO;
 import com.sqrc.module.backendsqrc.ticket.dto.EscalarRequestDTO;
+import com.sqrc.module.backendsqrc.ticket.dto.RechazarEscalamientoDTO;
 import com.sqrc.module.backendsqrc.ticket.dto.RespuestaDerivacionDTO;
 import com.sqrc.module.backendsqrc.ticket.event.TicketDerivadoEvent;
 import com.sqrc.module.backendsqrc.ticket.event.TicketEscaladoEvent;
@@ -149,6 +150,118 @@ public class TicketWorkflowFacade {
         }
 
         ticketRepository.save(ticket);
+    }
+
+    // =========================================================================
+    // CASO 4: RECHAZAR ESCALAMIENTO (BackOffice devuelve al Agente)
+    // =========================================================================
+    @Transactional
+    public void rechazarEscalamiento(Long ticketId, RechazarEscalamientoDTO request) {
+        log.info("↩️ Rechazando escalamiento para ticket #{}", ticketId);
+        
+        // 1. Validar ticket está ESCALADO
+        Ticket ticket = ticketRepository.findById(ticketId)
+                .orElseThrow(() -> new RuntimeException("Ticket no encontrado: " + ticketId));
+
+        if (ticket.getEstado() != EstadoTicket.ESCALADO) {
+            throw new RuntimeException("Solo se puede rechazar un ticket que está ESCALADO.");
+        }
+
+        // 2. Obtener asignación activa (BackOffice)
+        Asignacion asignacionBackoffice = asignacionRepository.findAsignacionActiva(ticketId)
+                .orElseThrow(() -> new RuntimeException("No hay asignación activa del BackOffice"));
+        
+        // 3. Obtener el Agente original (si existe asignación padre)
+        Empleado agenteOriginal = null;
+        String correoDestinatario = null;
+
+        if (asignacionBackoffice.getAsignacionPadre() != null) {
+            agenteOriginal = asignacionBackoffice.getAsignacionPadre().getEmpleado();
+            correoDestinatario = agenteOriginal.getCorreo();
+            log.info("📤 Se devolverá al Agente original: {}", agenteOriginal.getNombreCompleto());
+        } else {
+            // Si no hay asignación padre, enviar al correo del BackOffice como fallback
+            correoDestinatario = asignacionBackoffice.getEmpleado().getCorreo();
+            log.warn("⚠️ No se encontró asignación padre, el correo se enviará al BackOffice actual");
+        }
+
+        // 4. Registrar documentación del rechazo
+        try {
+            String documentacionTexto = String.format(
+                "ESCALAMIENTO RECHAZADO POR BACKOFFICE\n\n" +
+                "Motivo del Rechazo:\n%s\n\n" +
+                "Instrucciones para Continuar:\n%s\n\n" +
+                "Rechazado por: %s",
+                request.getMotivoRechazo(),
+                request.getInstrucciones(),
+                asignacionBackoffice.getEmpleado().getNombreCompleto()
+            );
+
+            documentacionService.registrarRespuestaExterna(
+                ticket,
+                documentacionTexto,
+                asignacionBackoffice.getEmpleado().getIdEmpleado()
+            );
+
+            log.info("📝 Documentación de rechazo creada para ticket #{}", ticketId);
+        } catch (Exception ex) {
+            log.error("❌ Error al crear documentación de rechazo: {}", ex.getMessage());
+            // Continuar con el flujo aunque falle la documentación
+        }
+
+        // 5. Construir cuerpo del correo con feedback estructurado (texto plano)
+        String cuerpoCompleto = "⚠️ MOTIVO DEL RECHAZO:\n" +
+                request.getMotivoRechazo() + "\n\n" +
+                "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n" +
+                "📋 INSTRUCCIONES PARA CONTINUAR:\n" +
+                request.getInstrucciones() + "\n\n" +
+                "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n" +
+                "🎯 ACCIÓN REQUERIDA:\n" +
+                "El BackOffice ha revisado el caso y solicita que continúes con las instrucciones proporcionadas antes de volver a escalar.\n\n" +
+                "• Revisa cuidadosamente las instrucciones proporcionadas\n" +
+                "• Implementa las acciones recomendadas\n" +
+                "• Si el problema persiste después de seguir estas instrucciones, puedes volver a escalar el ticket con información adicional\n\n" +
+                "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n" +
+                "Rechazado por: " + asignacionBackoffice.getEmpleado().getNombreCompleto();
+
+        // 6. Enviar y guardar correo de respuesta interna
+        ticketEmailService.enviarYGuardarCorreo(
+                correoDestinatario,
+                request.getAsunto(),
+                cuerpoCompleto,
+                asignacionBackoffice,
+                TipoCorreo.RESPUESTA_INTERNA
+        );
+        
+        log.info("📧 Correo de rechazo enviado a: {} para ticket #{}", correoDestinatario, ticketId);
+
+        // 7. Cerrar la asignación actual del BackOffice
+        asignacionBackoffice.setFechaFin(LocalDateTime.now());
+        asignacionRepository.save(asignacionBackoffice);
+        log.info("🔒 Asignación del BackOffice cerrada (ID: {})", asignacionBackoffice.getIdAsignacion());
+
+        // 8. Reasignar al Agente original si existe
+        if (agenteOriginal != null) {
+            Asignacion nuevaAsignacion = Asignacion.builder()
+                    .ticket(ticket)
+                    .empleado(agenteOriginal)
+                    .asignacionPadre(asignacionBackoffice)
+                    .fechaInicio(LocalDateTime.now())
+                    .build();
+
+            asignacionRepository.save(nuevaAsignacion);
+            log.info("🔄 Ticket reasignado al Agente: {} (ID: {})",
+                    agenteOriginal.getNombreCompleto(),
+                    agenteOriginal.getIdEmpleado());
+        } else {
+            log.warn("⚠️ No se pudo reasignar al Agente original. El ticket queda sin asignación activa.");
+        }
+
+        // 9. Cambiar estado del ticket a ABIERTO
+        ticket.setEstado(EstadoTicket.ABIERTO);
+        ticketRepository.save(ticket);
+        
+        log.info("✅ Ticket #{} devuelto al Agente con estado ABIERTO", ticketId);
     }
 
     // =========================================================================
