@@ -35,6 +35,7 @@ public class EmailService {
     public void enviarCorreoConAdjunto(String destinatario, String asunto, String cuerpoHtml, byte[] pdfBytes, String nombreArchivoPdf) {
 
         log.info("Iniciando proceso de envío de correo a: {}", destinatario);
+        log.debug("Asunto: {}", asunto);
 
         try {
             // 1. Crear el mensaje
@@ -65,7 +66,7 @@ public class EmailService {
             log.info(" Correo enviado exitosamente a {}", destinatario);
 
         } catch (MessagingException e) {
-            log.error(" Error crítico enviando correo a {}: {}", destinatario, e.getMessage());
+            log.error("Error crítico enviando correo a {}", destinatario, e);
             // No lanzamos excepción aquí para no romper el hilo asíncrono, solo lo registramos en el log.
         }
     }
