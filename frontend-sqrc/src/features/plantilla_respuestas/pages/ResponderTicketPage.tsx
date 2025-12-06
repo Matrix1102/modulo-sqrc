@@ -21,7 +21,7 @@ export const ResponderTicketPage = () => {
     const [asunto, setAsunto] = useState('');
     const [cuerpo, setCuerpo] = useState('');
     const [despedida, setDespedida] = useState('');
-    const [cerrarTicket, setCerrarTicket] = useState(false);
+    const [cerrarTicket] = useState(false);
     
     const [htmlPreview, setHtmlPreview] = useState('');
     const [loading, setLoading] = useState(false);
