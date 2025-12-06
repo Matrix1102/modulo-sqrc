@@ -6,7 +6,9 @@ import com.sqrc.module.backendsqrc.reporte.dto.DashboardKpisDTO;
 import com.sqrc.module.backendsqrc.reporte.model.*;
 import com.sqrc.module.backendsqrc.reporte.dto.SurveyDashboardDTO;
 import com.sqrc.module.backendsqrc.reporte.repository.*;
+import com.sqrc.module.backendsqrc.ticket.repository.AgenteRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.beans.factory.ObjectFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -26,6 +28,9 @@ public class ReporteService {
     private final KpiTiemposResolucionRepository tiemposRepo;
     private final KpiMotivosFrecuentesRepository motivosRepo;
     private final KpiRendimientoAgenteDiarioRepository agentesRepo;
+    private final AgenteRepository agenteRepository;
+    @Value("${app.default.supervisorId:1}")
+    private Long defaultSupervisorId;
     // KPI encuestas
     private final com.sqrc.module.backendsqrc.reporte.repository.KpiDashboardEncuestasRepository encuestasRepo;
 
@@ -121,61 +126,51 @@ public class ReporteService {
      * Ahora usa datos reales de la tabla 'kpi_rendimiento_agente_diario'.
      */
     @Transactional(readOnly = true)
-    public List<AgenteDetailDTO> obtenerMetricasAgentes(LocalDate start, LocalDate end) {
+        public List<AgenteDetailDTO> obtenerMetricasAgentes(LocalDate start, LocalDate end) {
         if (start == null) start = LocalDate.now().minusDays(30);
         if (end == null) end = LocalDate.now();
 
-        // 1. Traer los datos diarios de todos los agentes en el rango (con JOIN FETCH para cargar nombres)
+        // 1. Obtener la lista de agentes del supervisor (sin filtrar por fecha)
+        List<com.sqrc.module.backendsqrc.ticket.model.Agente> agentes = agenteRepository.findBySupervisorIdEmpleado(defaultSupervisorId);
+
+        // 2. Traer los KPIs en el rango para todos los agentes (si existen)
         List<KpiRendimientoAgenteDiario> datosDiarios = agentesRepo.findByFechaBetweenWithAgente(start, end);
 
-        // Si no hay autenticación, por simplicidad mostramos solo los agentes del supervisor con id=1
-        // (Requerimiento temporal según decisión del equipo)
-        Long defaultSupervisorId = 1L;
-        datosDiarios = datosDiarios.stream()
+        // Mapear KPIs por agenteId
+        Map<Long, List<KpiRendimientoAgenteDiario>> kpisPorAgente = datosDiarios.stream()
             .filter(k -> k.getAgente() != null && k.getAgente().getSupervisor() != null
                 && defaultSupervisorId.equals(k.getAgente().getSupervisor().getIdEmpleado()))
-            .collect(Collectors.toList());
-
-        // 2. Agrupar por ID de Agente para sumarizar sus estadísticas
-        // (Un agente tiene N registros, uno por día)
-        Map<Long, List<KpiRendimientoAgenteDiario>> porAgente = datosDiarios.stream()
-                .collect(Collectors.groupingBy(kpi -> kpi.getAgente().getIdEmpleado()));
+            .collect(Collectors.groupingBy(kpi -> kpi.getAgente().getIdEmpleado()));
 
         List<AgenteDetailDTO> resultado = new ArrayList<>();
 
-        porAgente.forEach((agenteId, registros) -> {
-            // Calcular totales y promedios para este agente en el periodo
+        // 3. Para cada agente del supervisor, construir el DTO usando sus KPIs (o ceros si no tiene)
+        for (com.sqrc.module.backendsqrc.ticket.model.Agente agente : agentes) {
+            Long agenteId = agente.getIdEmpleado();
+            List<KpiRendimientoAgenteDiario> registros = kpisPorAgente.getOrDefault(agenteId, List.of());
+
             int totalTickets = registros.stream().mapToInt(KpiRendimientoAgenteDiario::getTicketsResueltosTotal).sum();
-            
             double csatPromedio = registros.stream()
-                    .mapToDouble(KpiRendimientoAgenteDiario::getCsatPromedioAgente)
-                    .average().orElse(0.0);
-            
+                .mapToDouble(KpiRendimientoAgenteDiario::getCsatPromedioAgente)
+                .average().orElse(0.0);
             double tiempoPromedioMin = registros.stream()
-                    .mapToInt(KpiRendimientoAgenteDiario::getTiempoPromedioResolucionMinutos)
-                    .average().orElse(0.0);
+                .mapToInt(KpiRendimientoAgenteDiario::getTiempoPromedioResolucionMinutos)
+                .average().orElse(0.0);
 
-            // Obtener el nombre real del agente desde la entidad relacionada
-            String nombreAgente = registros.stream()
-                    .findFirst()
-                    .map(kpi -> kpi.getAgente().getNombreCompleto())
-                    .orElse("Agente " + agenteId);
+            double slaPct = slaService.computeCumplimientoFromDailyKpis(registros, null);
 
-            // Construir el DTO
-                double slaPct = slaService.computeCumplimientoFromDailyKpis(registros, null);
-
-                resultado.add(AgenteDetailDTO.builder()
-                    .agenteId(agenteId.toString())
-                    .nombre(nombreAgente)
-                    .volumenTotalAtendido(totalTickets)
-                    .csatPromedio(Math.round(csatPromedio * 10.0) / 10.0) // Redondear a 1 decimal
-                    .tiempoPromedioResolucion(formatMinutosAHoras(tiempoPromedioMin))
-                    .cumplimientoSlaPct(slaPct)
-                    .build());
-        });
+            resultado.add(AgenteDetailDTO.builder()
+                .agenteId(agenteId.toString())
+                .nombre(agente.getNombreCompleto())
+                .volumenTotalAtendido(totalTickets)
+                .csatPromedio(Math.round(csatPromedio * 10.0) / 10.0)
+                .tiempoPromedioResolucion(formatMinutosAHoras(tiempoPromedioMin))
+                .cumplimientoSlaPct(slaPct)
+                .build());
+        }
 
         return resultado;
-    }
+        }
 
         /**
          * Obtiene métricas globales de encuestas (CSAT, total respuestas, tasa)
@@ -183,10 +178,23 @@ public class ReporteService {
          */
         @Transactional(readOnly = true)
         public SurveyDashboardDTO obtenerMetricasEncuestas(LocalDate start, LocalDate end) {
-        if (start == null) start = LocalDate.now().minusDays(30);
-        if (end == null) end = LocalDate.now();
+            // Date defaulting: mirror the dashboard behavior - if no dates provided, default to TODAY
+            LocalDate hoy = LocalDate.now();
 
-        List<com.sqrc.module.backendsqrc.reporte.model.KpiDashboardEncuestas> datos = encuestasRepo.findByFechaBetween(start, end);
+            if (start == null && end == null) {
+                start = hoy;
+                end = hoy;
+            }
+
+            // Normalize: if only one boundary is provided, treat as single-day range
+            if (start == null && end != null) {
+                start = end;
+            }
+            if (end == null && start != null) {
+                end = start;
+            }
+
+            List<com.sqrc.module.backendsqrc.reporte.model.KpiDashboardEncuestas> datos = encuestasRepo.findByFechaBetween(start, end);
 
         if (datos.isEmpty()) {
             return SurveyDashboardDTO.builder()
