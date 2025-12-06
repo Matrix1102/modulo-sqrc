@@ -18,11 +18,11 @@ const ProductAccordionItem: React.FC<ProductAccordionItemProps> = ({ product, is
         aria-expanded={isActive}
         className="flex w-full items-center justify-between gap-3 px-4 py-3 text-left"
       >
-        <div>
-          <h4 className="text-sm font-semibold text-gray-900">{product.name}</h4>
+        <div className="flex-1 min-w-0">
+          <h4 className="text-sm font-semibold text-gray-900 truncate">{product.name}</h4>
           <p className="text-xs text-gray-500">Código: {product.code}</p>
         </div>
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-3 shrink-0">
           <StatusBadge status={product.status} />
           <ChevronDown
             size={18}

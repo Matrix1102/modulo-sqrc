@@ -9,7 +9,9 @@ import lombok.NoArgsConstructor;
 /**
  * DTO para enviar datos de actualización al API externo de clientes.
  * PATCH https://mod-ventas.onrender.com/api/clientes/integracion/atencion-cliente/{idCliente}
- * Todos los campos son editables excepto clienteId.
+ * 
+ * Campos editables: dni, firstName, lastName, email, phoneNumber, telefonoFijo, address, fechaNacimiento, estado
+ * Campos NO editables: clienteId, registrationDate, categoria
  */
 @Data
 @Builder
@@ -32,15 +34,15 @@ public class ActualizarClienteExternoDTO {
     @JsonProperty("phoneNumber")
     private String phoneNumber;
 
+    @JsonProperty("telefonoFijo")
+    private String telefonoFijo;
+
     @JsonProperty("address")
     private String address;
 
-    @JsonProperty("registrationDate")
-    private String registrationDate;
+    @JsonProperty("fechaNacimiento")
+    private String fechaNacimiento;
 
     @JsonProperty("estado")
     private String estado;
-
-    @JsonProperty("categoria")
-    private String categoria;
 }

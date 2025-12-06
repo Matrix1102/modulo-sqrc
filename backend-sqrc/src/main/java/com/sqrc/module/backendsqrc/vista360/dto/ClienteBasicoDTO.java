@@ -59,9 +59,14 @@ public class ClienteBasicoDTO {
     private String correo;
 
     /**
-     * Teléfono del cliente (phoneNumber del API externo)
+     * Teléfono celular del cliente (phoneNumber del API externo)
      */
-    private String telefono;
+    private String celular;
+
+    /**
+     * Teléfono fijo del cliente (telefonoFijo del API externo)
+     */
+    private String telefonoFijo;
 
     /**
      * Dirección del cliente (address del API externo)
@@ -69,17 +74,24 @@ public class ClienteBasicoDTO {
     private String direccion;
 
     /**
+     * Fecha de nacimiento del cliente
+     */
+    private LocalDate fechaNacimiento;
+
+    /**
      * Fecha de registro del cliente (registrationDate del API externo)
+     * Campo solo lectura - no editable
      */
     private LocalDate fechaRegistro;
 
     /**
-     * Estado del cliente (ACTIVO, INACTIVO, etc.)
+     * Estado del cliente (ACTIVO, INACTIVO)
      */
     private String estado;
 
     /**
-     * Categoría del cliente (Estándar, Premium, etc.)
+     * Categoría del cliente (Estándar, VIP, Platino)
+     * Campo solo lectura - no editable
      */
     private String categoria;
 }

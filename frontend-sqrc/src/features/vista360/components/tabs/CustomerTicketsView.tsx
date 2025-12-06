@@ -163,11 +163,44 @@ const ticketService = {
 };
 
 const CustomerTicketsView: React.FC = () => {
-  const { cliente } = useCustomer();
+  const { cliente, ticketCache, isLoadingTickets } = useCustomer();
   const initialFilters = useMemo(() => createDefaultFilters(), []);
   const [filters, setFilters] = useState<FilterCriteria>(initialFilters);
   const [searchResults, setSearchResults] = useState<ReadonlyArray<LocalTicketSummary>>([]);
   const [selectedTicketId, setSelectedTicketId] = useState<number | null>(null);
+  const [isFiltering, setIsFiltering] = useState<boolean>(false);
+
+  // Cargar tickets desde el cache si existe, o cargar nuevos si no
+  useEffect(() => {
+    if (!cliente?.idCliente) {
+      setSearchResults([]);
+      setSelectedTicketId(null);
+      return;
+    }
+
+    // Si hay tickets en cache y coincide el cliente, usarlos
+    if (ticketCache && ticketCache.tickets && ticketCache.tickets.length > 0) {
+      const mappedTickets = ticketCache.tickets.map(mapApiSummaryToLocal);
+      setSearchResults(mappedTickets);
+      setSelectedTicketId(mappedTickets[0]?.id ?? null);
+    } else if (!isLoadingTickets) {
+      // Solo cargar si no se están cargando ya en background
+      loadTickets();
+    }
+  }, [cliente?.idCliente, ticketCache, isLoadingTickets]);
+
+  const loadTickets = async () => {
+    if (!cliente?.idCliente) return;
+    
+    try {
+      const results = await ticketService.getTicketsByClienteId(cliente.idCliente);
+      setSearchResults(results);
+      setSelectedTicketId(results[0]?.id ?? null);
+    } catch (error) {
+      console.error('Error al cargar tickets:', error);
+      setSearchResults([]);
+    }
+  };
 
   const handleSearch = useCallback(async (criteria: FilterCriteria) => {
     if (!cliente?.idCliente) {
@@ -176,6 +209,7 @@ const CustomerTicketsView: React.FC = () => {
       return;
     }
 
+    setIsFiltering(true);
     try {
       const results = await ticketService.searchTickets(criteria, cliente.idCliente);
       setFilters(criteria);
@@ -185,16 +219,14 @@ const CustomerTicketsView: React.FC = () => {
       console.error('Error al buscar tickets:', error);
       setSearchResults([]);
       setSelectedTicketId(null);
+    } finally {
+      setIsFiltering(false);
     }
   }, [cliente?.idCliente]);
 
   const handleSelectTicket = useCallback((ticketId: number) => {
     setSelectedTicketId(ticketId);
   }, []);
-
-  useEffect(() => {
-    void handleSearch(initialFilters);
-  }, [handleSearch, initialFilters]);
 
   if (!cliente) {
     return (
@@ -207,12 +239,20 @@ const CustomerTicketsView: React.FC = () => {
     );
   }
 
+  const showLoadingIndicator = isLoadingTickets || isFiltering;
+
   return (
     <section className="flex h-full flex-col gap-6">
-      <div className="rounded-xl border border-blue-100 bg-blue-50 p-4">
+      <div className="rounded-xl border border-blue-100 bg-blue-50 p-4 flex items-center justify-between">
         <p className="text-sm text-blue-800">
           <span className="font-semibold">Cliente:</span> {cliente.nombre} {cliente.apellido} (DNI: {cliente.dni})
         </p>
+        {showLoadingIndicator && (
+          <div className="flex items-center gap-2 text-blue-600">
+            <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600"></div>
+            <span className="text-xs">Cargando tickets...</span>
+          </div>
+        )}
       </div>
       <SearchFilterComponent onSearch={handleSearch} initialFilters={filters} />
 

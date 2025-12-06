@@ -57,22 +57,24 @@ public class Vista360Service {
         }
 
         /**
-         * Busca un cliente por su DNI.
-         * NOTA: Actualmente el endpoint de búsqueda por DNI no está habilitado en el API externo.
-         * Por ahora lanza una excepción indicando que la funcionalidad no está disponible.
+         * Busca un cliente por su DNI desde el API externo.
          *
-         * @param dni Documento Nacional de Identidad
+         * @param dni Documento Nacional de Identidad (8 dígitos)
          * @return DTO con información básica del cliente
-         * @throws UnsupportedOperationException siempre, ya que el endpoint no está habilitado
+         * @throws ClienteNotFoundException si el cliente no existe
          */
         public ClienteBasicoDTO obtenerClientePorDni(String dni) {
-                log.warn("Intento de búsqueda por DNI: {} - Endpoint no disponible", dni);
-                throw new UnsupportedOperationException(
-                        "La búsqueda por DNI no está disponible actualmente. Por favor, busque por ID de cliente.");
+                log.debug("Buscando cliente por DNI: {}", dni);
+
+                ClienteExternoDTO clienteExterno = clienteApiClient.obtenerClientePorDni(dni);
+
+                return mapearDeExterno(clienteExterno);
         }
 
         /**
          * Actualiza la información del cliente en el API externo.
+         * Solo se actualizan los campos editables: dni, nombre, apellido, correo, celular, telefonoFijo, direccion, fechaNacimiento, estado
+         * Campos NO editables: idCliente, fechaRegistro, categoria
          *
          * @param id    ID del cliente a actualizar
          * @param datos DTO con los datos actualizados
@@ -82,17 +84,17 @@ public class Vista360Service {
         public ClienteBasicoDTO actualizarInformacionCliente(Integer id, ActualizarClienteDTO datos) {
                 log.debug("Actualizando información del cliente ID: {}", id);
 
-                // Mapear a DTO del API externo - todos los campos editables
+                // Mapear a DTO del API externo - solo campos editables
                 ActualizarClienteExternoDTO datosExternos = ActualizarClienteExternoDTO.builder()
                         .dni(datos.getDni())
                         .firstName(datos.getNombre())
                         .lastName(datos.getApellido())
                         .email(datos.getCorreo())
-                        .phoneNumber(datos.getTelefono())
+                        .phoneNumber(datos.getCelular())
+                        .telefonoFijo(datos.getTelefonoFijo())
                         .address(datos.getDireccion())
-                        .registrationDate(datos.getFechaRegistro())
+                        .fechaNacimiento(datos.getFechaNacimiento())
                         .estado(datos.getEstado())
-                        .categoria(datos.getCategoria())
                         .build();
 
                 ClienteExternoDTO clienteActualizado = clienteApiClient.actualizarCliente(id, datosExternos);
@@ -142,8 +144,10 @@ public class Vista360Service {
                                 .apellido(externo.getLastName())
                                 .nombreCompleto(externo.getFullName())
                                 .correo(externo.getEmail())
-                                .telefono(externo.getPhoneNumber())
+                                .celular(externo.getPhoneNumber())
+                                .telefonoFijo(externo.getTelefonoFijo())
                                 .direccion(externo.getAddress())
+                                .fechaNacimiento(externo.getFechaNacimiento())
                                 .fechaRegistro(externo.getRegistrationDate())
                                 .estado(externo.getEstado())
                                 .categoria(externo.getCategoria())

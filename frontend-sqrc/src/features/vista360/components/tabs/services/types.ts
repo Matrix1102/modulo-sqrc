@@ -11,6 +11,7 @@ export interface ServiceInvoice {
   status: PaymentStatus;
   reference: string;
   downloadUrl: string;
+  contractUrl: string;
   consumption: string;
   balance: number;
 }

@@ -21,10 +21,10 @@ interface UserProviderProps {
 
 // Usuario simulado por defecto (en producción vendría de la autenticación)
 const DEFAULT_USER: User = {
-  id: 11, // ID del empleado 11 (AgenteLlamada) que existe en la BD
-  nombre: "Juan Pérez",
-  email: "juan.perez@empresa.com",
-  rol: "SUPERVISOR",
+  id: 6, // Sofia Call - Agente de Llamada
+  nombre: "Sofia Call",
+  email: "sofia.call@sqrc.com",
+  rol: "AGENTE",
 };
 
 export const UserProvider: React.FC<UserProviderProps> = ({ children }) => {

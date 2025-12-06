@@ -16,11 +16,13 @@ export interface ClienteBasicoDTO {
   apellido: string;
   nombreCompleto: string;
   correo: string;
-  telefono: string;
+  celular: string;
+  telefonoFijo: string;
   direccion: string;
-  fechaRegistro: string; // ISO format: "YYYY-MM-DD"
-  estado: string; // "ACTIVO", "INACTIVO", etc.
-  categoria: string; // "Estándar", "Premium", etc.
+  fechaNacimiento: string | null; // ISO format: "YYYY-MM-DD"
+  fechaRegistro: string; // ISO format: "YYYY-MM-DD" - Solo lectura
+  estado: string; // "ACTIVO", "INACTIVO"
+  categoria: string; // "Estándar", "VIP", "Platino" - Solo lectura
 }
 
 export interface MetricaKPI {
@@ -31,16 +33,21 @@ export interface MetricaKPI {
   estadoTendencia: 'POSITIVO' | 'NEGATIVO' | 'NEUTRO';
 }
 
+/**
+ * DTO para actualizar información del cliente.
+ * Campos editables: dni, nombre, apellido, correo, celular, telefonoFijo, direccion, fechaNacimiento, estado
+ * Campos NO editables: idCliente, fechaRegistro, categoria
+ */
 export interface ActualizarClienteDTO {
   dni?: string;
   nombre?: string;
   apellido?: string;
   correo?: string;
-  telefono?: string;
+  celular?: string;
+  telefonoFijo?: string;
   direccion?: string;
-  fechaRegistro?: string;
+  fechaNacimiento?: string;
   estado?: string;
-  categoria?: string;
 }
 
 export interface ErrorResponse {

@@ -4,8 +4,12 @@ import {
   ProductMasterList,
   PaymentHistoryTable,
 } from "./products";
-import type { ProductFilterState, PaymentDocument, VistaProduct } from "./products";
+import type { PaymentDocument, VistaProduct } from "./products";
 
+// URL de contrato de Google Drive para productos
+const CONTRACT_URL_PRODUCTS = "https://drive.google.com/file/d/1zW8PmfMDr94mY4lLB3Ac9AW9hTRRNzYY/view";
+
+// 6 PRODUCTOS
 const MOCK_PRODUCTS: VistaProduct[] = [
   {
     id: "prd-001",
@@ -15,6 +19,7 @@ const MOCK_PRODUCTS: VistaProduct[] = [
     startDate: "2025-02-04",
     paymentForm: "Pago Único",
     nextBillingDate: "2025-02-18",
+    type: "product",
     documents: [
       {
         id: "doc-001",
@@ -23,6 +28,7 @@ const MOCK_PRODUCTS: VistaProduct[] = [
         status: "Pagado",
         reference: "FAC-2025-02-00124",
         downloadUrl: "#",
+        contractUrl: CONTRACT_URL_PRODUCTS,
         paymentMethod: "Visa Crédito •••• 4721",
         balance: 0,
       },
@@ -33,6 +39,7 @@ const MOCK_PRODUCTS: VistaProduct[] = [
         status: "Pagado",
         reference: "GAR-2025-02-00041",
         downloadUrl: "#",
+        contractUrl: CONTRACT_URL_PRODUCTS,
         paymentMethod: "Visa Crédito •••• 4721",
         balance: 0,
       },
@@ -46,6 +53,7 @@ const MOCK_PRODUCTS: VistaProduct[] = [
     startDate: "2025-01-22",
     paymentForm: "Pago a Cuotas",
     nextBillingDate: "2025-11-22",
+    type: "product",
     documents: [
       {
         id: "doc-003",
@@ -54,6 +62,7 @@ const MOCK_PRODUCTS: VistaProduct[] = [
         status: "Pago parcial",
         reference: "CUO-2025-02-00671",
         downloadUrl: "#",
+        contractUrl: CONTRACT_URL_PRODUCTS,
         paymentMethod: "Crédito Directo (cuota 2 de 12)",
         balance: 2499.5,
       },
@@ -64,6 +73,7 @@ const MOCK_PRODUCTS: VistaProduct[] = [
         status: "Pagado",
         reference: "FAC-2025-01-00088",
         downloadUrl: "#",
+        contractUrl: CONTRACT_URL_PRODUCTS,
         paymentMethod: "Pago inicial - Yape",
         balance: 0,
       },
@@ -77,6 +87,7 @@ const MOCK_PRODUCTS: VistaProduct[] = [
     startDate: "2025-03-08",
     paymentForm: "Pago Único",
     nextBillingDate: "2025-03-21",
+    type: "product",
     documents: [
       {
         id: "doc-005",
@@ -85,12 +96,113 @@ const MOCK_PRODUCTS: VistaProduct[] = [
         status: "Pendiente",
         reference: "FAC-2025-03-00012",
         downloadUrl: "#",
+        contractUrl: CONTRACT_URL_PRODUCTS,
         paymentMethod: "Transferencia BCP",
         balance: 3799.0,
       },
     ],
   },
+  {
+    id: "prd-004",
+    name: "MacBook Pro 14'' M3 Pro",
+    code: "SKU-MBP14-M3P",
+    status: "Pagado",
+    startDate: "2025-01-15",
+    paymentForm: "Pago a Cuotas",
+    nextBillingDate: "2025-07-15",
+    type: "product",
+    documents: [
+      {
+        id: "doc-006",
+        issueDate: "2025-01-15",
+        amount: 2500.0,
+        status: "Pagado",
+        reference: "FAC-2025-01-00045",
+        downloadUrl: "#",
+        contractUrl: CONTRACT_URL_PRODUCTS,
+        paymentMethod: "Pago inicial - Mastercard •••• 8812",
+        balance: 0,
+      },
+      {
+        id: "doc-007",
+        issueDate: "2025-02-15",
+        amount: 1250.0,
+        status: "Pagado",
+        reference: "CUO-2025-02-00112",
+        downloadUrl: "#",
+        contractUrl: CONTRACT_URL_PRODUCTS,
+        paymentMethod: "Cuota 1 de 6 - Débito automático",
+        balance: 5000.0,
+      },
+    ],
+  },
+  {
+    id: "prd-005",
+    name: "Sony WH-1000XM5 Auriculares",
+    code: "SKU-SONY-XM5",
+    status: "Pagado",
+    startDate: "2025-03-01",
+    paymentForm: "Pago Único",
+    nextBillingDate: "2025-03-01",
+    type: "product",
+    documents: [
+      {
+        id: "doc-008",
+        issueDate: "2025-03-01",
+        amount: 1499.0,
+        status: "Pagado",
+        reference: "FAC-2025-03-00003",
+        downloadUrl: "#",
+        contractUrl: CONTRACT_URL_PRODUCTS,
+        paymentMethod: "Yape",
+        balance: 0,
+      },
+    ],
+  },
+  {
+    id: "prd-006",
+    name: "Apple Watch Ultra 2",
+    code: "SKU-AWU2-49",
+    status: "Pago parcial",
+    startDate: "2025-02-20",
+    paymentForm: "Pago a Cuotas",
+    nextBillingDate: "2025-05-20",
+    type: "product",
+    documents: [
+      {
+        id: "doc-009",
+        issueDate: "2025-02-20",
+        amount: 1200.0,
+        status: "Pagado",
+        reference: "FAC-2025-02-00089",
+        downloadUrl: "#",
+        contractUrl: CONTRACT_URL_PRODUCTS,
+        paymentMethod: "Pago inicial - Plin",
+        balance: 0,
+      },
+      {
+        id: "doc-010",
+        issueDate: "2025-03-20",
+        amount: 600.0,
+        status: "Pago parcial",
+        reference: "CUO-2025-03-00034",
+        downloadUrl: "#",
+        contractUrl: CONTRACT_URL_PRODUCTS,
+        paymentMethod: "Cuota 1 de 3",
+        balance: 1200.0,
+      },
+    ],
+  },
 ];
+
+// NOTA: Los servicios se muestran en CustomerServicesView
+
+interface ProductFilterState {
+  search: string;
+  status: string;
+  dateFrom: string;
+  dateTo: string;
+}
 
 const DEFAULT_FILTERS: ProductFilterState = {
   search: "",
@@ -111,7 +223,7 @@ const CustomerProductsView: React.FC = () => {
         .includes(filters.search.trim().toLowerCase());
 
       const matchesStatus =
-        filters.status === "todos" || product.status.toLowerCase() === filters.status;
+        filters.status === "todos" || product.status.toLowerCase() === filters.status.toLowerCase();
 
       const fromDate = filters.dateFrom ? new Date(filters.dateFrom) : null;
       const toDate = filters.dateTo ? new Date(filters.dateTo) : null;
@@ -161,7 +273,7 @@ const CustomerProductsView: React.FC = () => {
         />
       </div>
 
-      <div className="grid gap-6 lg:grid-cols-[500px_minmax(0,1fr)]">
+      <div className="grid gap-6 lg:grid-cols-[400px_minmax(0,1fr)]">
         <ProductMasterList
           products={filteredProducts}
           selectedProductId={selectedProduct?.id ?? ""}

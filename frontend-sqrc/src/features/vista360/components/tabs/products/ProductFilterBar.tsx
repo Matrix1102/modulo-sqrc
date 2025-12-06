@@ -5,7 +5,7 @@ export type ProductStatusFilter = "todos" | "pagado" | "pago parcial" | "pendien
 
 export interface ProductFilterState {
   search: string;
-  status: ProductStatusFilter;
+  status: string;
   dateFrom: string;
   dateTo: string;
 }
@@ -15,7 +15,7 @@ interface ProductFilterBarProps {
   onFiltersChange: (partial: Partial<ProductFilterState>) => void;
 }
 
-const statusOptions: Array<{ label: string; value: ProductStatusFilter }> = [
+const statusOptions: Array<{ label: string; value: string }> = [
   { label: "Todos", value: "todos" },
   { label: "Pagado", value: "pagado" },
   { label: "Pago parcial", value: "pago parcial" },
@@ -74,7 +74,7 @@ const ProductFilterBar: React.FC<ProductFilterBarProps> = ({ filters, onFiltersC
         </span>
         <select
           value={filters.status}
-          onChange={(event) => onFiltersChange({ status: event.target.value as ProductStatusFilter })}
+          onChange={(event) => onFiltersChange({ status: event.target.value })}
           className="w-full rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-sm"
         >
           {statusOptions.map((option) => (

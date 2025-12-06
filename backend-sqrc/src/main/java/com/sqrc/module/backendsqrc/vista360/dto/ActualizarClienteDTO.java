@@ -10,7 +10,9 @@ import lombok.NoArgsConstructor;
 /**
  * DTO para actualizar información del cliente.
  * Adaptado para la integración con el API externo de clientes (mod-ventas).
- * Todos los campos son editables excepto el ID del cliente.
+ * 
+ * Campos editables: dni, nombre, apellido, correo, celular, telefonoFijo, direccion, fechaNacimiento, estado
+ * Campos NO editables: idCliente, fechaRegistro, categoria
  */
 @Data
 @Builder
@@ -41,9 +43,14 @@ public class ActualizarClienteDTO {
     private String correo;
 
     /**
-     * Teléfono del cliente (phoneNumber en API externo)
+     * Teléfono celular del cliente (phoneNumber en API externo)
      */
-    private String telefono;
+    private String celular;
+
+    /**
+     * Teléfono fijo del cliente (telefonoFijo en API externo)
+     */
+    private String telefonoFijo;
 
     /**
      * Dirección del cliente (address en API externo)
@@ -51,18 +58,14 @@ public class ActualizarClienteDTO {
     private String direccion;
 
     /**
-     * Fecha de registro del cliente (registrationDate en API externo)
+     * Fecha de nacimiento del cliente
      * Formato: yyyy-MM-dd
      */
-    private String fechaRegistro;
+    private String fechaNacimiento;
 
     /**
-     * Estado del cliente (ACTIVO, INACTIVO, etc.)
+     * Estado del cliente (ACTIVO, INACTIVO)
      */
+    @Pattern(regexp = "^(ACTIVO|INACTIVO)$", message = "El estado debe ser ACTIVO o INACTIVO")
     private String estado;
-
-    /**
-     * Categoría del cliente (Estándar, Premium, etc.)
-     */
-    private String categoria;
 }
