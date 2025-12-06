@@ -42,7 +42,7 @@ export async function escalarTicket(
  * Deriva un ticket de BackOffice a un área externa
  * 
  * @param ticketId ID del ticket a derivar
- * @param request Datos de la derivación (backofficeId, areaId, motivo, etc.)
+ * @param request Datos de la derivación (areaDestinoId, asunto, cuerpo)
  * @returns Mensaje de confirmación
  */
 export async function derivarTicket(

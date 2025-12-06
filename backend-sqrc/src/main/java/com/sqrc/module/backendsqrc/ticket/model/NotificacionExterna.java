@@ -37,6 +37,13 @@ public class NotificacionExterna {
     @Column(name = "fecha_envio")
     private LocalDateTime fechaEnvio;
 
+    @Lob
+    @Column(name = "respuesta", columnDefinition = "TEXT")
+    private String respuesta;
+
+    @Column(name = "fecha_respuesta")
+    private LocalDateTime fechaRespuesta;
+
     @PrePersist
     public void prePersist() {
         if (this.fechaEnvio == null) {

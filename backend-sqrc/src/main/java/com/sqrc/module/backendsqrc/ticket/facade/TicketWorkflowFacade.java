@@ -8,6 +8,7 @@ import com.sqrc.module.backendsqrc.ticket.event.TicketEscaladoEvent;
 import com.sqrc.module.backendsqrc.ticket.model.*;
 import com.sqrc.module.backendsqrc.ticket.repository.TicketRepository;
 import com.sqrc.module.backendsqrc.ticket.repository.AsignacionRepository;
+import com.sqrc.module.backendsqrc.ticket.repository.NotificacionExternaRepository;
 import com.sqrc.module.backendsqrc.ticket.service.AsignacionService;
 import com.sqrc.module.backendsqrc.ticket.service.DerivacionService;
 import com.sqrc.module.backendsqrc.ticket.service.DocumentacionService;
@@ -28,6 +29,7 @@ public class TicketWorkflowFacade {
 
     private final TicketRepository ticketRepository;
     private final AsignacionRepository asignacionRepository;
+    private final NotificacionExternaRepository notificacionExternaRepository;
     private final AsignacionService asignacionService;
     private final DocumentacionService documentacionService;
     private final DerivacionService derivacionService;
@@ -100,6 +102,9 @@ public class TicketWorkflowFacade {
     // =========================================================================
     @Transactional
     public void registrarRespuestaExterna(Long ticketId, RespuestaDerivacionDTO respuesta) {
+        log.info("📥 Registrando respuesta externa para ticket #{}", ticketId);
+        
+        // 1. Validar ticket
         Ticket ticket = ticketRepository.findById(ticketId)
                 .orElseThrow(() -> new RuntimeException("Ticket no encontrado: " + ticketId));
 
@@ -107,8 +112,42 @@ public class TicketWorkflowFacade {
             throw new RuntimeException("Solo se pueden registrar respuestas en tickets DERIVADOS.");
         }
 
-        // Al volver, el ticket regresa a estado ABIERTO para que el Backoffice lo gestione
-        ticket.setEstado(EstadoTicket.ABIERTO);
+        // 2. Buscar la notificación externa pendiente (sin respuesta)
+        NotificacionExterna notificacion = notificacionExternaRepository
+                .findByTicket_IdTicket(ticketId)
+                .stream()
+                .filter(n -> n.getRespuesta() == null || n.getRespuesta().trim().isEmpty())
+                .findFirst()
+                .orElseThrow(() -> new RuntimeException("No se encontró derivación pendiente de respuesta"));
+
+        // 3. Actualizar la notificación con la respuesta
+        notificacion.setRespuesta(respuesta.getRespuestaExterna());
+        notificacion.setFechaRespuesta(LocalDateTime.now());
+        notificacionExternaRepository.save(notificacion);
+        log.info("✅ Respuesta registrada en notificación externa ID: {}", notificacion.getIdNotificacion());
+
+        // 4. Crear documentación para historial interno (opcional)
+        try {
+            Asignacion asignacionActiva = asignacionRepository.findAsignacionActiva(ticketId)
+                    .orElseThrow(() -> new RuntimeException("No hay asignación activa"));
+            
+            Long backofficeId = asignacionActiva.getEmpleado().getIdEmpleado();
+            documentacionService.registrarRespuestaExterna(ticket, respuesta.getRespuestaExterna(), backofficeId);
+            log.info("📝 Documentación creada para ticket #{}", ticketId);
+        } catch (Exception ex) {
+            log.warn("⚠️ No se pudo crear documentación: {}", ex.getMessage());
+        }
+
+        // 5. Cambiar estado del ticket según si está solucionado
+        if (Boolean.TRUE.equals(respuesta.getSolucionado())) {
+            ticket.setEstado(EstadoTicket.CERRADO);
+            ticket.setFechaCierre(LocalDateTime.now());
+            log.info("🔒 Ticket #{} marcado como CERRADO (solucionado por área externa)", ticketId);
+        } else {
+            ticket.setEstado(EstadoTicket.ABIERTO);
+            log.info("🔓 Ticket #{} regresa a ABIERTO para seguimiento del BackOffice", ticketId);
+        }
+
         ticketRepository.save(ticket);
     }
 
@@ -240,5 +279,107 @@ public class TicketWorkflowFacade {
         );
 
         log.info("✅ Correo de escalamiento procesado para ticket #{}", ticket.getIdTicket());
+    }
+
+    /**
+     * Envía un correo interno al BackOffice notificando la respuesta del área externa
+     * y lo registra en la BD.
+     *
+     * @param ticket Ticket que recibió la respuesta
+     * @param respuesta Datos de la respuesta externa
+     * @param asignacionBackoffice Asignación actual del BackOffice
+     */
+    private void enviarYGuardarCorreoRespuestaExterna(Ticket ticket, RespuestaDerivacionDTO respuesta,
+                                                       Asignacion asignacionBackoffice) {
+        log.info("📧 [CORREO RESPUESTA] Iniciando envío de correo de respuesta externa para ticket #{}", ticket.getIdTicket());
+
+        Empleado backoffice = asignacionBackoffice.getEmpleado();
+        String correoBackoffice = backoffice.getCorreo();
+
+        String asunto = String.format("📥 Respuesta recibida de Área Externa - Ticket #%d", ticket.getIdTicket());
+
+        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm");
+        String fechaRespuesta = LocalDateTime.now().format(formatter);
+
+        String estadoSolucion = Boolean.TRUE.equals(respuesta.getSolucionado())
+            ? "✅ <span style='color: green; font-weight: bold;'>SOLUCIONADO</span>"
+            : "⚠️ <span style='color: orange; font-weight: bold;'>REQUIERE SEGUIMIENTO</span>";
+
+        String cuerpo = String.format("""
+                <html>
+                <head>
+                    <style>
+                        body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+                        .header { background-color: #e8f5e9; padding: 20px; border-left: 4px solid #4caf50; }
+                        .content { padding: 20px; }
+                        .info-box { background-color: #f8f9fa; padding: 15px; border-radius: 5px; margin: 10px 0; }
+                        .label { font-weight: bold; color: #4caf50; }
+                        .respuesta-box { background-color: #fff3cd; padding: 15px; border-left: 3px solid #ffc107; }
+                        .footer { margin-top: 30px; padding-top: 20px; border-top: 1px solid #dee2e6; font-size: 0.9em; color: #6c757d; }
+                    </style>
+                </head>
+                <body>
+                    <div class="header">
+                        <h2>📥 Respuesta de Área Externa Recibida</h2>
+                    </div>
+                    
+                    <div class="content">
+                        <p>Estimado/a <strong>%s</strong>,</p>
+                        
+                        <p>Se ha recibido respuesta del área externa para el siguiente ticket:</p>
+                        
+                        <div class="info-box">
+                            <h3>📋 Información del Ticket</h3>
+                            <p><span class="label">ID:</span> #%d</p>
+                            <p><span class="label">Asunto:</span> %s</p>
+                            <p><span class="label">Fecha de respuesta:</span> %s</p>
+                        </div>
+                        
+                        <div class="respuesta-box">
+                            <h3>💬 Respuesta del Área Externa</h3>
+                            <p>%s</p>
+                        </div>
+                        
+                        <div class="info-box">
+                            <h3>📊 Estado de la Solución</h3>
+                            <p>%s</p>
+                        </div>
+                        
+                        <p><strong>Acción requerida:</strong></p>
+                        <ul>
+                            <li>Revise la respuesta proporcionada</li>
+                            <li>%s</li>
+                        </ul>
+                    </div>
+                    
+                    <div class="footer">
+                        <p><em>Este es un correo automático del Sistema de Gestión de Tickets SQRC</em></p>
+                        <p>Por favor no responda a este correo.</p>
+                    </div>
+                </body>
+                </html>
+                """,
+                backoffice.getNombreCompleto(),
+                ticket.getIdTicket(),
+                ticket.getAsunto(),
+                fechaRespuesta,
+                respuesta.getRespuestaExterna() != null && !respuesta.getRespuestaExterna().isBlank()
+                    ? respuesta.getRespuestaExterna()
+                    : "Sin contenido especificado",
+                estadoSolucion,
+                Boolean.TRUE.equals(respuesta.getSolucionado())
+                    ? "Proceda a cerrar el ticket si considera que la respuesta es satisfactoria"
+                    : "Evalúe si se requieren acciones adicionales o seguimiento con el cliente"
+        );
+
+        ticketEmailService.enviarYGuardarCorreo(
+                correoBackoffice,
+                asunto,
+                cuerpo,
+                asignacionBackoffice,
+                TipoCorreo.RESPUESTA_INTERNA
+        );
+
+        log.info("✅ Correo de respuesta externa procesado para ticket #{}", ticket.getIdTicket());
     }
 }
