@@ -9,6 +9,7 @@ import DashboardPage from "./pages/supervisor/DashboardPage";
 import EncuestasPage from "./pages/supervisor/SurveyPage";
 import SurveyCategoryPage from "./pages/supervisor/SurveyCategoryPage";
 import SurveyExecutionPage from "./pages/public/SurveyExecutionPage";
+import SimuladorAreaExterna from "./pages/public/SimuladorAreaExterna";
 import { ResponderTicketPage } from "./features/plantilla_respuestas/pages/ResponderTicketPage";
 
 // Tickets Feature - Pages
@@ -115,6 +116,12 @@ export default function App() {
           <Route
             path="/encuestas/exec/:encuestaId"
             element={<SurveyExecutionPage />}
+          />
+
+          {/* ─── SIMULADOR DE ÁREA EXTERNA (Público) ─── */}
+          <Route
+            path="/simulador-area-externa"
+            element={<SimuladorAreaExterna />}
           />
 
           {/* ─── ZONA AGENTE LLAMADA ─── */}

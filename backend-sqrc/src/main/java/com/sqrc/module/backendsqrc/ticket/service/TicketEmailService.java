@@ -50,6 +50,7 @@ public class TicketEmailService {
     /**
      * Envía un correo HTML y lo PERSISTE en la base de datos.
      * El HTML se convierte a texto plano antes de guardar para mejor legibilidad.
+     * VERSIÓN SÍNCRONA para uso dentro de transacciones.
      *
      * @param destinatario Email del destinatario
      * @param asunto Asunto del correo
@@ -57,7 +58,6 @@ public class TicketEmailService {
      * @param asignacion Asignación relacionada con el correo
      * @param tipoCorreo Tipo de correo (SOLICITUD_ESCALAMIENTO, RESPUESTA_INTERNA, DERIVACION_EXTERNA)
      */
-    @Async
     public void enviarYGuardarCorreo(String destinatario, String asunto, String cuerpoHtml,
                                       Asignacion asignacion, TipoCorreo tipoCorreo) {
         // 1. Enviar correo (SIMULADO)
@@ -66,29 +66,40 @@ public class TicketEmailService {
         log.info("   -> Para: {}", destinatario);
         log.info("   -> Asunto: {}", asunto);
         log.info("   -> Tipo: {}", tipoCorreo);
-        log.info("   -> Contenido: {}", cuerpoHtml);
+        log.info("   -> ID Asignación: {}", asignacion.getIdAsignacion());
+        log.info("   -> Contenido: {}", cuerpoHtml.substring(0, Math.min(100, cuerpoHtml.length())) + "...");
         log.info("✅ Enviado exitosamente (Simulado)");
 
         // 2. Guardar en BD (convertir HTML a texto plano)
-        try {
-            String cuerpoTextoPlano = extraerTextoPlano(cuerpoHtml);
+        String cuerpoTextoPlano = extraerTextoPlano(cuerpoHtml);
 
-            Correo correo = Correo.builder()
-                    .asignacion(asignacion)
-                    .asunto(asunto)
-                    .cuerpo(cuerpoTextoPlano)  // Guarda texto plano sin HTML
-                    .tipoCorreo(tipoCorreo)
-                    .fechaEnvio(LocalDateTime.now())
-                    .build();
+        Correo correo = Correo.builder()
+                .asignacion(asignacion)
+                .asunto(asunto)
+                .cuerpo(cuerpoTextoPlano)  // Guarda texto plano sin HTML
+                .tipoCorreo(tipoCorreo)
+                .fechaEnvio(LocalDateTime.now())
+                .build();
 
-            correoRepository.save(correo);
-            log.info("💾 Correo guardado en BD (ID Asignación: {}, Tipo: {})",
-                    asignacion.getIdAsignacion(), tipoCorreo);
-        } catch (Exception ex) {
-            log.error("❌ Error al guardar correo en BD: {}", ex.getMessage());
-        }
+        Correo correoGuardado = correoRepository.save(correo);
+        log.info("💾 Correo guardado en BD (ID: {}, ID Asignación: {}, Tipo: {})",
+                correoGuardado.getIdCorreo(), asignacion.getIdAsignacion(), tipoCorreo);
 
         log.info("=================================================");
+    }
+
+    /**
+     * Versión ASÍNCRONA del método enviarYGuardarCorreo.
+     * Úsala solo cuando NO estés dentro de una transacción activa.
+     */
+    @Async
+    public void enviarYGuardarCorreoAsync(String destinatario, String asunto, String cuerpoHtml,
+                                          Asignacion asignacion, TipoCorreo tipoCorreo) {
+        try {
+            enviarYGuardarCorreo(destinatario, asunto, cuerpoHtml, asignacion, tipoCorreo);
+        } catch (Exception ex) {
+            log.error("❌ Error al guardar correo en BD (async): {}", ex.getMessage(), ex);
+        }
     }
 
     /**
