@@ -1,9 +1,6 @@
 package com.sqrc.module.backendsqrc.plantillaRespuesta.Service;
 
-import com.sqrc.module.backendsqrc.plantillaRespuesta.DTO.ArchivoDescarga;
-import com.sqrc.module.backendsqrc.plantillaRespuesta.DTO.EnviarRespuestaRequestDTO;
-import com.sqrc.module.backendsqrc.plantillaRespuesta.DTO.PreviewResponseDTO;
-import com.sqrc.module.backendsqrc.plantillaRespuesta.DTO.RespuestaBorradorDTO;
+import com.sqrc.module.backendsqrc.plantillaRespuesta.DTO.*;
 import com.sqrc.module.backendsqrc.plantillaRespuesta.Repository.PlantillaRepository;
 import com.sqrc.module.backendsqrc.plantillaRespuesta.Repository.RespuestaRepository;
 import com.sqrc.module.backendsqrc.plantillaRespuesta.chain.*;
@@ -14,9 +11,11 @@ import com.sqrc.module.backendsqrc.plantillaRespuesta.model.RespuestaCliente;
 import com.sqrc.module.backendsqrc.plantillaRespuesta.model.TipoRespuesta;
 import com.sqrc.module.backendsqrc.plantillaRespuesta.observer.IRespuestaObserver;
 import com.sqrc.module.backendsqrc.ticket.repository.AsignacionRepository;
+import com.sqrc.module.backendsqrc.vista360.dto.ClienteBasicoDTO;
 import com.sqrc.module.backendsqrc.vista360.model.ClienteEntity;
 import com.sqrc.module.backendsqrc.ticket.model.*;
 import com.sqrc.module.backendsqrc.ticket.repository.TicketRepository;
+import com.sqrc.module.backendsqrc.vista360.service.Vista360Service;
 import jakarta.annotation.PostConstruct;
 import org.springframework.context.ApplicationEventPublisher; // Si usas Observer de Spring
 import org.springframework.scheduling.annotation.Async;
@@ -40,7 +39,7 @@ public class RespuestaService {
     private final PdfService pdfService;
     private final EmailService emailService;
     private final SupabaseStorageService supabaseStorageService;
-
+    private final Vista360Service vista360Service;
     // IMPORTANTE: Necesitamos el repo para buscar por nombre
     // Asegúrate de agregar findByNombre en PlantillaRepository
     private final PlantillaRepository plantillaRepository;
@@ -63,7 +62,7 @@ public class RespuestaService {
             PlantillaService plantillaService,
             RenderService renderService,
             PdfService pdfService,
-            EmailService emailService, SupabaseStorageService supabaseStorageService,
+            EmailService emailService, SupabaseStorageService supabaseStorageService, Vista360Service vista360Service,
             com.sqrc.module.backendsqrc.plantillaRespuesta.Repository.PlantillaRepository plantillaRepo, TicketRepository ticketRepository, AsignacionRepository asignacionRepository,
             ValidarEstadoTicket validarEstado,
             ValidarDestinatario validarDestino,
@@ -75,6 +74,7 @@ public class RespuestaService {
         this.pdfService = pdfService;
         this.emailService = emailService;
         this.supabaseStorageService = supabaseStorageService;
+        this.vista360Service = vista360Service;
         this.plantillaRepository = plantillaRepo;
         this.ticketRepository = ticketRepository;
         this.asignacionRepository = asignacionRepository;
@@ -427,5 +427,61 @@ public class RespuestaService {
 
         // 4. Retornamos el paquete completo
         return new ArchivoDescarga(nombreArchivo, pdfBytes);
+    }
+    @Transactional(readOnly = true)
+    public List<RespuestaTablaDTO> listarHistorialRespuestas() {
+
+        List<RespuestaCliente> respuestasBD = respuestaRepository.findAllRespuestasWithTicket();
+
+        return respuestasBD.stream().map(respuesta -> {
+            Integer idCliente = null;
+            ClienteBasicoDTO datosCliente = null;
+
+            // BLOQUE TRY-CATCH PARA DATOS CORRUPTOS
+            try {
+                // Navegación segura: verificamos cada paso para no tener NullPointerException
+                if (respuesta.getAsignacion() != null &&
+                        respuesta.getAsignacion().getTicket() != null &&
+                        respuesta.getAsignacion().getTicket().getCliente() != null) {
+
+                    int idLong = respuesta.getAsignacion().getTicket().getCliente().getIdCliente();
+                    idCliente = idLong ;
+                }
+
+                if (idCliente != null) {
+                    datosCliente = vista360Service.obtenerClientePorId(idCliente);
+                }
+            } catch (Exception e) {
+                System.err.println("Error recuperando cliente para respuesta ID " + respuesta.getIdRespuesta() + ": " + e.getMessage());
+                // No relanzamos el error, simplemente dejamos los datos del cliente vacíos
+            }
+
+            // Fallback si no hay datos de cliente
+            if (datosCliente == null) {
+                datosCliente = ClienteBasicoDTO.builder()
+                        .dni("---")
+                        .nombre("Desconocido")
+                        .apellido("")
+                        .nombreCompleto("Cliente No Encontrado")
+                        .build();
+            }
+
+            // Manejo seguro del Enum y Asunto
+            String tipoStr = (respuesta.getTipoRespuesta() != null) ? respuesta.getTipoRespuesta().toString() : "MANUAL";
+            String asuntoStr = (respuesta.getAsunto() != null) ? respuesta.getAsunto() : "Sin Asunto";
+
+            return new RespuestaTablaDTO(
+                    respuesta.getIdRespuesta(),
+                    respuesta.getFechaEnvio(),
+                    idCliente,
+                    datosCliente.getDni(),
+                    datosCliente.getNombreCompleto() != null ? datosCliente.getNombreCompleto()
+                            : datosCliente.getNombre() + " " + datosCliente.getApellido(),
+                    tipoStr,
+                    asuntoStr,
+                    respuesta.getUrlPdfGenerado()
+            );
+
+        }).toList();
     }
 }
