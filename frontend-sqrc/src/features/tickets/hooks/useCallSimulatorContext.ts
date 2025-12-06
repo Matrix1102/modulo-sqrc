@@ -4,10 +4,7 @@
 import { useContext } from 'react';
 import { CallSimulatorContext, type CallSimulatorContextType } from '../context/callSimulatorContext';
 
-export function useCallSimulatorContext(): CallSimulatorContextType {
+export function useCallSimulatorContext(): CallSimulatorContextType | null {
   const context = useContext(CallSimulatorContext);
-  if (!context) {
-    throw new Error('useCallSimulatorContext debe usarse dentro de CallSimulatorProvider');
-  }
   return context;
 }

@@ -1,5 +1,5 @@
 import axios from 'axios';
-import type { EnviarRespuestaRequest, RespuestaBorradorDTO, PreviewResponseDTO } from '../type/index.ts'; 
+import type { EnviarRespuestaRequest, RespuestaBorradorDTO, PreviewResponseDTO,RespuestaHistorialDTO } from '../type/index.ts'; 
 
 // Ajusta la URL si es necesario
 const API_URL = 'http://localhost:8080/respuestas';
@@ -38,5 +38,10 @@ export const respuestaService = {
         document.body.appendChild(link);
         link.click();
         link.parentNode?.removeChild(link); // Limpieza
+    },
+    // 4. OBTENER HISTORIAL (NUEVO)
+    obtenerHistorial: async (): Promise<RespuestaHistorialDTO[]> => {
+        const response = await axios.get<RespuestaHistorialDTO[]>(`${API_URL}/historial_respuestas`);
+        return response.data;
     }
 };

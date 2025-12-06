@@ -14,8 +14,8 @@ interface CallSimulatorProviderProps {
 export function CallSimulatorProvider({ children }: CallSimulatorProviderProps) {
   const { user } = useUser();
   
-  // Solo activar para agentes de llamada
-  const isCallAgent = user?.rol === "AGENTE" || user?.id === 6 || user?.id === 7 || user?.id === 8;
+  // Solo activar para agentes de llamada (ID 6, 7, 8) - NO para agentes presenciales (ID 9)
+  const isCallAgent = user?.id === 6 || user?.id === 7 || user?.id === 8;
   
   const callSimulator = useCallSimulator({
     empleadoId: user?.id || 6,

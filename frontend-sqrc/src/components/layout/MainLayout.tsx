@@ -1,4 +1,5 @@
 import { Outlet, useLocation } from "react-router-dom";
+import { useEffect } from "react";
 import { Sidebar } from "./Sidebar";
 import { Navbar } from "./Navbar";
 import { IncomingCallWidget } from "../../features/tickets/components/IncomingCallWidget";
@@ -174,17 +175,37 @@ const getUserRole = (role: MainLayoutProps["role"]): string => {
 export default function MainLayout({ role }: Readonly<MainLayoutProps>) {
   const location = useLocation();
   const currentPath = location.pathname;
-  const { user } = useUser();
+  const { user, setUser } = useUser();
 
-  // Obtener el estado del simulador de llamadas desde el context
-  const isCallAgent = role === "AGENTE_LLAMADA" || user?.id === 6 || user?.id === 7 || user?.id === 8;
-  const {
-    currentCall,
-    isActive,
-    acceptCall,
-    declineCall,
-    finalizeCall,
-  } = useCallSimulatorContext();
+  // Sincronizar el usuario del contexto con el role prop de la ruta
+  useEffect(() => {
+    const getUserData = (role: MainLayoutProps["role"]) => {
+      switch (role) {
+        case "SUPERVISOR":
+          return { id: 1, nombre: "Roberto Manager", email: "roberto@sqrc.com", rol: "SUPERVISOR" as const };
+        case "BACKOFFICE":
+          return { id: 3, nombre: "Jorge Resolver", email: "jorge@sqrc.com", rol: "SUPERVISOR" as const }; // Backoffice usa rol SUPERVISOR en el sistema
+        case "AGENTE_LLAMADA":
+          return { id: 6, nombre: "Sofia Call", email: "sofia@sqrc.com", rol: "AGENTE" as const };
+        case "AGENTE_PRESENCIAL":
+          return { id: 9, nombre: "Fernando Face", email: "fernando@sqrc.com", rol: "AGENTE" as const };
+      }
+    };
+
+    const userData = getUserData(role);
+    if (!user || user.id !== userData.id) {
+      setUser(userData);
+    }
+  }, [role, user, setUser]);
+
+  // Obtener el estado del simulador de llamadas desde el context (solo para agentes de llamada)
+  const isCallAgent = role === "AGENTE_LLAMADA";
+  const callSimulator = useCallSimulatorContext();
+  const currentCall = callSimulator?.currentCall ?? null;
+  const isActive = callSimulator?.isActive ?? false;
+  const acceptCall = callSimulator?.acceptCall ?? (async () => {});
+  const declineCall = callSimulator?.declineCall ?? (async () => {});
+  const finalizeCall = callSimulator?.finalizeCall ?? (async () => {});
 
   // 2. Lógica de Selección de Título Inteligente
   const getPageInfo = () => {

@@ -5,6 +5,8 @@
 import React, { useState } from 'react';
 import type { TicketDetail } from '../../types';
 import { EscalarTicketModal } from '../EscalarTicketModal';
+import { DerivarTicketModal } from '../DerivarTicketModal';
+import { RespuestaExternaModal } from '../RespuestaExternaModal';
 
 interface DetallesTabProps {
   ticket: TicketDetail;
@@ -13,6 +15,8 @@ interface DetallesTabProps {
 
 export const DetallesTab: React.FC<DetallesTabProps> = ({ ticket, onRefresh }) => {
   const [isEscalarModalOpen, setIsEscalarModalOpen] = useState(false);
+  const [isDerivarModalOpen, setIsDerivarModalOpen] = useState(false);
+  const [isRespuestaExternaModalOpen, setIsRespuestaExternaModalOpen] = useState(false);
 
   const formatDate = (dateString: string | null | undefined) => {
     if (!dateString) return '-';
@@ -54,6 +58,66 @@ export const DetallesTab: React.FC<DetallesTabProps> = ({ ticket, onRefresh }) =
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
               </svg>
               Escalar Ticket
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Botón de Derivar (solo si el ticket está ABIERTO o ESCALADO) */}
+      {(ticket.estado === 'ABIERTO' || ticket.estado === 'ESCALADO') && (
+        <div className="bg-gradient-to-r from-purple-50 to-indigo-50 rounded-xl border border-purple-200 p-4 shadow-sm">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 bg-purple-100 rounded-full flex items-center justify-center">
+                <svg className="w-6 h-6 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
+                </svg>
+              </div>
+              <div>
+                <h4 className="font-semibold text-gray-900">¿Requiere intervención externa?</h4>
+                <p className="text-sm text-gray-600">Deriva este ticket a un área especializada externa</p>
+              </div>
+            </div>
+            <button
+              onClick={() => setIsDerivarModalOpen(true)}
+              className="px-5 py-2.5 bg-purple-500 text-white rounded-lg text-sm font-semibold
+                       hover:bg-purple-600 active:bg-purple-700 transition-colors
+                       flex items-center gap-2 shadow-sm"
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
+              </svg>
+              Derivar a Externo
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Botón de Respuesta Externa (solo si el ticket está DERIVADO) */}
+      {ticket.estado === 'DERIVADO' && (
+        <div className="bg-gradient-to-r from-blue-50 to-cyan-50 rounded-xl border border-blue-200 p-4 shadow-sm">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center">
+                <svg className="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+              </div>
+              <div>
+                <h4 className="font-semibold text-gray-900">¿Ya recibiste respuesta del área externa?</h4>
+                <p className="text-sm text-gray-600">Registra la respuesta recibida para cerrar el ciclo</p>
+              </div>
+            </div>
+            <button
+              onClick={() => setIsRespuestaExternaModalOpen(true)}
+              className="px-5 py-2.5 bg-blue-500 text-white rounded-lg text-sm font-semibold
+                       hover:bg-blue-600 active:bg-blue-700 transition-colors
+                       flex items-center gap-2 shadow-sm"
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+              Registrar Respuesta Externa
             </button>
           </div>
         </div>
@@ -225,6 +289,26 @@ export const DetallesTab: React.FC<DetallesTabProps> = ({ ticket, onRefresh }) =
       <EscalarTicketModal
         isOpen={isEscalarModalOpen}
         onClose={() => setIsEscalarModalOpen(false)}
+        ticketId={ticket.idTicket}
+        onSuccess={() => {
+          onRefresh?.();
+        }}
+      />
+
+      {/* Modal de Derivación */}
+      <DerivarTicketModal
+        isOpen={isDerivarModalOpen}
+        onClose={() => setIsDerivarModalOpen(false)}
+        ticketId={ticket.idTicket}
+        onSuccess={() => {
+          onRefresh?.();
+        }}
+      />
+
+      {/* Modal de Respuesta Externa */}
+      <RespuestaExternaModal
+        isOpen={isRespuestaExternaModalOpen}
+        onClose={() => setIsRespuestaExternaModalOpen(false)}
         ticketId={ticket.idTicket}
         onSuccess={() => {
           onRefresh?.();

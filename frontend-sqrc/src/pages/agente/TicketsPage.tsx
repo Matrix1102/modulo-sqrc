@@ -20,7 +20,9 @@ const TicketingPage = () => {
   const { tickets, loading, error, refetch } = useTickets(filters);
 
   // Obtener estado del simulador de llamadas desde el context
-  const { currentCall, isActive } = useCallSimulatorContext();
+  const callSimulator = useCallSimulatorContext();
+  const currentCall = callSimulator?.currentCall ?? null;
+  const isActive = callSimulator?.isActive ?? false;
 
   // Handler para abrir el flujo de creación de ticket
   const handleOpenCreateFlow = useCallback(() => {

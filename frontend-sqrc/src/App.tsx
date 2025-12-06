@@ -25,6 +25,7 @@ import {
 
 // plantillas de respuestas
 import { PlantillasDashboard } from "./features/plantilla_respuestas/pages/PlantillasDashboard";
+import HistorialRespuestasPage from "./features/plantilla_respuestas/pages/HistorialRespuestasPage"
 
 // Contexto de Usuario
 import { UserProvider } from "./context";
@@ -176,6 +177,9 @@ export default function App() {
             <Route index element={<DashboardPage />} />
             {/*  Ruta de Gestión de Plantillas */}
             <Route path="plantillas" element={<PlantillasDashboard />} />
+            {/* --- ruta tabla de repsuestas --- */}
+            <Route path="historial-respuestas" element={<HistorialRespuestasPage />} />
+            {/* ----------------------- */}
             <Route path="encuestas" element={<EncuestasPage />} />
             <Route
               path="encuestas/agentes"

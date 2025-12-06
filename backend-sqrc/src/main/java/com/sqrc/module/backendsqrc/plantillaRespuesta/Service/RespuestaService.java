@@ -1,9 +1,6 @@
 package com.sqrc.module.backendsqrc.plantillaRespuesta.Service;
 
-import com.sqrc.module.backendsqrc.plantillaRespuesta.DTO.ArchivoDescarga;
-import com.sqrc.module.backendsqrc.plantillaRespuesta.DTO.EnviarRespuestaRequestDTO;
-import com.sqrc.module.backendsqrc.plantillaRespuesta.DTO.PreviewResponseDTO;
-import com.sqrc.module.backendsqrc.plantillaRespuesta.DTO.RespuestaBorradorDTO;
+import com.sqrc.module.backendsqrc.plantillaRespuesta.DTO.*;
 import com.sqrc.module.backendsqrc.plantillaRespuesta.Repository.PlantillaRepository;
 import com.sqrc.module.backendsqrc.plantillaRespuesta.Repository.RespuestaRepository;
 import com.sqrc.module.backendsqrc.plantillaRespuesta.chain.*;
@@ -14,9 +11,11 @@ import com.sqrc.module.backendsqrc.plantillaRespuesta.model.RespuestaCliente;
 import com.sqrc.module.backendsqrc.plantillaRespuesta.model.TipoRespuesta;
 import com.sqrc.module.backendsqrc.plantillaRespuesta.observer.IRespuestaObserver;
 import com.sqrc.module.backendsqrc.ticket.repository.AsignacionRepository;
+import com.sqrc.module.backendsqrc.vista360.dto.ClienteBasicoDTO;
 import com.sqrc.module.backendsqrc.vista360.model.ClienteEntity;
 import com.sqrc.module.backendsqrc.ticket.model.*;
 import com.sqrc.module.backendsqrc.ticket.repository.TicketRepository;
+import com.sqrc.module.backendsqrc.vista360.service.Vista360Service;
 import jakarta.annotation.PostConstruct;
 import org.springframework.context.ApplicationEventPublisher; // Si usas Observer de Spring
 import org.springframework.scheduling.annotation.Async;
@@ -39,7 +38,8 @@ public class RespuestaService {
     private final RenderService renderService;
     private final PdfService pdfService;
     private final EmailService emailService;
-
+    private final SupabaseStorageService supabaseStorageService;
+    private final Vista360Service vista360Service;
     // IMPORTANTE: Necesitamos el repo para buscar por nombre
     // Asegúrate de agregar findByNombre en PlantillaRepository
     private final PlantillaRepository plantillaRepository;
@@ -62,7 +62,7 @@ public class RespuestaService {
             PlantillaService plantillaService,
             RenderService renderService,
             PdfService pdfService,
-            EmailService emailService,
+            EmailService emailService, SupabaseStorageService supabaseStorageService, Vista360Service vista360Service,
             com.sqrc.module.backendsqrc.plantillaRespuesta.Repository.PlantillaRepository plantillaRepo, TicketRepository ticketRepository, AsignacionRepository asignacionRepository,
             ValidarEstadoTicket validarEstado,
             ValidarDestinatario validarDestino,
@@ -73,6 +73,8 @@ public class RespuestaService {
         this.renderService = renderService;
         this.pdfService = pdfService;
         this.emailService = emailService;
+        this.supabaseStorageService = supabaseStorageService;
+        this.vista360Service = vista360Service;
         this.plantillaRepository = plantillaRepo;
         this.ticketRepository = ticketRepository;
         this.asignacionRepository = asignacionRepository;
@@ -117,6 +119,10 @@ public class RespuestaService {
         byte[] pdfBytes = pdfService.generarPdfDesdeHtml(htmlFinal);
         String nombreArchivo = "Respuesta_Caso_" + request.idAsignacion() + ".pdf";
 
+        // 3.1 Subir a Supabase (bucket manuales)
+        String rutaObjeto = "manuales/" + nombreArchivo; // puedes cambiar la carpeta lógica
+        String urlPublicaPdf = supabaseStorageService.uploadPdfManual(rutaObjeto, pdfBytes);
+
         // 4. Enviar Email
         emailService.enviarCorreoConAdjunto(
                 request.correoDestino(),
@@ -139,7 +145,7 @@ public class RespuestaService {
         respuesta.setRespuestaHtml(htmlFinal);
         respuesta.setFechaEnvio(LocalDateTime.now());
         respuesta.setFechaCreacion(LocalDateTime.now());
-        respuesta.setUrlPdfGenerado("GENERADO_MANUAL");
+        respuesta.setUrlPdfGenerado(urlPublicaPdf);
         respuesta.setTipoRespuesta(TipoRespuesta.MANUAL); // Respuesta manual del agente
 
         respuestaRepository.save(respuesta);
@@ -160,66 +166,94 @@ public class RespuestaService {
             }
             String correoCliente = ticket.getCliente().getCorreo();
 
-            // 1. DATOS COMUNES
+            // ---------------------------------------------------------------
+            // PASO 1: RECOLECTAR DATOS PUROS (Sin texto de relleno)
+            // ---------------------------------------------------------------
             Map<String, Object> variables = new HashMap<>();
             variables.put("numero_ticket", ticket.getIdTicket().toString());
             variables.put("fecha_actual", LocalDateTime.now().toLocalDate().toString());
             variables.put("nombre_cliente", ticket.getCliente().getNombres() + " " + ticket.getCliente().getApellidos());
-            variables.put("asunto", ticket.getAsunto());
-
-            // Valor por defecto por si acaso
+            variables.put("asunto_ticket", ticket.getAsunto()); // Ojo: en el HTML puse 'asunto_ticket'
             variables.put("identificador_servicio", ticket.getCliente().getDni());
 
-            // 2. LÓGICA POR TIPO (Usando instanceof porque no tenemos getTipoTicket)
-            String nombrePlantillaBuscada = "Confirmación Genérica"; // Default
+            // Variable para buscar en BD
+            String nombrePlantillaBuscada = "Confirmación Genérica";
 
             if (ticket instanceof Reclamo) {
                 Reclamo r = (Reclamo) ticket;
                 nombrePlantillaBuscada = "Confirmación de Reclamo";
 
-                variables.put("titulo", "HOJA DE RECLAMACIÓN");
+                // VARIABLES ESPECÍFICAS DE RECLAMO
                 variables.put("motivo", r.getMotivoReclamo());
-                variables.put("cuerpo", "Hemos registrado su reclamo sobre: <b>" + r.getMotivoReclamo() + "</b>. Tiene un plazo de atención de 15 días hábiles.");
+                // Agregamos la fecha límite (muy importante para el cliente)
+                // Usamos "" + para asegurar que sea String, o formatea la fecha si prefieres
+                variables.put("fecha_limite", r.getFechaLimiteRespuesta() != null ? r.getFechaLimiteRespuesta().toString() : "15 días hábiles");
 
             } else if (ticket instanceof Queja) {
                 Queja q = (Queja) ticket;
                 nombrePlantillaBuscada = "Confirmación de Queja";
 
-                variables.put("titulo", "CONSTANCIA DE QUEJA");
+                // VARIABLES ESPECÍFICAS DE QUEJA
                 variables.put("area", q.getAreaInvolucrada());
-                variables.put("cuerpo", "Lamentamos el inconveniente reportado en el área de <b>" + q.getAreaInvolucrada() + "</b>. Estamos revisando su caso.");
+                variables.put("impacto", q.getImpacto()); // "Alto", "Medio", etc.
 
             } else if (ticket instanceof Solicitud) {
                 Solicitud s = (Solicitud) ticket;
                 nombrePlantillaBuscada = "Confirmación de Solicitud";
 
-                variables.put("titulo", "CONSTANCIA DE SOLICITUD");
+                // VARIABLES ESPECÍFICAS DE SOLICITUD
                 variables.put("tipo_solicitud", s.getTipoSolicitud());
-                variables.put("cuerpo", "Su solicitud de tipo <b>" + s.getTipoSolicitud() + "</b> ha sido ingresada correctamente.");
 
             } else if (ticket instanceof Consulta) {
                 Consulta c = (Consulta) ticket;
                 nombrePlantillaBuscada = "Confirmación de Consulta";
 
-                variables.put("titulo", "RECEPCIÓN DE CONSULTA");
+                // VARIABLES ESPECÍFICAS DE CONSULTA
                 variables.put("tema", c.getTema());
-                variables.put("cuerpo", "Hemos recibido su consulta sobre: <b>" + c.getTema() + "</b>.");
             }
 
-            variables.put("despedida", "Atentamente, Sistema de Atención al Cliente.");
-
-            // 3. BUSCAR PLANTILLA (Si no existe la específica, usa la ID 1 como respaldo)
+            // ---------------------------------------------------------------
+            // PASO 2: BUSCAR LA PLANTILLA EN BD
+            // ---------------------------------------------------------------
+            // Movemos esto ARRIBA porque necesitamos el 'cuerpo' y 'titulo_visible' de la BD
             Plantilla plantilla = plantillaRepository.findByNombre(nombrePlantillaBuscada)
                     .orElseGet(() -> plantillaService.obtenerPorId(1L));
 
-            // 4. RENDERIZAR
+            // ---------------------------------------------------------------
+            // PASO 3: MAPEO MANUAL DE VARIABLES FALTANTES
+            // ---------------------------------------------------------------
+            // Aquí conectamos la columna 'titulo_visible' con la variable '${titulo}' del HTML
+            variables.put("titulo", plantilla.getTituloVisible());
+
+            // Conectamos la columna 'despedida' con la variable '${despedida}'
+            variables.put("despedida", plantilla.getDespedida());
+
+            // ---------------------------------------------------------------
+            // PASO 4: RENDERIZADO EN CAPAS (EL SECRETO)
+            // ---------------------------------------------------------------
+
+            // A. Primero cocinamos el párrafo del medio (el cuerpo específico)
+            // Usamos el texto de la BD (ej: "Hola ${motivo}...") y le metemos los datos
+            String cuerpoTextoDeBd = plantilla.getCuerpo();
+            String cuerpoYaProcesado = renderService.renderizar(cuerpoTextoDeBd, variables);
+
+            // B. Metemos ese párrafo cocinado dentro de las variables como "cuerpo"
+            // para que el HTML Master lo reciba en ${cuerpo}
+            variables.put("cuerpo", cuerpoYaProcesado);
+
+            // C. Finalmente renderizamos el HTML completo (Master)
+            // Ahora ${cuerpo} ya no es "${motivo}", sino "Cobro Indebido"
             String htmlFinal = renderService.renderizar(plantilla.getHtmlModel(), variables);
 
-            // 5. GENERAR PDF
+            // ---------------------------------------------------------------
+            // PASO 5: GENERAR PDF Y ENVIAR (Igual que antes)
+            // ---------------------------------------------------------------
             byte[] pdfBytes = pdfService.generarPdfDesdeHtml(htmlFinal);
             String nombreArchivo = "Constancia_" + ticket.getIdTicket() + ".pdf";
 
-            // 6. ENVIAR EMAIL
+            String rutaObjeto = "automaticas/" + nombreArchivo;
+            String urlPublicaPdf = supabaseStorageService.uploadPdfAutomatico(rutaObjeto, pdfBytes);
+
             emailService.enviarCorreoConAdjunto(
                     correoCliente,
                     "Registro Exitoso #" + ticket.getIdTicket(),
@@ -228,7 +262,7 @@ public class RespuestaService {
                     nombreArchivo
             );
 
-            // 7. GUARDAR HISTORIAL
+            // Guardar Historial
             RespuestaCliente respuesta = new RespuestaCliente();
             respuesta.setAsignacion(asignacion);
             respuesta.setPlantilla(plantilla);
@@ -237,8 +271,8 @@ public class RespuestaService {
             respuesta.setRespuestaHtml(htmlFinal);
             respuesta.setFechaEnvio(LocalDateTime.now());
             respuesta.setFechaCreacion(LocalDateTime.now());
-            respuesta.setUrlPdfGenerado("AUTO");
-            respuesta.setTipoRespuesta(TipoRespuesta.AUTOMATICA); // Confirmación automática del sistema
+            respuesta.setUrlPdfGenerado(urlPublicaPdf);
+            respuesta.setTipoRespuesta(TipoRespuesta.AUTOMATICA);
 
             respuestaRepository.save(respuesta);
 
@@ -393,5 +427,61 @@ public class RespuestaService {
 
         // 4. Retornamos el paquete completo
         return new ArchivoDescarga(nombreArchivo, pdfBytes);
+    }
+    @Transactional(readOnly = true)
+    public List<RespuestaTablaDTO> listarHistorialRespuestas() {
+
+        List<RespuestaCliente> respuestasBD = respuestaRepository.findAllRespuestasWithTicket();
+
+        return respuestasBD.stream().map(respuesta -> {
+            Integer idCliente = null;
+            ClienteBasicoDTO datosCliente = null;
+
+            // BLOQUE TRY-CATCH PARA DATOS CORRUPTOS
+            try {
+                // Navegación segura: verificamos cada paso para no tener NullPointerException
+                if (respuesta.getAsignacion() != null &&
+                        respuesta.getAsignacion().getTicket() != null &&
+                        respuesta.getAsignacion().getTicket().getCliente() != null) {
+
+                    int idLong = respuesta.getAsignacion().getTicket().getCliente().getIdCliente();
+                    idCliente = idLong ;
+                }
+
+                if (idCliente != null) {
+                    datosCliente = vista360Service.obtenerClientePorId(idCliente);
+                }
+            } catch (Exception e) {
+                System.err.println("Error recuperando cliente para respuesta ID " + respuesta.getIdRespuesta() + ": " + e.getMessage());
+                // No relanzamos el error, simplemente dejamos los datos del cliente vacíos
+            }
+
+            // Fallback si no hay datos de cliente
+            if (datosCliente == null) {
+                datosCliente = ClienteBasicoDTO.builder()
+                        .dni("---")
+                        .nombre("Desconocido")
+                        .apellido("")
+                        .nombreCompleto("Cliente No Encontrado")
+                        .build();
+            }
+
+            // Manejo seguro del Enum y Asunto
+            String tipoStr = (respuesta.getTipoRespuesta() != null) ? respuesta.getTipoRespuesta().toString() : "MANUAL";
+            String asuntoStr = (respuesta.getAsunto() != null) ? respuesta.getAsunto() : "Sin Asunto";
+
+            return new RespuestaTablaDTO(
+                    respuesta.getIdRespuesta(),
+                    respuesta.getFechaEnvio(),
+                    idCliente,
+                    datosCliente.getDni(),
+                    datosCliente.getNombreCompleto() != null ? datosCliente.getNombreCompleto()
+                            : datosCliente.getNombre() + " " + datosCliente.getApellido(),
+                    tipoStr,
+                    asuntoStr,
+                    respuesta.getUrlPdfGenerado()
+            );
+
+        }).toList();
     }
 }
