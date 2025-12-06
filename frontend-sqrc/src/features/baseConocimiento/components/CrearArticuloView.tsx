@@ -3,6 +3,7 @@ import React, {
   useCallback,
   useImperativeHandle,
   forwardRef,
+  useEffect,
 } from "react";
 import {
   Bold,
@@ -82,7 +83,33 @@ const CrearArticuloView = forwardRef<
     setFormData((prev) => ({ ...prev, [field]: value }));
   }, []);
 
-  // Callback cuando la IA genera el artículo
+  // Cargar artículo generado desde sessionStorage (viene de DocumentacionTab)
+  useEffect(() => {
+    const stored = sessionStorage.getItem("articuloGeneradoIA");
+    if (stored) {
+      try {
+        const articulo: ArticuloGeneradoIA = JSON.parse(stored);
+        setFormData((prev) => ({
+          ...prev,
+          titulo: articulo.titulo || prev.titulo,
+          resumen: articulo.resumen || prev.resumen,
+          contenido: articulo.contenido || prev.contenido,
+          categoria: articulo.etiqueta || prev.categoria,
+          tipoCaso: articulo.tipoCaso || prev.tipoCaso,
+          visibilidad: articulo.visibilidad || prev.visibilidad,
+          etiquetas: articulo.tags || prev.etiquetas,
+          notaCambio: articulo.notaCambio || "Generado con IA - Gemini 2.5 Flash",
+        }));
+        // Limpiar sessionStorage después de cargar
+        sessionStorage.removeItem("articuloGeneradoIA");
+      } catch (e) {
+        console.error("Error parsing articuloGeneradoIA from sessionStorage:", e);
+        sessionStorage.removeItem("articuloGeneradoIA");
+      }
+    }
+  }, []);
+
+  // Callback cuando la IA genera el artículo (desde los modales locales)
   const handleArticuloGenerado = useCallback((articulo: ArticuloGeneradoIA) => {
     setFormData((prev) => ({
       ...prev,
