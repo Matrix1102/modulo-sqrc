@@ -32,67 +32,69 @@ import { UserProvider } from "./context";
 
 // Un Home temporal para que puedas navegar
 const Home = () => (
-  <div className="h-screen flex flex-col items-center justify-center bg-sqrc-gray-900 text-sqrc-gray-100 gap-6">
-    <div className="text-center mb-8">
-      <h1 className="text-4xl font-bold mb-2 text-sqrc-gray-100">
+  <div className="min-h-screen flex flex-col items-center justify-center bg-light-100 text-dark-900 gap-8 p-6">
+    <div className="text-center mb-4">
+      <h1 className="text-5xl font-extrabold mb-3 bg-gradient-to-r from-primary-500 to-primary-600 bg-clip-text text-transparent drop-shadow-lg">
         Sistema SQRC
       </h1>
-      <p className="text-sqrc-gray-400 text-lg">
+      <p className="text-light-600 text-lg">
         Selecciona tu perfil para continuar
       </p>
     </div>
 
-    <div className="grid grid-cols-2 gap-4 max-w-lg">
+    <div className="grid grid-cols-2 gap-5 max-w-xl w-full">
       {/* Agente de Llamada */}
       <Link
         to="/agente-llamada"
-        className="px-6 py-5 bg-sqrc-gray-800 hover:bg-sqrc-gray-700 border border-sqrc-gray-700 text-white rounded-xl transition-all font-medium flex flex-col items-center gap-3 shadow-lg hover:shadow-xl hover:scale-105"
+        className="group relative px-6 py-6 bg-white hover:bg-light-50 border border-light-300 hover:border-primary-500 text-dark-900 rounded-xl transition-all duration-300 font-medium flex flex-col items-center gap-3 shadow-sm hover:shadow-lg hover:shadow-primary-500/10 hover:scale-[1.03]"
       >
-        <span className="text-3xl">📞</span>
+        <span className="text-4xl group-hover:scale-110 transition-transform duration-300">📞</span>
         <div className="text-center">
-          <span className="block font-semibold">Agente Llamada</span>
-          <span className="text-xs text-sqrc-gray-400">Call Center</span>
+          <span className="block font-semibold text-lg">Agente Llamada</span>
+          <span className="text-sm text-light-600 group-hover:text-light-700">Call Center</span>
         </div>
       </Link>
 
       {/* Agente Presencial */}
       <Link
         to="/agente-presencial"
-        className="px-6 py-5 bg-sqrc-gray-800 hover:bg-sqrc-gray-700 border border-sqrc-gray-700 text-white rounded-xl transition-all font-medium flex flex-col items-center gap-3 shadow-lg hover:shadow-xl hover:scale-105"
+        className="group relative px-6 py-6 bg-white hover:bg-light-50 border border-light-300 hover:border-success-500 text-dark-900 rounded-xl transition-all duration-300 font-medium flex flex-col items-center gap-3 shadow-sm hover:shadow-lg hover:shadow-success-500/10 hover:scale-[1.03]"
       >
-        <span className="text-3xl">🏢</span>
+        <span className="text-4xl group-hover:scale-110 transition-transform duration-300">🏢</span>
         <div className="text-center">
-          <span className="block font-semibold">Agente Presencial</span>
-          <span className="text-xs text-sqrc-gray-400">
-            Atención en oficina
-          </span>
+          <span className="block font-semibold text-lg">Agente Presencial</span>
+          <span className="text-sm text-light-600 group-hover:text-light-700">Atención en oficina</span>
         </div>
       </Link>
 
       {/* Backoffice */}
       <Link
         to="/backoffice"
-        className="px-6 py-5 bg-sqrc-gray-800 hover:bg-sqrc-gray-700 border border-sqrc-gray-700 text-white rounded-xl transition-all font-medium flex flex-col items-center gap-3 shadow-lg hover:shadow-xl hover:scale-105"
+        className="group relative px-6 py-6 bg-white hover:bg-light-50 border border-light-300 hover:border-neutral-400 text-dark-900 rounded-xl transition-all duration-300 font-medium flex flex-col items-center gap-3 shadow-sm hover:shadow-lg hover:shadow-neutral-400/10 hover:scale-[1.03]"
       >
-        <span className="text-3xl">💼</span>
+        <span className="text-4xl group-hover:scale-110 transition-transform duration-300">💼</span>
         <div className="text-center">
-          <span className="block font-semibold">Backoffice</span>
-          <span className="text-xs text-sqrc-gray-400">Gestión interna</span>
+          <span className="block font-semibold text-lg">Backoffice</span>
+          <span className="text-sm text-light-600 group-hover:text-light-700">Gestión interna</span>
         </div>
       </Link>
 
       {/* Supervisor */}
       <Link
         to="/supervisor"
-        className="px-6 py-5 bg-sqrc-gray-800 hover:bg-sqrc-gray-700 border border-sqrc-gray-700 text-white rounded-xl transition-all font-medium flex flex-col items-center gap-3 shadow-lg hover:shadow-xl hover:scale-105"
+        className="group relative px-6 py-6 bg-white hover:bg-light-50 border border-light-300 hover:border-primary-600 text-dark-900 rounded-xl transition-all duration-300 font-medium flex flex-col items-center gap-3 shadow-sm hover:shadow-lg hover:shadow-primary-600/10 hover:scale-[1.03]"
       >
-        <span className="text-3xl">👑</span>
+        <span className="text-4xl group-hover:scale-110 transition-transform duration-300">👑</span>
         <div className="text-center">
-          <span className="block font-semibold">Supervisor</span>
-          <span className="text-xs text-sqrc-gray-400">Panel de control</span>
+          <span className="block font-semibold text-lg">Supervisor</span>
+          <span className="text-sm text-light-600 group-hover:text-light-700">Panel de control</span>
         </div>
       </Link>
     </div>
+
+    <p className="text-light-500 text-xs mt-4">
+      © 2025 SQRC — Sistema de Gestión de Calidad
+    </p>
   </div>
 );
 
