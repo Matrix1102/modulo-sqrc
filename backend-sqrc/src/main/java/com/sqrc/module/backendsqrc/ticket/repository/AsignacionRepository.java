@@ -52,6 +52,8 @@ public interface AsignacionRepository extends JpaRepository<Asignacion, Long> {
            "WHERE t.fechaCreacion BETWEEN :inicio AND :fin " +
            "ORDER BY t.fechaCreacion DESC")
     List<Asignacion> findRecentWithDetails(@Param("inicio") LocalDateTime inicio, @Param("fin") LocalDateTime fin);
+
+    Optional<Asignacion> findTopByTicket_IdTicketOrderByFechaInicioDesc(Long idTicket);
 }
 
 

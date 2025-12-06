@@ -109,8 +109,9 @@ public class RespuestaService {
         cadenaValidacion.validar(request);
 
         // 2. BUSCAR DATOS (Esto faltaba: Traer el Ticket y Cliente de la BD)
-        Asignacion asignacion = asignacionRepository.findById(request.idAsignacion())
-                .orElseThrow(() -> new RuntimeException("Asignación no encontrada"));
+        Asignacion asignacion = asignacionRepository.findTopByTicket_IdTicketOrderByFechaInicioDesc(request.idAsignacion())
+                .orElseThrow(() -> new RuntimeException("No se encontró ninguna asignación para el Ticket ID: " + request.idAsignacion()));
+
         Ticket ticket = asignacion.getTicket();
         ClienteEntity cliente = ticket.getCliente();
 
