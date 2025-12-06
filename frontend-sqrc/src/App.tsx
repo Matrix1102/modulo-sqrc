@@ -182,6 +182,10 @@ export default function App() {
               path="tickets/:ticketId"
               element={<AgenteTicketDetailPage />}
             />
+            <Route
+              path="tickets/responder/:ticketId"
+              element={<ResponderTicketPage />}
+            />
           </Route>
 
           {/* ─── ZONA SUPERVISOR ─── */}

@@ -13,6 +13,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 /**
@@ -60,32 +61,40 @@ public class DocumentacionService {
         }
 
         // Validar empleado
-        Empleado empleado = empleadoRepository.findById(request.getEmpleadoId())
-                .orElseThrow(() -> new EmpleadoNotFoundException(request.getEmpleadoId()));
+        Empleado empleado = null;
+        if (request.getEmpleadoId() != null) {
+            empleado = empleadoRepository.findById(request.getEmpleadoId())
+                    .orElse(null); // Si no existe, continuamos sin asignar empleado
+        }
+        final Empleado empleadoAsignacion = empleado; // para uso en lambda
 
-        // Obtener o crear la asignación activa del ticket
+        // Obtener la asignación activa; si no existe es un error (se debe crear al asignar/escalar)
         Asignacion asignacionActiva = asignacionRepository.findAsignacionActiva(request.getTicketId())
-                .orElseGet(() -> {
-                    // Si no hay asignación activa, crear una nueva
-                    log.info("No hay asignación activa para ticket {}. Creando asignación automática.", request.getTicketId());
-                    Asignacion nuevaAsignacion = Asignacion.builder()
-                            .ticket(ticket)
-                            .empleado(empleado)
-                            .build();
-                    return asignacionRepository.save(nuevaAsignacion);
-                });
+                .orElseThrow(() -> new InvalidStateTransitionException("El ticket no tiene una asignación activa"));
 
-        // Crear documentación
-        Documentacion documentacion = Documentacion.builder()
-                .problema(request.getProblema())
-                .idArticuloKB(request.getArticuloKBId())
-                .solucion(request.getSolucion())
-                .empleado(empleado)
-                .asignacion(asignacionActiva)
-                .build();
+        // Regla: una sola documentación por asignación. Si ya existe, actualizamos en vez de insertar.
+        Optional<Documentacion> existenteOpt = documentacionRepository.findByAsignacionId(asignacionActiva.getIdAsignacion());
 
-        Documentacion guardada = documentacionRepository.save(documentacion);
-        log.debug("Documentación creada con ID: {}", guardada.getIdDocumentacion());
+        Documentacion guardada;
+        if (existenteOpt.isPresent()) {
+            Documentacion existente = existenteOpt.get();
+            existente.setProblema(request.getProblema());
+            existente.setSolucion(request.getSolucion());
+            existente.setIdArticuloKB(request.getArticuloKBId());
+            existente.setEmpleado(empleadoAsignacion);
+            guardada = documentacionRepository.save(existente);
+            log.debug("Documentación actualizada para asignación {}", asignacionActiva.getIdAsignacion());
+        } else {
+            Documentacion documentacion = Documentacion.builder()
+                    .problema(request.getProblema())
+                    .idArticuloKB(request.getArticuloKBId())
+                    .solucion(request.getSolucion())
+                    .empleado(empleadoAsignacion)
+                    .asignacion(asignacionActiva)
+                    .build();
+            guardada = documentacionRepository.save(documentacion);
+            log.debug("Documentación creada con ID: {}", guardada.getIdDocumentacion());
+        }
 
         return DocumentacionCreatedResponse.builder()
                 .idDocumentacion(guardada.getIdDocumentacion())
@@ -93,9 +102,9 @@ public class DocumentacionService {
                 .problema(guardada.getProblema())
                 .solucion(guardada.getSolucion())
                 .articuloKBId(guardada.getIdArticuloKB())
-                .nombreEmpleado(empleado.getNombreCompleto())
+                .nombreEmpleado(empleado != null ? empleado.getNombreCompleto() : null)
                 .fechaCreacion(guardada.getFechaCreacion())
-                .mensaje("Documentación creada exitosamente")
+                .mensaje(existenteOpt.isPresent() ? "Documentación actualizada exitosamente" : "Documentación creada exitosamente")
                 .build();
     }
 
@@ -158,9 +167,9 @@ public class DocumentacionService {
     public List<DocumentacionDto> obtenerDocumentacionPorTicket(Long ticketId) {
         log.debug("Obteniendo documentación del ticket ID: {}", ticketId);
 
-        return documentacionRepository.findByTicketId(ticketId)
-                .map(this::mapToDto)
+        return documentacionRepository.findAllByTicketId(ticketId)
                 .stream()
+                .map(this::mapToDto)
                 .collect(Collectors.toList());
     }
 

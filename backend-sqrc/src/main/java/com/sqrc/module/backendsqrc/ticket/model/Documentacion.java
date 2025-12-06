@@ -17,8 +17,9 @@ public class Documentacion {
     private Long idDocumentacion;
 
     // Relación con la asignación (Vital para saber a qué ticket pertenece)
+    // Una asignación puede tener solo una documentación (regla de negocio)
     @OneToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "id_asignacion", nullable = false)
+    @JoinColumn(name = "id_asignacion", nullable = false, unique = true)
     private Asignacion asignacion;
 
     // --- CAMPOS QUE FALTABAN (Para coincidir con tu tabla) ---
