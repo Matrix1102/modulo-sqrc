@@ -5,6 +5,7 @@ import com.sqrc.module.backendsqrc.ticket.model.TipoEmpleado;
 import com.sqrc.module.backendsqrc.ticket.service.EmpleadoSyncService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -86,9 +87,9 @@ public class EmpleadoController {
      * 
      * @return Resultado de la sincronización
      */
-    @PostMapping("/sync")
-    public ResponseEntity<Map<String, Object>> sincronizarEmpleados() {
-        log.info("POST /api/empleados/sync - Iniciando sincronización");
+    @RequestMapping(value = "/sync", method = {RequestMethod.POST, RequestMethod.GET})
+    public ResponseEntity<Map<String, Object>> sincronizarEmpleados(HttpServletRequest request) {
+        log.info("{} /api/empleados/sync - Iniciando sincronización", request.getMethod());
         
         int sincronizados = empleadoSyncService.sincronizarAgentesCallCenter();
         
