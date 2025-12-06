@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from "react";
-import { Filter, Plus, FileQuestion } from "lucide-react";
+import { Plus, FileQuestion } from "lucide-react";
 import { Badge } from "../../../components/ui/Badge";
 import SearchBar from "../../../components/ui/SearchBar";
 

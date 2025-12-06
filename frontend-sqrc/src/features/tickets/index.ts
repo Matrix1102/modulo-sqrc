@@ -13,7 +13,7 @@ export { useCallSimulator } from "./hooks/useCallSimulator";
 export { useCallSimulatorContext } from "./hooks/useCallSimulatorContext";
 
 // Context
-export { CallSimulatorProvider } from "./context/CallSimulatorContext";
+export { CallSimulatorProvider } from "./context/CallSimulatorProvider";
 
 // Components
 export { EstadoBadge } from "./components/EstadoBadge";
