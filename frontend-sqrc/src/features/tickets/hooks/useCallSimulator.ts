@@ -47,6 +47,7 @@ export const useCallSimulator = ({
   const isFirstCall = useRef(true);
   const enabledRef = useRef(enabled);
   const empleadoIdRef = useRef(empleadoId);
+  const hasStarted = useRef(false); // Flag para evitar reinicio del timer
 
   // Actualizar refs
   useEffect(() => {
@@ -117,18 +118,35 @@ export const useCallSimulator = ({
     }, delay);
   }, [initialDelay, minDelay, maxDelay, generateNewCall]);
 
-  // Iniciar simulador
+  // Iniciar simulador SOLO cuando se habilita (al entrar a /agente-llamada)
   useEffect(() => {
-    if (enabled && !currentCall && !isActive) {
+    if (enabled && !hasStarted.current) {
+      console.log('🚀 Iniciando simulador de llamadas - Primera llamada en 10 segundos');
+      hasStarted.current = true;
+      isFirstCall.current = true; // Asegurar que use initialDelay de 10s
       scheduleNextCall();
     }
 
+    // Limpiar y resetear cuando se deshabilita (al salir de /agente-llamada)
+    if (!enabled && hasStarted.current) {
+      console.log('⏹️ Deteniendo simulador de llamadas');
+      hasStarted.current = false;
+      isFirstCall.current = true; // Reset para próxima vez
+      if (timeoutRef.current) {
+        clearTimeout(timeoutRef.current);
+        timeoutRef.current = null;
+      }
+    }
+  }, [enabled, scheduleNextCall]);
+
+  // Limpiar timeout al desmontar
+  useEffect(() => {
     return () => {
       if (timeoutRef.current) {
         clearTimeout(timeoutRef.current);
       }
     };
-  }, [enabled, currentCall, isActive, scheduleNextCall]);
+  }, []);
 
   // Aceptar llamada
   const acceptCall = useCallback(async () => {
