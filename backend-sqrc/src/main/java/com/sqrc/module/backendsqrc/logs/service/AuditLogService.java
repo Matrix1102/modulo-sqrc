@@ -80,6 +80,36 @@ public class AuditLogService {
     }
 
     /**
+     * Versión que recibe información HTTP pre-capturada (para uso desde Aspects donde @Async pierde el contexto).
+     */
+    @Async
+    @Transactional("logsTransactionManager")
+    public void logAuditWithHttpInfo(LogLevel level, LogCategory category, String action,
+                         String entityType, String entityId, Map<String, Object> details,
+                         String ipAddress, String userAgent, String requestUri, String httpMethod) {
+        try {
+            AuditLog auditLog = AuditLog.builder()
+                    .timestamp(LocalDateTime.now())
+                    .level(level)
+                    .category(category)
+                    .action(action)
+                    .entityType(entityType)
+                    .entityId(entityId)
+                    .details(details)
+                    .ipAddress(ipAddress)
+                    .userAgent(userAgent)
+                    .requestUri(requestUri)
+                    .httpMethod(httpMethod)
+                    .build();
+
+            auditLogRepository.save(auditLog);
+            log.debug("Audit log con HTTP info guardado: {} - {} - {}", category, action, entityId);
+        } catch (Exception e) {
+            log.error("Error al guardar audit log con HTTP info: {}", e.getMessage());
+        }
+    }
+
+    /**
      * Registra un log de auditoría con métricas (status, duration).
      */
     @Async

@@ -63,4 +63,24 @@ public interface AuditLogRepository extends JpaRepository<AuditLog, Long> {
     Long countByCategorySince(
             @Param("category") LogCategory category,
             @Param("since") LocalDateTime since);
+
+    /**
+     * Busca logs por nivel con paginación
+     */
+    Page<AuditLog> findByLevelOrderByTimestampDesc(LogLevel level, Pageable pageable);
+
+    /**
+     * Busca logs por categoría con paginación
+     */
+    Page<AuditLog> findByCategoryOrderByTimestampDesc(LogCategory category, Pageable pageable);
+
+    /**
+     * Busca logs por nivel y categoría con paginación
+     */
+    Page<AuditLog> findByLevelAndCategoryOrderByTimestampDesc(LogLevel level, LogCategory category, Pageable pageable);
+
+    /**
+     * Busca todos ordenados por timestamp descendente con paginación
+     */
+    Page<AuditLog> findAllByOrderByTimestampDesc(Pageable pageable);
 }

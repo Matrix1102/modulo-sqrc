@@ -4,12 +4,15 @@ import com.sqrc.module.backendsqrc.logs.annotation.Auditable;
 import com.sqrc.module.backendsqrc.logs.model.LogCategory;
 import com.sqrc.module.backendsqrc.logs.model.LogLevel;
 import com.sqrc.module.backendsqrc.logs.service.AuditLogService;
+import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.aspectj.lang.JoinPoint;
 import org.aspectj.lang.ProceedingJoinPoint;
 import org.aspectj.lang.annotation.*;
 import org.springframework.stereotype.Component;
+import org.springframework.web.context.request.RequestContextHolder;
+import org.springframework.web.context.request.ServletRequestAttributes;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -25,6 +28,39 @@ import java.util.Map;
 public class AuditAspect {
 
     private final AuditLogService auditLogService;
+
+    // ==================== UTILIDADES HTTP ====================
+
+    /**
+     * Captura la información HTTP del request actual (debe llamarse en el hilo principal, antes de @Async).
+     */
+    private HttpInfo captureHttpInfo() {
+        try {
+            ServletRequestAttributes attrs = (ServletRequestAttributes) RequestContextHolder.getRequestAttributes();
+            if (attrs != null) {
+                HttpServletRequest request = attrs.getRequest();
+                return new HttpInfo(
+                    getClientIp(request),
+                    request.getHeader("User-Agent"),
+                    request.getRequestURI(),
+                    request.getMethod()
+                );
+            }
+        } catch (Exception e) {
+            log.debug("No se pudo capturar HTTP info: {}", e.getMessage());
+        }
+        return new HttpInfo(null, null, null, null);
+    }
+
+    private String getClientIp(HttpServletRequest request) {
+        String xForwardedFor = request.getHeader("X-Forwarded-For");
+        if (xForwardedFor != null && !xForwardedFor.isEmpty()) {
+            return xForwardedFor.split(",")[0].trim();
+        }
+        return request.getRemoteAddr();
+    }
+
+    private record HttpInfo(String ipAddress, String userAgent, String requestUri, String httpMethod) {}
 
     // ==================== AUDITORÍA POR ANOTACIÓN ====================
 
@@ -235,32 +271,217 @@ public class AuditAspect {
             pointcut = "execution(* com.sqrc.module.backendsqrc.encuesta.controller.EncuestaController.crearPlantilla(..))",
             returning = "result")
     public void afterCrearPlantilla(JoinPoint joinPoint, Object result) {
+        HttpInfo http = captureHttpInfo();
         try {
             Map<String, Object> details = new HashMap<>();
             details.put("operacion", "CREAR_PLANTILLA");
+            
+            // Extraer ID de la plantilla creada desde el resultado
+            String plantillaId = null;
+            if (result != null) {
+                try {
+                    var idMethod = result.getClass().getMethod("id");
+                    Object id = idMethod.invoke(result);
+                    if (id != null) {
+                        plantillaId = id.toString();
+                        details.put("plantillaId", plantillaId);
+                    }
+                } catch (Exception ignored) {}
+            }
 
-            auditLogService.logAudit(LogLevel.INFO, LogCategory.ENCUESTA, "CREAR_PLANTILLA",
-                    "PlantillaEncuesta", null, details);
+            auditLogService.logAuditWithHttpInfo(LogLevel.INFO, LogCategory.ENCUESTA, "CREAR_PLANTILLA",
+                    "PlantillaEncuesta", plantillaId, details,
+                    http.ipAddress(), http.userAgent(), http.requestUri(), http.httpMethod());
         } catch (Exception e) {
             log.error("Error al auditar creación de plantilla: {}", e.getMessage());
         }
     }
 
     /**
-     * Intercepta respuestas de encuestas
+     * Intercepta respuestas de encuestas vía /respuestas
      */
     @AfterReturning(
             pointcut = "execution(* com.sqrc.module.backendsqrc.encuesta.controller.EncuestaController.guardarRespuestas(..))",
             returning = "result")
     public void afterGuardarRespuesta(JoinPoint joinPoint, Object result) {
+        HttpInfo http = captureHttpInfo();
         try {
+            Object[] args = joinPoint.getArgs();
             Map<String, Object> details = new HashMap<>();
             details.put("operacion", "RESPONDER_ENCUESTA");
+            
+            // Extraer encuestaId del request si está disponible
+            String encuestaId = null;
+            if (args.length > 0 && args[0] != null) {
+                try {
+                    var encuestaIdMethod = args[0].getClass().getMethod("encuestaId");
+                    Object id = encuestaIdMethod.invoke(args[0]);
+                    if (id != null) {
+                        encuestaId = id.toString();
+                        details.put("encuestaId", encuestaId);
+                    }
+                } catch (Exception ignored) {}
+            }
 
-            auditLogService.logAudit(LogLevel.INFO, LogCategory.ENCUESTA, "RESPONDER_ENCUESTA",
-                    "Encuesta", null, details);
+            auditLogService.logAuditWithHttpInfo(LogLevel.INFO, LogCategory.ENCUESTA, "RESPONDER_ENCUESTA",
+                    "Encuesta", encuestaId, details,
+                    http.ipAddress(), http.userAgent(), http.requestUri(), http.httpMethod());
         } catch (Exception e) {
             log.error("Error al auditar respuesta de encuesta: {}", e.getMessage());
+        }
+    }
+
+    /**
+     * Intercepta respuestas de encuestas vía endpoint /responder
+     */
+    @AfterReturning(
+            pointcut = "execution(* com.sqrc.module.backendsqrc.encuesta.controller.EncuestaController.responderEncuesta(..))",
+            returning = "result")
+    public void afterResponderEncuesta(JoinPoint joinPoint, Object result) {
+        HttpInfo http = captureHttpInfo();
+        try {
+            Object[] args = joinPoint.getArgs();
+            Map<String, Object> details = new HashMap<>();
+            details.put("operacion", "RESPONDER_ENCUESTA");
+            
+            String encuestaId = null;
+            if (args.length > 0 && args[0] != null) {
+                try {
+                    var encuestaIdMethod = args[0].getClass().getMethod("encuestaId");
+                    Object id = encuestaIdMethod.invoke(args[0]);
+                    if (id != null) {
+                        encuestaId = id.toString();
+                        details.put("encuestaId", encuestaId);
+                    }
+                } catch (Exception ignored) {}
+            }
+
+            auditLogService.logAuditWithHttpInfo(LogLevel.INFO, LogCategory.ENCUESTA, "RESPONDER_ENCUESTA",
+                    "Encuesta", encuestaId, details,
+                    http.ipAddress(), http.userAgent(), http.requestUri(), http.httpMethod());
+        } catch (Exception e) {
+            log.error("Error al auditar respuesta de encuesta: {}", e.getMessage());
+        }
+    }
+
+    /**
+     * Intercepta actualización de plantillas de encuesta
+     */
+    @AfterReturning(
+            pointcut = "execution(* com.sqrc.module.backendsqrc.encuesta.controller.EncuestaController.actualizarPlantilla(..))",
+            returning = "result")
+    public void afterActualizarPlantilla(JoinPoint joinPoint, Object result) {
+        HttpInfo http = captureHttpInfo();
+        try {
+            Object[] args = joinPoint.getArgs();
+            String plantillaId = args.length > 0 ? String.valueOf(args[0]) : null;
+            
+            Map<String, Object> details = new HashMap<>();
+            details.put("operacion", "ACTUALIZAR_PLANTILLA");
+            details.put("plantillaId", plantillaId);
+
+            auditLogService.logAuditWithHttpInfo(LogLevel.INFO, LogCategory.ENCUESTA, "ACTUALIZAR_PLANTILLA",
+                    "PlantillaEncuesta", plantillaId, details,
+                    http.ipAddress(), http.userAgent(), http.requestUri(), http.httpMethod());
+        } catch (Exception e) {
+            log.error("Error al auditar actualización de plantilla: {}", e.getMessage());
+        }
+    }
+
+    /**
+     * Intercepta desactivación de plantillas de encuesta
+     */
+    @AfterReturning(
+            pointcut = "execution(* com.sqrc.module.backendsqrc.encuesta.controller.EncuestaController.desactivarPlantilla(..))",
+            returning = "result")
+    public void afterDesactivarPlantilla(JoinPoint joinPoint, Object result) {
+        HttpInfo http = captureHttpInfo();
+        try {
+            Object[] args = joinPoint.getArgs();
+            String plantillaId = args.length > 0 ? String.valueOf(args[0]) : null;
+            
+            Map<String, Object> details = new HashMap<>();
+            details.put("operacion", "DESACTIVAR_PLANTILLA");
+            details.put("plantillaId", plantillaId);
+
+            auditLogService.logAuditWithHttpInfo(LogLevel.WARN, LogCategory.ENCUESTA, "DESACTIVAR_PLANTILLA",
+                    "PlantillaEncuesta", plantillaId, details,
+                    http.ipAddress(), http.userAgent(), http.requestUri(), http.httpMethod());
+        } catch (Exception e) {
+            log.error("Error al auditar desactivación de plantilla: {}", e.getMessage());
+        }
+    }
+
+    /**
+     * Intercepta reactivación de plantillas de encuesta
+     */
+    @AfterReturning(
+            pointcut = "execution(* com.sqrc.module.backendsqrc.encuesta.controller.EncuestaController.reactivarPlantilla(..))",
+            returning = "result")
+    public void afterReactivarPlantilla(JoinPoint joinPoint, Object result) {
+        HttpInfo http = captureHttpInfo();
+        try {
+            Object[] args = joinPoint.getArgs();
+            String plantillaId = args.length > 0 ? String.valueOf(args[0]) : null;
+            
+            Map<String, Object> details = new HashMap<>();
+            details.put("operacion", "REACTIVAR_PLANTILLA");
+            details.put("plantillaId", plantillaId);
+
+            auditLogService.logAuditWithHttpInfo(LogLevel.INFO, LogCategory.ENCUESTA, "REACTIVAR_PLANTILLA",
+                    "PlantillaEncuesta", plantillaId, details,
+                    http.ipAddress(), http.userAgent(), http.requestUri(), http.httpMethod());
+        } catch (Exception e) {
+            log.error("Error al auditar reactivación de plantilla: {}", e.getMessage());
+        }
+    }
+
+    /**
+     * Intercepta reenvío de encuestas
+     */
+    @AfterReturning(
+            pointcut = "execution(* com.sqrc.module.backendsqrc.encuesta.controller.EncuestaController.reenviarEncuesta*(..)) || " +
+                       "execution(* com.sqrc.module.backendsqrc.encuesta.controller.EncuestaController.reenviarEncuestaByEncuestaId(..))",
+            returning = "result")
+    public void afterReenviarEncuesta(JoinPoint joinPoint, Object result) {
+        HttpInfo http = captureHttpInfo();
+        try {
+            Object[] args = joinPoint.getArgs();
+            String encuestaId = args.length > 0 ? String.valueOf(args[0]) : null;
+            
+            Map<String, Object> details = new HashMap<>();
+            details.put("operacion", "REENVIAR_ENCUESTA");
+            details.put("encuestaId", encuestaId);
+
+            auditLogService.logAuditWithHttpInfo(LogLevel.INFO, LogCategory.ENCUESTA, "REENVIAR_ENCUESTA",
+                    "Encuesta", encuestaId, details,
+                    http.ipAddress(), http.userAgent(), http.requestUri(), http.httpMethod());
+        } catch (Exception e) {
+            log.error("Error al auditar reenvío de encuesta: {}", e.getMessage());
+        }
+    }
+
+    /**
+     * Intercepta envío manual de encuestas
+     */
+    @AfterReturning(
+            pointcut = "execution(* com.sqrc.module.backendsqrc.encuesta.controller.EncuestaController.enviarEncuestaManual(..))",
+            returning = "result")
+    public void afterEnviarEncuestaManual(JoinPoint joinPoint, Object result) {
+        HttpInfo http = captureHttpInfo();
+        try {
+            Object[] args = joinPoint.getArgs();
+            String encuestaId = args.length > 0 ? String.valueOf(args[0]) : null;
+            
+            Map<String, Object> details = new HashMap<>();
+            details.put("operacion", "ENVIAR_ENCUESTA_MANUAL");
+            details.put("encuestaId", encuestaId);
+
+            auditLogService.logAuditWithHttpInfo(LogLevel.INFO, LogCategory.COMUNICACION, "ENVIAR_ENCUESTA_MANUAL",
+                    "Encuesta", encuestaId, details,
+                    http.ipAddress(), http.userAgent(), http.requestUri(), http.httpMethod());
+        } catch (Exception e) {
+            log.error("Error al auditar envío manual de encuesta: {}", e.getMessage());
         }
     }
 
@@ -321,23 +542,136 @@ public class AuditAspect {
         }
     }
 
-    // ==================== AUDITORÍA DE REPORTES ====================
+    // ==================== AUDITORÍA DE REPORTES/DASHBOARD ====================
 
     /**
-     * Intercepta consultas al dashboard
+     * Intercepta consultas al dashboard principal
      */
     @AfterReturning(
             pointcut = "execution(* com.sqrc.module.backendsqrc.reporte.controller.ReporteController.obtenerDashboardGeneral(..))",
             returning = "result")
     public void afterObtenerDashboard(JoinPoint joinPoint, Object result) {
+        HttpInfo http = captureHttpInfo();
         try {
+            Object[] args = joinPoint.getArgs();
             Map<String, Object> details = new HashMap<>();
             details.put("operacion", "CONSULTAR_DASHBOARD");
+            if (args.length >= 2) {
+                details.put("startDate", args[0] != null ? args[0].toString() : null);
+                details.put("endDate", args[1] != null ? args[1].toString() : null);
+            }
 
-            auditLogService.logAudit(LogLevel.INFO, LogCategory.REPORTE, "CONSULTAR_DASHBOARD",
-                    "Dashboard", null, details);
+            auditLogService.logAuditWithHttpInfo(LogLevel.INFO, LogCategory.REPORTE, "CONSULTAR_DASHBOARD",
+                    "Dashboard", null, details,
+                    http.ipAddress(), http.userAgent(), http.requestUri(), http.httpMethod());
         } catch (Exception e) {
             log.error("Error al auditar consulta de dashboard: {}", e.getMessage());
+        }
+    }
+
+    /**
+     * Intercepta consultas de métricas de agentes
+     */
+    @AfterReturning(
+            pointcut = "execution(* com.sqrc.module.backendsqrc.reporte.controller.ReporteController.obtenerMetricasAgentes(..))",
+            returning = "result")
+    public void afterObtenerMetricasAgentes(JoinPoint joinPoint, Object result) {
+        HttpInfo http = captureHttpInfo();
+        try {
+            Object[] args = joinPoint.getArgs();
+            Map<String, Object> details = new HashMap<>();
+            details.put("operacion", "CONSULTAR_METRICAS_AGENTES");
+            if (args.length >= 2) {
+                details.put("startDate", args[0] != null ? args[0].toString() : null);
+                details.put("endDate", args[1] != null ? args[1].toString() : null);
+            }
+
+            auditLogService.logAuditWithHttpInfo(LogLevel.INFO, LogCategory.REPORTE, "CONSULTAR_METRICAS_AGENTES",
+                    "Reporte", null, details,
+                    http.ipAddress(), http.userAgent(), http.requestUri(), http.httpMethod());
+        } catch (Exception e) {
+            log.error("Error al auditar consulta de métricas de agentes: {}", e.getMessage());
+        }
+    }
+
+    /**
+     * Intercepta consultas de métricas de encuestas
+     */
+    @AfterReturning(
+            pointcut = "execution(* com.sqrc.module.backendsqrc.reporte.controller.ReporteController.obtenerMetricasEncuestas(..))",
+            returning = "result")
+    public void afterObtenerMetricasEncuestas(JoinPoint joinPoint, Object result) {
+        HttpInfo http = captureHttpInfo();
+        try {
+            Object[] args = joinPoint.getArgs();
+            Map<String, Object> details = new HashMap<>();
+            details.put("operacion", "CONSULTAR_METRICAS_ENCUESTAS");
+            if (args.length >= 2) {
+                details.put("startDate", args[0] != null ? args[0].toString() : null);
+                details.put("endDate", args[1] != null ? args[1].toString() : null);
+            }
+
+            auditLogService.logAuditWithHttpInfo(LogLevel.INFO, LogCategory.REPORTE, "CONSULTAR_METRICAS_ENCUESTAS",
+                    "Reporte", null, details,
+                    http.ipAddress(), http.userAgent(), http.requestUri(), http.httpMethod());
+        } catch (Exception e) {
+            log.error("Error al auditar consulta de métricas de encuestas: {}", e.getMessage());
+        }
+    }
+
+    /**
+     * Intercepta consultas de tickets por agente
+     */
+    @AfterReturning(
+            pointcut = "execution(* com.sqrc.module.backendsqrc.reporte.controller.ReporteTicketsController.obtenerTicketsPorAgente(..))",
+            returning = "result")
+    public void afterObtenerTicketsPorAgente(JoinPoint joinPoint, Object result) {
+        HttpInfo http = captureHttpInfo();
+        try {
+            Object[] args = joinPoint.getArgs();
+            String agenteId = args.length > 0 ? String.valueOf(args[0]) : null;
+            
+            Map<String, Object> details = new HashMap<>();
+            details.put("operacion", "CONSULTAR_TICKETS_AGENTE");
+            details.put("agenteId", agenteId);
+            if (args.length >= 3) {
+                details.put("startDate", args[1] != null ? args[1].toString() : null);
+                details.put("endDate", args[2] != null ? args[2].toString() : null);
+            }
+
+            auditLogService.logAuditWithHttpInfo(LogLevel.INFO, LogCategory.REPORTE, "CONSULTAR_TICKETS_AGENTE",
+                    "Reporte", agenteId, details,
+                    http.ipAddress(), http.userAgent(), http.requestUri(), http.httpMethod());
+        } catch (Exception e) {
+            log.error("Error al auditar consulta de tickets por agente: {}", e.getMessage());
+        }
+    }
+
+    /**
+     * Intercepta consultas de tickets recientes
+     */
+    @AfterReturning(
+            pointcut = "execution(* com.sqrc.module.backendsqrc.reporte.controller.ReporteTicketsController.obtenerTicketsRecientes(..))",
+            returning = "result")
+    public void afterObtenerTicketsRecientes(JoinPoint joinPoint, Object result) {
+        HttpInfo http = captureHttpInfo();
+        try {
+            Object[] args = joinPoint.getArgs();
+            Map<String, Object> details = new HashMap<>();
+            details.put("operacion", "CONSULTAR_TICKETS_RECIENTES");
+            if (args.length >= 2) {
+                details.put("startDate", args[0] != null ? args[0].toString() : null);
+                details.put("endDate", args[1] != null ? args[1].toString() : null);
+            }
+            if (args.length >= 3 && args[2] != null) {
+                details.put("limit", args[2].toString());
+            }
+
+            auditLogService.logAuditWithHttpInfo(LogLevel.INFO, LogCategory.REPORTE, "CONSULTAR_TICKETS_RECIENTES",
+                    "Reporte", null, details,
+                    http.ipAddress(), http.userAgent(), http.requestUri(), http.httpMethod());
+        } catch (Exception e) {
+            log.error("Error al auditar consulta de tickets recientes: {}", e.getMessage());
         }
     }
 
