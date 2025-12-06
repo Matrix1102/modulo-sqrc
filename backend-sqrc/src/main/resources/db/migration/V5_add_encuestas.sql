@@ -262,8 +262,40 @@ INSERT INTO kpi_rendimiento_agente_diario (id, fecha, agente_id, tickets_resuelt
 (231, '2025-12-04', 6, 5, 17, 5.0),
 (232, '2025-12-04', 7, 4, 27, 4.7),
 (233, '2025-12-04', 8, 5, 14, 5.0),
+
 (234, '2025-12-04', 9, 4, 23, 4.9),
 (235, '2025-12-04', 10, 4, 33, 4.5);
+
+-- ==========================================
+-- 5. KPI_DASHBOARD_ENCUESTAS
+(131, '2025-12-04', 1, 16),
+(132, '2025-12-04', 2, 14),
+(133, '2025-12-04', 8, 25),
+(134, '2025-12-04', 3, 10),
+(135, '2025-12-04', 7, 9);
+
+-- 2025-12-05 (motivos frecuentes)
+INSERT INTO kpi_motivos_frecuentes (id, fecha, id_motivo, conteo_total) VALUES
+ (136, '2025-12-05', 1, 10),
+ (137, '2025-12-05', 2, 8),
+ (138, '2025-12-05', 8, 12),
+ (139, '2025-12-05', 3, 4),
+ (140, '2025-12-05', 7, 3);
+
+-- 2025-12-06 (motivos frecuentes)
+INSERT INTO kpi_motivos_frecuentes (id, fecha, id_motivo, conteo_total) VALUES
+ (141, '2025-12-06', 1, 11),
+ (142, '2025-12-06', 2, 9),
+ (143, '2025-12-06', 8, 13),
+ (144, '2025-12-06', 3, 5),
+ (145, '2025-12-06', 7, 4);
+
+-- ==========================================
+-- 5. KPI_DASHBOARD_ENCUESTAS
+
+ 
+
+
 
 -- ==========================================
 -- 2. KPI_RESUMEN_DIARIO
@@ -525,8 +557,30 @@ INSERT INTO kpi_resumen_diario (id, fecha, tipo_caso, canal, total_casos_creados
 (220, '2025-12-04', 'CONSULTA', 'PRESENCIAL', 9, 9),
 (221, '2025-12-04', 'SOLICITUD', 'LLAMADA', 7, 7),
 (222, '2025-12-04', 'SOLICITUD', 'PRESENCIAL', 6, 5),
-(223, '2025-12-04', 'QUEJA', 'LLAMADA', 6, 6),
-(224, '2025-12-04', 'QUEJA', 'PRESENCIAL', 4, 3);
+ (223, '2025-12-04', 'QUEJA', 'LLAMADA', 6, 6),
+ (224, '2025-12-04', 'QUEJA', 'PRESENCIAL', 4, 3);
+
+-- 2025-12-05 (resumen diario)
+INSERT INTO kpi_resumen_diario (id, fecha, tipo_caso, canal, total_casos_creados, total_casos_resueltos) VALUES
+ (225, '2025-12-05', 'RECLAMO', 'LLAMADA', 10, 9),
+ (226, '2025-12-05', 'RECLAMO', 'PRESENCIAL', 7, 6),
+ (227, '2025-12-05', 'CONSULTA', 'LLAMADA', 17, 16),
+ (228, '2025-12-05', 'CONSULTA', 'PRESENCIAL', 8, 8),
+ (229, '2025-12-05', 'SOLICITUD', 'LLAMADA', 6, 6),
+ (230, '2025-12-05', 'SOLICITUD', 'PRESENCIAL', 5, 5),
+ (231, '2025-12-05', 'QUEJA', 'LLAMADA', 5, 5),
+ (232, '2025-12-05', 'QUEJA', 'PRESENCIAL', 3, 3);
+
+-- 2025-12-06 (resumen diario)
+INSERT INTO kpi_resumen_diario (id, fecha, tipo_caso, canal, total_casos_creados, total_casos_resueltos) VALUES
+ (233, '2025-12-06', 'RECLAMO', 'LLAMADA', 11, 10),
+ (234, '2025-12-06', 'RECLAMO', 'PRESENCIAL', 8, 7),
+ (235, '2025-12-06', 'CONSULTA', 'LLAMADA', 18, 17),
+ (236, '2025-12-06', 'CONSULTA', 'PRESENCIAL', 9, 9),
+ (237, '2025-12-06', 'SOLICITUD', 'LLAMADA', 7, 7),
+ (238, '2025-12-06', 'SOLICITUD', 'PRESENCIAL', 6, 5),
+ (239, '2025-12-06', 'QUEJA', 'LLAMADA', 6, 6),
+ (240, '2025-12-06', 'QUEJA', 'PRESENCIAL', 4, 4);
 
 -- ==========================================
 -- 3. KPI_TIEMPOS_RESOLUCION
@@ -959,11 +1013,33 @@ INSERT INTO kpi_motivos_frecuentes (id, fecha, id_motivo, conteo_total) VALUES
 (129, '2025-12-03', 3, 8),
 (130, '2025-12-03', 7, 7),
 
-(131, '2025-12-04', 1, 16),
-(132, '2025-12-04', 2, 14),
-(133, '2025-12-04', 8, 25),
-(134, '2025-12-04', 3, 10),
-(135, '2025-12-04', 7, 9);
+ (131, '2025-12-04', 1, 16),
+ (132, '2025-12-04', 2, 14),
+ (133, '2025-12-04', 8, 25),
+ (134, '2025-12-04', 3, 10),
+ (135, '2025-12-04', 7, 9);
+
+-- 2025-12-05 (tiempos resolucion)
+INSERT INTO kpi_tiempos_resolucion (id, fecha, tipo_caso, canal, tiempo_prom_prim_respuesta, tiempo_prom_res_total_min) VALUES
+ (136, '2025-12-05', 'RECLAMO', 'LLAMADA', 4, 30),
+ (137, '2025-12-05', 'RECLAMO', 'PRESENCIAL', 2, 24),
+ (138, '2025-12-05', 'CONSULTA', 'LLAMADA', 1, 4),
+ (139, '2025-12-05', 'CONSULTA', 'PRESENCIAL', 1, 2),
+ (140, '2025-12-05', 'SOLICITUD', 'LLAMADA', 2, 15),
+ (141, '2025-12-05', 'SOLICITUD', 'PRESENCIAL', 1, 7),
+ (142, '2025-12-05', 'QUEJA', 'LLAMADA', 3, 28),
+ (143, '2025-12-05', 'QUEJA', 'PRESENCIAL', 2, 13);
+
+-- 2025-12-06 (tiempos resolucion)
+INSERT INTO kpi_tiempos_resolucion (id, fecha, tipo_caso, canal, tiempo_prom_prim_respuesta, tiempo_prom_res_total_min) VALUES
+ (144, '2025-12-06', 'RECLAMO', 'LLAMADA', 4, 28),
+ (145, '2025-12-06', 'RECLAMO', 'PRESENCIAL', 2, 22),
+ (146, '2025-12-06', 'CONSULTA', 'LLAMADA', 1, 4),
+ (147, '2025-12-06', 'CONSULTA', 'PRESENCIAL', 1, 2),
+ (148, '2025-12-06', 'SOLICITUD', 'LLAMADA', 2, 14),
+ (149, '2025-12-06', 'SOLICITUD', 'PRESENCIAL', 1, 7),
+ (150, '2025-12-06', 'QUEJA', 'LLAMADA', 3, 26),
+ (151, '2025-12-06', 'QUEJA', 'PRESENCIAL', 2, 12);
 
 -- ==========================================
 -- 5. KPI_DASHBOARD_ENCUESTAS
@@ -1008,6 +1084,8 @@ INSERT INTO kpi_dashboard_encuestas (id, fecha, csat_promedio_agente_global, csa
 (31, '2025-10-15', 4.9, 4.7, 65, 0.88),
 (32, '2025-11-15', 4.8, 4.6, 63, 0.86),
 -- Diciembre 2025 (datos recientes)
-(33, '2025-12-01', 4.9, 4.7, 68, 0.89);
+(33, '2025-12-01', 4.9, 4.7, 68, 0.89),
+(34, '2025-12-05', 4.7, 4.6, 45, 0.75),
+(35, '2025-12-06', 4.8, 4.6, 50, 0.78);
 
 SET FOREIGN_KEY_CHECKS = 1;

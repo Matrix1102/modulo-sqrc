@@ -66,3 +66,14 @@ export interface EnviarRespuestaRequest {
     variables: Record<string, any>; // { cuerpo: "..." }
     cerrarTicket: boolean;
 }
+
+export interface RespuestaHistorialDTO {
+    idRespuesta: number;
+    fechaEnvio: string; // Viene como String ISO desde Java
+    idCliente: number;
+    dniCliente: string;
+    nombreCliente: string;
+    tipoRespuesta: 'MANUAL' | 'AUTOMATICA';
+    asunto: string;
+    urlPdf: string;
+}

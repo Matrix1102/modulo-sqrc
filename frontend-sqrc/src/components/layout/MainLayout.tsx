@@ -198,8 +198,8 @@ export default function MainLayout({ role }: Readonly<MainLayoutProps>) {
     }
   }, [role, user, setUser]);
 
-  // Obtener el estado del simulador de llamadas desde el context (solo para agentes)
-  const isCallAgent = user?.rol === "AGENTE";
+  // Obtener el estado del simulador de llamadas desde el context (solo para agentes de llamada)
+  const isCallAgent = role === "AGENTE_LLAMADA";
   const callSimulator = useCallSimulatorContext();
   const currentCall = callSimulator?.currentCall ?? null;
   const isActive = callSimulator?.isActive ?? false;
