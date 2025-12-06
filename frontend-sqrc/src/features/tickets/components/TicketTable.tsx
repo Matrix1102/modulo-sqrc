@@ -74,7 +74,7 @@ export const TicketTable: React.FC<TicketTableProps> = ({
             <SearchBar
               value={query}
               onChange={(q) => setQuery(q)}
-              placeholder="Buscar tickets..."
+              placeholder="Buscar ticket"
             />
           </div>
 

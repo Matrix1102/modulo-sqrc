@@ -53,6 +53,13 @@ public interface AsignacionRepository extends JpaRepository<Asignacion, Long> {
            "ORDER BY t.fechaCreacion DESC")
     List<Asignacion> findRecentWithDetails(@Param("inicio") LocalDateTime inicio, @Param("fin") LocalDateTime fin);
 
+    /**
+     * Obtiene los IDs de tickets que tienen al menos una asignación del empleado especificado.
+     * Optimizado para filtrar tickets por empleado.
+     */
+    @Query("SELECT DISTINCT a.ticket.idTicket FROM Asignacion a WHERE a.empleado.idEmpleado = :empleadoId")
+    List<Long> findTicketIdsByEmpleadoId(@Param("empleadoId") Long empleadoId);
+
     Optional<Asignacion> findTopByTicket_IdTicketOrderByFechaInicioDesc(Long idTicket);
 }
 

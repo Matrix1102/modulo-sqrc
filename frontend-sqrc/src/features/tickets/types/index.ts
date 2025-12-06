@@ -145,6 +145,7 @@ export interface TicketFilter {
   estado?: EstadoTicket;
   fecha?: string; // Fecha específica de creación (formato: yyyy-MM-dd)
   search?: string;
+  empleadoId?: number; // Filtro por empleado creador
   page?: number;
   size?: number;
 }

@@ -133,8 +133,8 @@ export default function App() {
             path="/agente-llamada"
             element={<MainLayout role="AGENTE_LLAMADA" />}
           >
-            <Route index element={<TicketingPage />} />
-            <Route path="tickets" element={<TicketingPage />} />
+            <Route index element={<TicketingPage key="agente-llamada" />} />
+            <Route path="tickets" element={<TicketingPage key="agente-llamada-tickets" />} />
             <Route
               path="tickets/:ticketId"
               element={<AgenteTicketDetailPage />}
@@ -150,8 +150,8 @@ export default function App() {
             path="/agente-presencial"
             element={<MainLayout role="AGENTE_PRESENCIAL" />}
           >
-            <Route index element={<TicketingPage />} />
-            <Route path="tickets" element={<TicketingPage />} />
+            <Route index element={<TicketingPage key="agente-presencial" />} />
+            <Route path="tickets" element={<TicketingPage key="agente-presencial-tickets" />} />
             <Route
               path="tickets/:ticketId"
               element={<AgenteTicketDetailPage />}
@@ -180,8 +180,8 @@ export default function App() {
 
           {/* ─── ZONA BACKOFFICE ─── */}
           <Route path="/backoffice" element={<MainLayout role="BACKOFFICE" />}>
-            <Route index element={<TicketingPage />} />
-            <Route path="tickets" element={<TicketingPage />} />
+            <Route index element={<TicketingPage key="backoffice" />} />
+            <Route path="tickets" element={<TicketingPage key="backoffice-tickets" />} />
             <Route
               path="tickets/:ticketId"
               element={<AgenteTicketDetailPage />}
