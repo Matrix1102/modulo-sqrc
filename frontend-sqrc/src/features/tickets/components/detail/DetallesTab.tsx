@@ -5,6 +5,7 @@
 import React, { useState } from 'react';
 import type { TicketDetail } from '../../types';
 import { EscalarTicketModal } from '../EscalarTicketModal';
+import { RechazarEscalamientoModal } from '../RechazarEscalamientoModal';
 import { DerivarTicketModal } from '../DerivarTicketModal';
 import { RespuestaExternaModal } from '../RespuestaExternaModal';
 
@@ -15,6 +16,7 @@ interface DetallesTabProps {
 
 export const DetallesTab: React.FC<DetallesTabProps> = ({ ticket, onRefresh }) => {
   const [isEscalarModalOpen, setIsEscalarModalOpen] = useState(false);
+  const [isRechazarEscalamientoModalOpen, setIsRechazarEscalamientoModalOpen] = useState(false);
   const [isDerivarModalOpen, setIsDerivarModalOpen] = useState(false);
   const [isRespuestaExternaModalOpen, setIsRespuestaExternaModalOpen] = useState(false);
 
@@ -58,6 +60,36 @@ export const DetallesTab: React.FC<DetallesTabProps> = ({ ticket, onRefresh }) =
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
               </svg>
               Escalar Ticket
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Botón de Rechazar Escalamiento (solo si el ticket está ESCALADO - para BackOffice) */}
+      {ticket.estado === 'ESCALADO' && (
+        <div className="bg-gradient-to-r from-red-50 to-orange-50 rounded-xl border border-red-200 p-4 shadow-sm">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 bg-red-100 rounded-full flex items-center justify-center">
+                <svg className="w-6 h-6 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+                </svg>
+              </div>
+              <div>
+                <h4 className="font-semibold text-gray-900">¿No puedes aceptar este escalamiento?</h4>
+                <p className="text-sm text-gray-600">Devuelve el ticket al Agente con instrucciones específicas</p>
+              </div>
+            </div>
+            <button
+              onClick={() => setIsRechazarEscalamientoModalOpen(true)}
+              className="px-5 py-2.5 bg-red-500 text-white rounded-lg text-sm font-semibold
+                       hover:bg-red-600 active:bg-red-700 transition-colors
+                       flex items-center gap-2 shadow-sm"
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+              </svg>
+              Rechazar Escalamiento
             </button>
           </div>
         </div>
@@ -289,6 +321,16 @@ export const DetallesTab: React.FC<DetallesTabProps> = ({ ticket, onRefresh }) =
       <EscalarTicketModal
         isOpen={isEscalarModalOpen}
         onClose={() => setIsEscalarModalOpen(false)}
+        ticketId={ticket.idTicket}
+        onSuccess={() => {
+          onRefresh?.();
+        }}
+      />
+
+      {/* Modal de Rechazo de Escalamiento */}
+      <RechazarEscalamientoModal
+        isOpen={isRechazarEscalamientoModalOpen}
+        onClose={() => setIsRechazarEscalamientoModalOpen(false)}
         ticketId={ticket.idTicket}
         onSuccess={() => {
           onRefresh?.();

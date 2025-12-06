@@ -59,6 +59,8 @@ public interface AsignacionRepository extends JpaRepository<Asignacion, Long> {
      */
     @Query("SELECT DISTINCT a.ticket.idTicket FROM Asignacion a WHERE a.empleado.idEmpleado = :empleadoId")
     List<Long> findTicketIdsByEmpleadoId(@Param("empleadoId") Long empleadoId);
+
+    Optional<Asignacion> findTopByTicket_IdTicketOrderByFechaInicioDesc(Long idTicket);
 }
 
 

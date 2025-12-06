@@ -1,7 +1,7 @@
 import React from "react";
 import { TrendingUp, TrendingDown, Minus } from "lucide-react";
 
-export type StatCardVariant = "blue" | "emerald" | "amber" | "purple" | "rose" | "cyan";
+export type StatCardVariant = "blue" | "emerald" | "amber" | "purple" | "rose" | "cyan" | "orange";
 
 interface Props {
   title: string;
@@ -61,6 +61,13 @@ const variantStyles: Record<StatCardVariant, {
     border: "border-cyan-100",
     glow: "shadow-cyan-100",
   },
+  orange: {
+    bg: "bg-gradient-to-br from-orange-50 to-amber-50",
+    iconBg: "bg-gradient-to-br from-orange-500 to-amber-600",
+    iconText: "text-white",
+    border: "border-orange-100",
+    glow: "shadow-orange-100",
+  },
 };
 
 const StatCard: React.FC<Props> = ({ 
@@ -105,42 +112,43 @@ const StatCard: React.FC<Props> = ({
         relative flex h-full flex-col rounded-2xl border ${styles.border} ${styles.bg} 
         p-5 shadow-lg ${styles.glow} transition-all duration-300 
         hover:shadow-xl hover:scale-[1.02] hover:-translate-y-1
+        overflow-hidden
       `}
     >
-      {/* Header con título e ícono en esquina derecha */}
-      <div className="flex items-start justify-between mb-3">
-        <h3 className="text-sm font-semibold text-gray-600 leading-tight pr-2">
+      {/* Ícono en esquina superior derecha */}
+      {icon && (
+        <div className={`
+          absolute top-4 right-4 flex items-center justify-center w-11 h-11 rounded-xl
+          ${styles.iconBg} ${styles.iconText} shadow-lg
+        `}>
+          {icon}
+        </div>
+      )}
+
+      {/* Contenido centrado */}
+      <div className="flex-1 flex flex-col items-center justify-center text-center">
+        {/* Título */}
+        <h3 className="text-sm font-semibold text-gray-600 mb-2">
           {title}
         </h3>
-        {icon && (
+
+        {/* Valor principal */}
+        <div className="text-3xl font-bold text-gray-900 tracking-tight mb-3">
+          {value}
+        </div>
+
+        {/* Tendencia */}
+        {trendValue && (
           <div className={`
-            flex items-center justify-center w-11 h-11 rounded-xl shrink-0
-            ${styles.iconBg} ${styles.iconText} shadow-lg
+            inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full 
+            ${trendStyles.bg} ${trendStyles.text} text-xs font-semibold
+            max-w-full
           `}>
-            {icon}
+            {trendStyles.icon}
+            <span className="truncate">{trendValue}</span>
           </div>
         )}
       </div>
-
-      {/* Valor principal alineado a la izquierda */}
-      <div className="flex-1 flex items-center">
-        <div className="text-3xl font-bold text-gray-900 tracking-tight">
-          {value}
-        </div>
-      </div>
-
-      {/* Tendencia en la parte inferior */}
-      {trendValue && (
-        <div className="mt-3 pt-3 border-t border-gray-200/50">
-          <div className={`
-            inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full 
-            ${trendStyles.bg} ${trendStyles.text} text-xs font-semibold
-          `}>
-            {trendStyles.icon}
-            <span>{trendValue}</span>
-          </div>
-        </div>
-      )}
     </div>
   );
 };

@@ -12,6 +12,11 @@ import {
 } from "../../../../../services/vista360Api";
 import { useCustomer } from "../../../context/CustomerContext";
 
+// Saldos calculados de productos y servicios (datos mock)
+// En producción estos valores vendrían del backend
+const SALDO_PRODUCTOS = 499.85;  // Suma de balances: 249.95 + 150.00 + 99.90
+const SALDO_SERVICIOS = 338.80;  // Suma de balances de servicios
+
 const BasicViewContainer: React.FC = () => {
   const { 
     cliente, 
@@ -141,8 +146,13 @@ const BasicViewContainer: React.FC = () => {
           <span className="text-sm text-gray-500">Últimos 30 días</span>
         </div>
         <div className="flex-1 flex items-center justify-center">
-          <div className="w-full max-w-2xl">
-            <ServiceStatsGrid metricas={metricas} loading={loading} />
+          <div className="w-full">
+            <ServiceStatsGrid 
+              metricas={metricas} 
+              loading={loading} 
+              saldoProductos={cliente ? SALDO_PRODUCTOS : 0}
+              saldoServicios={cliente ? SALDO_SERVICIOS : 0}
+            />
           </div>
         </div>
       </section>

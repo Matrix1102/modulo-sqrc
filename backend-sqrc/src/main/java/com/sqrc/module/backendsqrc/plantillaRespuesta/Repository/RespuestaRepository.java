@@ -26,4 +26,13 @@ public interface RespuestaRepository extends JpaRepository<RespuestaCliente, Lon
      */
     @Query("SELECT CASE WHEN COUNT(r) > 0 THEN true ELSE false END FROM RespuestaCliente r WHERE r.asignacion.ticket.idTicket = :ticketId AND r.tipoRespuesta = 'MANUAL'")
     boolean existsByTicketId(@Param("ticketId") Long ticketId);
+
+    @Query("""
+        SELECT r
+        FROM RespuestaCliente r
+        JOIN FETCH r.asignacion a
+        JOIN FETCH a.ticket t
+        ORDER BY r.fechaEnvio DESC
+    """)
+    List<RespuestaCliente> findAllRespuestasWithTicket();
 }

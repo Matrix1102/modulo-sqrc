@@ -227,6 +227,16 @@ export interface RespuestaDerivacionDTO {
   solucionado: boolean;
 }
 
+/**
+ * DTO para rechazar un escalamiento y devolverlo al Agente
+ * Coincide con RechazarEscalamientoDTO.java
+ */
+export interface RechazarEscalamientoDTO {
+  asunto: string;
+  motivoRechazo: string;
+  instrucciones: string;
+}
+
 // ==================== Correo / Hilo ====================
 
 export type TipoCorreo = 'SOLICITUD_ESCALAMIENTO' | 'RESPUESTA_INTERNA' | 'DERIVACION_EXTERNA';
