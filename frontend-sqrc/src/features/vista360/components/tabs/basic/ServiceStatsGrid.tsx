@@ -69,29 +69,61 @@ const getMetricConfig = (titulo: string) => {
 };
 
 const ServiceStatsGrid: React.FC<Props> = ({ metricas = [], loading = false, saldoProductos = 0, saldoServicios = 0 }) => {
-  // Solo mostrar métricas de saldo cuando hay métricas del cliente (es decir, hay cliente cargado)
+  // Detectar si hay cliente (backend devuelve métricas cuando hay cliente)
   const hasCliente = metricas.length > 0;
-  
-  // Crear métricas adicionales de saldo solo si hay cliente
-  const saldoMetricas: MetricaKPI[] = hasCliente ? [
-    {
-      titulo: "Saldo Productos",
-      valorPrincipal: `S/ ${saldoProductos.toFixed(2)}`,
-      unidad: "",
-      subtituloTendencia: saldoProductos === 0 ? "Sin deuda" : "Pendiente de pago",
-      estadoTendencia: saldoProductos === 0 ? "POSITIVO" : "NEGATIVO",
-    },
-    {
-      titulo: "Saldo Servicios",
-      valorPrincipal: `S/ ${saldoServicios.toFixed(2)}`,
-      unidad: "",
-      subtituloTendencia: saldoServicios === 0 ? "Sin deuda" : "Pendiente de pago",
-      estadoTendencia: saldoServicios === 0 ? "POSITIVO" : "NEGATIVO",
-    },
-  ] : [];
 
-  // Combinar métricas originales con las de saldo
-  const allMetricas = [...metricas, ...saldoMetricas];
+  // Transformar métricas recibidas para aplicar reglas específicas (por ejemplo Tickets del Último Mes)
+  const transformedMetricas: MetricaKPI[] = metricas.map((m) => {
+    // Si es la métrica "Tickets del Último Mes" intentamos interpretar el valor como número
+    if (m.titulo && m.titulo.toLowerCase().includes("tickets del último mes")) {
+      // Extraer número del valor principal (puede venir como string)
+      const numericMatch = String(m.valorPrincipal).match(/\d+/);
+      const count = numericMatch ? parseInt(numericMatch[0], 10) : NaN;
+
+      if (!isNaN(count)) {
+        if (count > 5) {
+          // Más de 5 -> tendencia negativa
+          return {
+            ...m,
+            subtituloTendencia: `+${count - 5} del promedio`,
+            estadoTendencia: 'NEGATIVO',
+          } as MetricaKPI;
+        }
+        // <= 5 -> positivo / similar al promedio
+        return {
+          ...m,
+          subtituloTendencia: 'Similar al promedio',
+          estadoTendencia: 'POSITIVO',
+        } as MetricaKPI;
+      }
+    }
+
+    // Por defecto, devolver la métrica sin cambios
+    return m;
+  });
+
+  // Crear métricas adicionales de saldo solo si hay cliente
+  const saldoMetricas: MetricaKPI[] = hasCliente
+    ? [
+        {
+          titulo: 'Saldo Productos',
+          valorPrincipal: `S/ ${saldoProductos.toFixed(2)}`,
+          unidad: '',
+          subtituloTendencia: saldoProductos > 0 ? 'Deuda pendiente' : 'Sin deuda',
+          estadoTendencia: saldoProductos > 0 ? 'NEGATIVO' : 'POSITIVO',
+        },
+        {
+          titulo: 'Saldo Servicios',
+          valorPrincipal: `S/ ${saldoServicios.toFixed(2)}`,
+          unidad: '',
+          subtituloTendencia: saldoServicios > 0 ? 'Deuda pendiente' : 'Sin deuda',
+          estadoTendencia: saldoServicios > 0 ? 'NEGATIVO' : 'POSITIVO',
+        },
+      ]
+    : [];
+
+  // Combinar métricas transformadas con las de saldo
+  const allMetricas = [...transformedMetricas, ...saldoMetricas];
   if (loading) {
     return (
       <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
