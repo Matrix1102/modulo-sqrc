@@ -27,6 +27,9 @@ import {
 import { PlantillasDashboard } from "./features/plantilla_respuestas/pages/PlantillasDashboard";
 import HistorialRespuestasPage from "./features/plantilla_respuestas/pages/HistorialRespuestasPage"
 
+// Logs
+import LogsPage from "./pages/logs/LogsPage";
+
 // Contexto de Usuario
 import { UserProvider } from "./context";
 
@@ -88,6 +91,18 @@ const Home = () => (
         <div className="text-center">
           <span className="block font-semibold text-lg">Supervisor</span>
           <span className="text-sm text-light-600 group-hover:text-light-700">Panel de control</span>
+        </div>
+      </Link>
+
+      {/* Logs */}
+      <Link
+        to="/logs"
+        className="group relative px-6 py-6 bg-white hover:bg-light-50 border border-light-300 hover:border-dark-700 text-dark-900 rounded-xl transition-all duration-300 font-medium flex flex-col items-center gap-3 shadow-sm hover:shadow-lg hover:shadow-dark-700/10 hover:scale-[1.03] col-span-2"
+      >
+        <span className="text-4xl group-hover:scale-110 transition-transform duration-300">📋</span>
+        <div className="text-center">
+          <span className="block font-semibold text-lg">Logs</span>
+          <span className="text-sm text-light-600 group-hover:text-light-700">Registro del sistema</span>
         </div>
       </Link>
     </div>
@@ -238,6 +253,9 @@ export default function App() {
             <Route path="articulo/:id" element={<ArticuloExpandidoPage />} />
             <Route path="editar/:id" element={<EditarArticuloPage />} />
           </Route>
+
+          {/* ─── ZONA LOGS ─── */}
+          <Route path="/logs" element={<LogsPage />} />
         </Routes>
       </BrowserRouter>
       </CallSimulatorProvider>
