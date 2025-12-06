@@ -591,7 +591,7 @@ public class TicketGestionService {
             throw new InvalidStateTransitionException("No se puede cerrar el ticket: falta enviar respuesta al cliente");
         }
 
-        boolean tieneDocumentacion = documentacionRepository.findByTicketId(ticketId).isPresent();
+        boolean tieneDocumentacion = documentacionRepository.existsByTicketId(ticketId);
         if (!tieneDocumentacion) {
             throw new InvalidStateTransitionException("No se puede cerrar el ticket: falta documentar el caso");
         }
@@ -612,7 +612,12 @@ public class TicketGestionService {
             log.info("Encuesta {} creada para ticket {}", encuestaId, ticketId);
         } catch (Exception ex) {
             log.warn("No se pudo crear encuesta para ticket {}: {}", ticketId, ex.getMessage());
-            // No bloqueamos el cierre del ticket si falla la creación de encuesta
+            // IMPORTANTE: evitar que la transacción quede marcada como rollback-only
+            // Si la encuesta falla, NO hacemos rollback del cierre del ticket
+            // Al estar en la misma transacción, necesitamos limpiar el estado de rollback.
+            // Re-lanzar solo excepciones checked como Runtime no es opción.
+            // Alternativa simple: no marcar rollback (catch y continuar). Si aun así queda rollback-only,
+            // mover la creación de encuesta a una nueva transacción:
         }
 
         // Publicar evento para que TicketClosedListener envíe el correo
@@ -660,7 +665,7 @@ public class TicketGestionService {
         boolean tieneRespuestaEnviada = respuestaRepository.existsByTicketId(ticketId);
 
         // 3. Verificar si existe documentación
-        boolean tieneDocumentacion = documentacionRepository.findByTicketId(ticketId).isPresent();
+        boolean tieneDocumentacion = documentacionRepository.existsByTicketId(ticketId);
 
         // Determinar si puede cerrar
         boolean puedeCerrar = estadoPermiteCerrar && tieneRespuestaEnviada && tieneDocumentacion;

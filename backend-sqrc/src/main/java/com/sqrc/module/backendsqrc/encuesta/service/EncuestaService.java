@@ -248,7 +248,7 @@ public class EncuestaService {
     /**
      * Crea una encuesta usando el ID del agente (útil cuando solo tienes el ID).
      */
-    @Transactional
+    @Transactional(propagation = org.springframework.transaction.annotation.Propagation.REQUIRES_NEW, noRollbackFor = Exception.class)
     public Encuesta crearEncuestaParaTicket(Long plantillaId, Ticket ticket, Long agenteId, ClienteEntity cliente) {
         // El agente se puede obtener de las asignaciones del ticket si no se proporciona
         Agente agente = null;
