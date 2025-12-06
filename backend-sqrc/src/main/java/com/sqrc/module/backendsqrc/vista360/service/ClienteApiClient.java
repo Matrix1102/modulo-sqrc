@@ -1,5 +1,6 @@
 package com.sqrc.module.backendsqrc.vista360.service;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.sqrc.module.backendsqrc.logs.service.AuditLogService;
 import com.sqrc.module.backendsqrc.vista360.dto.ActualizarClienteExternoDTO;
 import com.sqrc.module.backendsqrc.vista360.dto.ClienteExternoDTO;
@@ -23,12 +24,15 @@ public class ClienteApiClient {
 
     private final WebClient webClient;
     private final AuditLogService auditLogService;
+    private final ObjectMapper objectMapper;
 
     @Value("${api.clientes.url:https://mod-ventas.onrender.com/api/clientes/integracion/atencion-cliente}")
     private String apiBaseUrl;
 
     public ClienteApiClient(AuditLogService auditLogService) {
         this.auditLogService = auditLogService;
+        this.objectMapper = new ObjectMapper();
+        this.objectMapper.findAndRegisterModules(); // Para LocalDate
         this.webClient = WebClient.builder()
                 .defaultHeader("ngrok-skip-browser-warning", "true")
                 .build();
@@ -69,9 +73,11 @@ public class ClienteApiClient {
             success = true;
             long duration = System.currentTimeMillis() - startTime;
             
-            // Log de integración exitosa
-            auditLogService.logIntegration("mod-ventas", "OBTENER_CLIENTE_POR_ID", url, 
-                    "GET", responseStatus, duration, success, null, null);
+            // Log de integración exitosa con response payload
+            String responsePayload = serializeToJson(cliente);
+            auditLogService.logIntegrationFull("mod-ventas", "OBTENER_CLIENTE_POR_ID", url, 
+                    "GET", responseStatus, duration, success, null, null, 
+                    "idCliente=" + idCliente, responsePayload);
 
             log.info("Cliente obtenido exitosamente: {} {}", 
                     cliente != null ? cliente.getFirstName() : "null",
@@ -83,16 +89,18 @@ public class ClienteApiClient {
             responseStatus = 404;
             errorMessage = e.getMessage();
             long duration = System.currentTimeMillis() - startTime;
-            auditLogService.logIntegration("mod-ventas", "OBTENER_CLIENTE_POR_ID", url, 
-                    "GET", responseStatus, duration, false, errorMessage, null);
+            auditLogService.logIntegrationFull("mod-ventas", "OBTENER_CLIENTE_POR_ID", url, 
+                    "GET", responseStatus, duration, false, errorMessage, null,
+                    "idCliente=" + idCliente, null);
             throw e;
         } catch (Exception e) {
             log.error("Error al obtener cliente desde API externa: {}", e.getMessage());
             responseStatus = 500;
             errorMessage = e.getMessage();
             long duration = System.currentTimeMillis() - startTime;
-            auditLogService.logIntegration("mod-ventas", "OBTENER_CLIENTE_POR_ID", url, 
-                    "GET", responseStatus, duration, false, errorMessage, null);
+            auditLogService.logIntegrationFull("mod-ventas", "OBTENER_CLIENTE_POR_ID", url, 
+                    "GET", responseStatus, duration, false, errorMessage, null,
+                    "idCliente=" + idCliente, null);
             throw new RuntimeException("Error al comunicarse con el servicio de clientes: " + e.getMessage(), e);
         }
     }
@@ -132,9 +140,11 @@ public class ClienteApiClient {
             success = true;
             long duration = System.currentTimeMillis() - startTime;
             
-            // Log de integración exitosa
-            auditLogService.logIntegration("mod-ventas", "OBTENER_CLIENTE_POR_DNI", url, 
-                    "GET", responseStatus, duration, success, null, null);
+            // Log de integración exitosa con response payload
+            String responsePayload = serializeToJson(cliente);
+            auditLogService.logIntegrationFull("mod-ventas", "OBTENER_CLIENTE_POR_DNI", url, 
+                    "GET", responseStatus, duration, success, null, null,
+                    "dni=" + dni, responsePayload);
 
             log.info("Cliente obtenido por DNI exitosamente: {} {}", 
                     cliente != null ? cliente.getFirstName() : "null",
@@ -146,16 +156,18 @@ public class ClienteApiClient {
             responseStatus = 404;
             errorMessage = e.getMessage();
             long duration = System.currentTimeMillis() - startTime;
-            auditLogService.logIntegration("mod-ventas", "OBTENER_CLIENTE_POR_DNI", url, 
-                    "GET", responseStatus, duration, false, errorMessage, null);
+            auditLogService.logIntegrationFull("mod-ventas", "OBTENER_CLIENTE_POR_DNI", url, 
+                    "GET", responseStatus, duration, false, errorMessage, null,
+                    "dni=" + dni, null);
             throw e;
         } catch (Exception e) {
             log.error("Error al obtener cliente por DNI desde API externa: {}", e.getMessage());
             responseStatus = 500;
             errorMessage = e.getMessage();
             long duration = System.currentTimeMillis() - startTime;
-            auditLogService.logIntegration("mod-ventas", "OBTENER_CLIENTE_POR_DNI", url, 
-                    "GET", responseStatus, duration, false, errorMessage, null);
+            auditLogService.logIntegrationFull("mod-ventas", "OBTENER_CLIENTE_POR_DNI", url, 
+                    "GET", responseStatus, duration, false, errorMessage, null,
+                    "dni=" + dni, null);
             throw new RuntimeException("Error al comunicarse con el servicio de clientes: " + e.getMessage(), e);
         }
     }
@@ -198,9 +210,12 @@ public class ClienteApiClient {
             success = true;
             long duration = System.currentTimeMillis() - startTime;
             
-            // Log de integración exitosa
-            auditLogService.logIntegration("mod-ventas", "ACTUALIZAR_CLIENTE", url, 
-                    "PATCH", responseStatus, duration, success, null, null);
+            // Log de integración exitosa con payloads
+            String requestPayload = serializeToJson(datos);
+            String responsePayload = serializeToJson(clienteActualizado);
+            auditLogService.logIntegrationFull("mod-ventas", "ACTUALIZAR_CLIENTE", url, 
+                    "PATCH", responseStatus, duration, success, null, null,
+                    requestPayload, responsePayload);
 
             log.info("Cliente actualizado exitosamente: {}", idCliente);
             return clienteActualizado;
@@ -210,17 +225,34 @@ public class ClienteApiClient {
             responseStatus = 404;
             errorMessage = e.getMessage();
             long duration = System.currentTimeMillis() - startTime;
-            auditLogService.logIntegration("mod-ventas", "ACTUALIZAR_CLIENTE", url, 
-                    "PATCH", responseStatus, duration, false, errorMessage, null);
+            String requestPayload = serializeToJson(datos);
+            auditLogService.logIntegrationFull("mod-ventas", "ACTUALIZAR_CLIENTE", url, 
+                    "PATCH", responseStatus, duration, false, errorMessage, null,
+                    requestPayload, null);
             throw e;
         } catch (Exception e) {
             log.error("Error al actualizar cliente en API externa: {}", e.getMessage());
             responseStatus = 500;
             errorMessage = e.getMessage();
             long duration = System.currentTimeMillis() - startTime;
-            auditLogService.logIntegration("mod-ventas", "ACTUALIZAR_CLIENTE", url, 
-                    "PATCH", responseStatus, duration, false, errorMessage, null);
+            String requestPayload = serializeToJson(datos);
+            auditLogService.logIntegrationFull("mod-ventas", "ACTUALIZAR_CLIENTE", url, 
+                    "PATCH", responseStatus, duration, false, errorMessage, null,
+                    requestPayload, null);
             throw new RuntimeException("Error al comunicarse con el servicio de clientes: " + e.getMessage(), e);
+        }
+    }
+
+    /**
+     * Serializa un objeto a JSON para logging.
+     */
+    private String serializeToJson(Object obj) {
+        try {
+            if (obj == null) return null;
+            return objectMapper.writeValueAsString(obj);
+        } catch (Exception e) {
+            log.debug("Error al serializar objeto a JSON: {}", e.getMessage());
+            return obj.toString();
         }
     }
 }

@@ -544,14 +544,30 @@ public class AuditLogService {
     // ==================== LOGS DE INTEGRACIÓN ====================
 
     /**
-     * Registra llamada a servicio externo.
+     * Registra llamada a servicio externo (versión básica).
      */
     @Async
     @Transactional("logsTransactionManager")
     public void logIntegration(String serviceName, String operation, String requestUrl,
                                 String requestMethod, Integer responseStatus, Long durationMs,
                                 boolean success, String errorMessage, String correlationId) {
+        logIntegrationFull(serviceName, operation, requestUrl, requestMethod, responseStatus, 
+                durationMs, success, errorMessage, correlationId, null, null);
+    }
+
+    /**
+     * Registra llamada a servicio externo con payloads completos.
+     */
+    @Async
+    @Transactional("logsTransactionManager")
+    public void logIntegrationFull(String serviceName, String operation, String requestUrl,
+                                String requestMethod, Integer responseStatus, Long durationMs,
+                                boolean success, String errorMessage, String correlationId,
+                                String requestPayload, String responsePayload) {
         try {
+            // Generar correlationId si no se proporciona
+            String corrId = correlationId != null ? correlationId : generateCorrelationId();
+
             IntegrationLog integrationLog = IntegrationLog.builder()
                     .timestamp(LocalDateTime.now())
                     .serviceName(serviceName)
@@ -562,7 +578,9 @@ public class AuditLogService {
                     .durationMs(durationMs)
                     .success(success)
                     .errorMessage(errorMessage)
-                    .correlationId(correlationId)
+                    .correlationId(corrId)
+                    .requestPayload(requestPayload)
+                    .responsePayload(responsePayload)
                     .build();
 
             integrationLogRepository.save(integrationLog);

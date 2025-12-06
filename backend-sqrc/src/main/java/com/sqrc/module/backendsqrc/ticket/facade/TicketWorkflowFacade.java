@@ -5,6 +5,7 @@ import com.sqrc.module.backendsqrc.ticket.dto.DerivarRequestDTO;
 import com.sqrc.module.backendsqrc.ticket.dto.EscalarRequestDTO;
 import com.sqrc.module.backendsqrc.ticket.dto.RechazarEscalamientoDTO;
 import com.sqrc.module.backendsqrc.ticket.dto.RespuestaDerivacionDTO;
+import com.sqrc.module.backendsqrc.ticket.enums.AreaExterna;
 import com.sqrc.module.backendsqrc.ticket.event.TicketDerivadoEvent;
 import com.sqrc.module.backendsqrc.ticket.event.TicketEscaladoEvent;
 import com.sqrc.module.backendsqrc.ticket.model.*;
@@ -124,7 +125,7 @@ public class TicketWorkflowFacade {
                 asignacionActual != null ? asignacionActual.getEmpleado().getIdEmpleado() : null,
                 asignacionActual != null ? asignacionActual.getEmpleado().getNombreCompleto() : "Desconocido",
                 request.getAreaDestinoId(),
-                "Área " + request.getAreaDestinoId(),
+                AreaExterna.getNombreById(request.getAreaDestinoId()),
                 estadoAnterior,
                 request.getCuerpo() // Usamos cuerpo como motivo de derivación
         );
