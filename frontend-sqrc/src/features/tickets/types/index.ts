@@ -54,6 +54,13 @@ export interface TicketDetail {
     idMotivo: number;
     descripcion: string;
   } | null;
+  // Información de llamada asociada
+  llamada?: {
+    idLlamada: number;
+    numeroOrigen: string;
+    duracionSegundos: number | null;
+    duracionFormateada: string | null;
+  } | null;
   // Campos específicos por tipo
   consultaInfo?: { tema: string };
   quejaInfo?: { impacto: string; areaInvolucrada: string };
@@ -202,14 +209,12 @@ export interface EscalarTicketRequest {
 
 /**
  * DTO para derivar un ticket de BackOffice a un área externa
- * Coincide con DerivarTicketRequest.java
+ * Coincide con DerivarRequestDTO.java
  */
 export interface DerivarTicketRequest {
-  backofficeId: number;
-  areaId: number;
-  motivoDerivacion: string;
-  detallesProblema?: string;
-  correoModuloEspecializado?: string;
+  areaDestinoId: number;
+  asunto: string;
+  cuerpo: string;
 }
 
 /**
@@ -217,8 +222,18 @@ export interface DerivarTicketRequest {
  * Coincide con RespuestaDerivacionDTO.java
  */
 export interface RespuestaDerivacionDTO {
+  respuestaExterna: string;
   solucionado: boolean;
-  detallesRespuesta: string;
+}
+
+/**
+ * DTO para rechazar un escalamiento y devolverlo al Agente
+ * Coincide con RechazarEscalamientoDTO.java
+ */
+export interface RechazarEscalamientoDTO {
+  asunto: string;
+  motivoRechazo: string;
+  instrucciones: string;
 }
 
 // ==================== Correo / Hilo ====================
@@ -245,6 +260,56 @@ export interface CorreoDTO {
   empleadoArea: string;
 }
 
+// ==================== Notificaciones Externas (Derivación) ====================
+
+/**
+ * DTO para notificaciones externas (derivaciones a áreas externas).
+ * Coincide con NotificacionExternaDTO.java del backend.
+ * Ahora incluye los campos de respuesta integrados en el mismo objeto.
+ */
+export interface NotificacionExternaDTO {
+  idNotificacion: number;
+  ticketId: number;
+  areaDestinoId: number;
+  asunto: string;
+  cuerpo: string;
+  destinatarioEmail: string;
+  fechaEnvio: string;
+  
+  // Campos de respuesta
+  respuesta?: string;
+  fechaRespuesta?: string;
+}
+
+/**
+ * DTO para el simulador de área externa.
+ * Muestra tickets derivados con su notificación.
+ */
+export interface TicketDerivadoSimuladorDTO {
+  idTicket: number;
+  asunto: string;
+  descripcion: string;
+  estado: EstadoTicket;
+  fechaCreacion: string;
+  notificacion: NotificacionExternaDTO;
+}
+
+// ==================== Constantes ====================
+
+/**
+ * ID único del BackOffice en el MVP
+ */
+export const BACKOFFICE_ID_MVP = 3;
+
+/**
+ * Áreas externas disponibles para derivación
+ */
+export const AREAS_EXTERNAS = [
+  { id: 1, nombre: 'TI - Tecnología de la Información' },
+  { id: 2, nombre: 'Ventas' },
+  { id: 3, nombre: 'Infraestructura' },
+] as const;
+
 // ==================== Cierre de Ticket ====================
 
 /**
@@ -257,4 +322,20 @@ export interface CierreValidacionResponse {
   tieneDocumentacion: boolean;
   estadoTicket: EstadoTicket;
   mensaje: string;
+}
+
+// ==================== Llamadas ====================
+
+export type EstadoLlamada = 'ACEPTADA' | 'DECLINADA' | 'EN_ESPERA' | 'FINALIZADA';
+
+export interface LlamadaDto {
+  idLlamada: number;
+  fechaHora: string;
+  duracionSegundos: number;
+  duracionFormateada: string;
+  numeroOrigen: string;
+  estado: EstadoLlamada;
+  ticketId: number | null;
+  empleadoId: number | null;
+  nombreEmpleado: string | null;
 }

@@ -264,4 +264,39 @@ public class DocumentacionService {
         System.out.println("    → Problema: " + problema);
         System.out.println("    → Justificación: " + justificacion);
     }
+
+    /**
+     * Registra la documentación de una respuesta externa.
+     * Se usa cuando un área externa (TI, Ventas, etc.) responde a un ticket derivado.
+     *
+     * @param ticket El ticket que recibió la respuesta
+     * @param respuestaExterna Contenido de la respuesta del área externa
+     * @param backofficeId ID del BackOffice que gestiona el ticket
+     */
+    @Transactional
+    public void registrarRespuestaExterna(Ticket ticket, String respuestaExterna, Long backofficeId) {
+        log.info("📝 Registrando respuesta externa para ticket ID: {}", ticket.getIdTicket());
+
+        // Obtener la asignación activa del ticket
+        Asignacion asignacionActiva = asignacionRepository.findAsignacionActiva(ticket.getIdTicket())
+                .orElseThrow(() -> new RuntimeException(
+                        "No se encontró asignación activa para el ticket: " + ticket.getIdTicket()
+                ));
+
+        // Obtener el empleado BackOffice
+        Empleado backoffice = empleadoRepository.findById(backofficeId)
+                .orElseThrow(() -> new EmpleadoNotFoundException(backofficeId));
+
+        // Crear la documentación
+        Documentacion documentacion = Documentacion.builder()
+                .asignacion(asignacionActiva)
+                .problema("Respuesta de Área Externa")
+                .solucion(respuestaExterna)
+                .empleado(backoffice)
+                .build();
+
+        documentacionRepository.save(documentacion);
+
+        log.info("✅ Respuesta externa documentada para Ticket ID: {}", ticket.getIdTicket());
+    }
 }

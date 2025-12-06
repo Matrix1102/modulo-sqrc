@@ -5,6 +5,7 @@ import { useState } from 'react';
 import { useLocation } from 'react-router-dom';
 import type { ClienteDTO, TipoTicket, OrigenTicket, CreateTicketRequest } from '../types';
 import { createTicket } from '../services/ticketApi';
+import { asociarLlamadaATicket } from '../services/llamadaApi';
 
 // Mapeo de roles a empleados de la BD local
 const ROLE_CONFIG: Record<string, { empleadoId: number; origen: OrigenTicket; label: string; nombreAgente: string }> = {
@@ -18,6 +19,7 @@ interface CreateTicketModalProps {
   onClose: () => void;
   cliente: ClienteDTO;
   onTicketCreated: (ticketId: number) => void;
+  activeLlamadaId?: number | null; // ID de la llamada activa (si existe)
 }
 
 export const CreateTicketModal = ({
@@ -25,6 +27,7 @@ export const CreateTicketModal = ({
   onClose,
   cliente,
   onTicketCreated,
+  activeLlamadaId,
 }: CreateTicketModalProps) => {
   const location = useLocation();
   const [loading, setLoading] = useState(false);
@@ -93,6 +96,25 @@ export const CreateTicketModal = ({
       }
 
       const response = await createTicket(request);
+      
+      // Si hay una llamada activa, asociarla automáticamente al ticket
+      if (activeLlamadaId) {
+        try {
+          const llamadaAsociada = await asociarLlamadaATicket({
+            llamadaId: activeLlamadaId,
+            ticketId: response.idTicket,
+          });
+          console.log('✅ Llamada asociada exitosamente:', {
+            llamadaId: activeLlamadaId,
+            ticketId: response.idTicket,
+            numeroOrigen: llamadaAsociada.numeroOrigen
+          });
+        } catch (error) {
+          console.error('❌ Error al asociar llamada al ticket:', error);
+          // No bloquear la creación del ticket si falla la asociación
+        }
+      }
+      
       onTicketCreated(response.idTicket);
     } catch {
       setError('Error al crear el ticket. Intente nuevamente.');
@@ -150,6 +172,21 @@ export const CreateTicketModal = ({
 
             {/* Content con scroll */}
             <div className="flex-1 overflow-y-auto px-6 py-4">
+              {/* Indicador de llamada activa */}
+              {activeLlamadaId && (
+                <div className="mb-4 bg-green-50 border-2 border-green-400 rounded-lg p-3 flex items-center gap-3">
+                  <div className="flex-shrink-0 w-10 h-10 bg-green-500 rounded-full flex items-center justify-center animate-pulse">
+                    <svg className="w-5 h-5 text-white" fill="currentColor" viewBox="0 0 20 20">
+                      <path d="M2 3a1 1 0 011-1h2.153a1 1 0 01.986.836l.74 4.435a1 1 0 01-.54 1.06l-1.548.773a11.037 11.037 0 006.105 6.105l.774-1.548a1 1 0 011.059-.54l4.435.74a1 1 0 01.836.986V17a1 1 0 01-1 1h-2C7.82 18 2 12.18 2 5V3z" />
+                    </svg>
+                  </div>
+                  <div className="flex-1">
+                    <p className="text-sm font-semibold text-green-800">Llamada activa</p>
+                    <p className="text-xs text-green-600">Este ticket se asociará automáticamente a la llamada en curso</p>
+                  </div>
+                </div>
+              )}
+
               <form onSubmit={handleSubmit} className="space-y-4">
                 {/* Asunto */}
                 <div>

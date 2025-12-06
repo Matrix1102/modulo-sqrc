@@ -7,17 +7,17 @@ import lombok.Data;
 
 /**
  * DTO para la acción de Derivar.
- * Contiene los datos necesarios para enviar el correo externo a TI o Ventas.
+ * Contiene los datos necesarios para enviar el correo externo a TI, Ventas, Infraestructura, etc.
  */
-@Data // <--- ¡Aquí está! Lombok generará getters/setters por nosotros
+@Data
 public class DerivarRequestDTO {
 
     @NotNull(message = "Debes seleccionar el área de destino")
     private Long areaDestinoId;
 
-    @NotBlank(message = "El asunto del correo es obligatorio")
+    @NotBlank(message = "El asunto es obligatorio")
     private String asunto;
 
-    @NotBlank(message = "El cuerpo del correo es obligatorio")
+    @NotBlank(message = "El cuerpo del mensaje es obligatorio")
     private String cuerpo;
 }

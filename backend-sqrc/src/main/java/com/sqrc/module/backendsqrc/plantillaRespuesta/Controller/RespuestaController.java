@@ -1,15 +1,14 @@
 package com.sqrc.module.backendsqrc.plantillaRespuesta.Controller;
 
-import com.sqrc.module.backendsqrc.plantillaRespuesta.DTO.ArchivoDescarga;
-import com.sqrc.module.backendsqrc.plantillaRespuesta.DTO.EnviarRespuestaRequestDTO;
-import com.sqrc.module.backendsqrc.plantillaRespuesta.DTO.PreviewResponseDTO;
-import com.sqrc.module.backendsqrc.plantillaRespuesta.DTO.RespuestaBorradorDTO; // <--- Importar nuevo DTO
+import com.sqrc.module.backendsqrc.plantillaRespuesta.DTO.*;
 import com.sqrc.module.backendsqrc.plantillaRespuesta.Service.RespuestaService; // (o RespuestaServiceSP si le pusiste así)
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
 
 @RestController
 @RequestMapping("/respuestas")
@@ -55,6 +54,11 @@ public class RespuestaController {
                 .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + archivo.nombre() + "\"")
                 .contentType(MediaType.APPLICATION_PDF)
                 .body(archivo.contenido());
+    }
+
+    @GetMapping("/historial_respuestas")
+    public ResponseEntity<List<RespuestaTablaDTO>> obtenerHistorial() {
+        return ResponseEntity.ok(respuestaService.listarHistorialRespuestas());
     }
 
 }

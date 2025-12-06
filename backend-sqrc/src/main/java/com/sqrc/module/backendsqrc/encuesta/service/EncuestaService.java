@@ -150,6 +150,24 @@ public class EncuestaService {
         }
         // Nota: Actualizar preguntas profundas requiere lógica de borrado/re-creación que omitimos por brevedad
         
+        // Si el DTO incluye preguntas, reemplazamos las preguntas existentes
+        if (dto.getPreguntas() != null) {
+            // Borrar preguntas actuales asociadas a la plantilla
+            if (plantilla.getPreguntas() != null && !plantilla.getPreguntas().isEmpty()) {
+                preguntaRepository.deleteAll(plantilla.getPreguntas());
+                plantilla.setPreguntas(new java.util.ArrayList<>());
+            }
+
+            // Agregar las preguntas definidas en el DTO (usamos la factory para crear subtipo correcto)
+            for (PreguntaDTO pDto : dto.getPreguntas()) {
+                agregarPreguntaAPlantilla(plantilla.getIdPlantillaEncuesta(), pDto);
+            }
+
+            // Recargar plantilla para asegurarnos de devolver el estado actualizado
+            plantilla = plantillaRepository.findById(plantilla.getIdPlantillaEncuesta()).orElse(plantilla);
+            return convertirADTO(plantilla);
+        }
+
         return convertirADTO(plantillaRepository.save(plantilla));
     }
 
@@ -672,16 +690,32 @@ public class EncuestaService {
                     .build();
         }).collect(Collectors.toList());
 
+        // Compute puntaje (e.g., "3/5") from la calificacion guardada
+        String puntaje = respuestaDB.getCalificacion() != null ? respuestaDB.getCalificacion().toString() + "/5" : null;
+
+        // Extract a primary textual comentario from the first TEXT answer (if any)
+        String comentario = detalles.stream()
+            .filter(d -> d.getType() != null && d.getType().equalsIgnoreCase("TEXT"))
+            .map(ResultadoPreguntaDTO::getAnswer)
+            .filter(a -> a != null && !a.isBlank())
+            .findFirst().orElse(null);
+
+        // Tiempo: use fechaRespuesta as ISO string for now
+        String tiempo = respuestaDB.getFechaRespuesta() != null ? respuestaDB.getFechaRespuesta().toString() : null;
+
         return EncuestaResultadoDTO.builder()
-                .responseId(respuestaDB.getIdRespuestaEncuesta().toString())
-                .ticketId("T-" + encuesta.getIdEncuesta())
-                .agente(agenteNombre)
-                .agenteName(agenteNombre)
-                .cliente(clienteEmail)
-                .clientEmail(clienteEmail)
-                .fechaRespuesta(respuestaDB.getFechaRespuesta().toString())
-                .resultados(detalles)
-                .build();
+            .responseId(respuestaDB.getIdRespuestaEncuesta().toString())
+            .ticketId("T-" + encuesta.getIdEncuesta())
+            .agente(agenteNombre)
+            .agenteName(agenteNombre)
+            .cliente(clienteEmail)
+            .clientEmail(clienteEmail)
+            .puntaje(puntaje)
+            .comentario(comentario)
+            .tiempo(tiempo)
+            .fechaRespuesta(respuestaDB.getFechaRespuesta().toString())
+            .resultados(detalles)
+            .build();
     }
 
     /**
@@ -696,10 +730,10 @@ public class EncuestaService {
         PlantillaEncuesta plantilla = encuesta.getPlantilla();
         
         // Mapear preguntas
-        List<EncuestaEjecucionDTO.PreguntaEjecucionDTO> preguntasDTO = plantilla.getPreguntas().stream()
+                List<EncuestaEjecucionDTO.PreguntaEjecucionDTO> preguntasDTO = plantilla.getPreguntas().stream()
             .map(p -> {
                 List<EncuestaEjecucionDTO.OpcionDTO> opciones = null;
-                String tipo = "TEXTO";
+                String tipo = "TEXT";
                 
                 if (p instanceof PreguntaRadio) {
                     tipo = "RADIO";
@@ -719,7 +753,7 @@ public class EncuestaService {
                             .collect(Collectors.toList());
                     }
                 } else if (p instanceof PreguntaBooleana) {
-                    tipo = "BOOLEANA";
+                    tipo = "BOOLEAN";
                 }
                 
                 return EncuestaEjecucionDTO.PreguntaEjecucionDTO.builder()
@@ -868,9 +902,9 @@ public class EncuestaService {
     // ==========================================
 
     private PlantillaResponseDTO convertirADTO(PlantillaEncuesta entidad) {
-        List<PreguntaDTO> preguntasDTO = entidad.getPreguntas().stream().map(p -> {
+            List<PreguntaDTO> preguntasDTO = entidad.getPreguntas().stream().map(p -> {
             List<String> opciones = null;
-            String tipo = "TEXTO";
+            String tipo = "TEXT";
 
             if (p instanceof PreguntaRadio) {
                 tipo = "RADIO";
@@ -879,7 +913,7 @@ public class EncuestaService {
                         .map(OpcionPregunta::getTexto)
                         .collect(Collectors.toList());
             } else if (p instanceof PreguntaBooleana) {
-                tipo = "BOOLEANA";
+                tipo = "BOOLEAN";
             }
 
             return PreguntaDTO.builder()

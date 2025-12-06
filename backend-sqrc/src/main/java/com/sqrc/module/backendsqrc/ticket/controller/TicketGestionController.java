@@ -2,12 +2,14 @@ package com.sqrc.module.backendsqrc.ticket.controller;
 
 import com.sqrc.module.backendsqrc.ticket.dto.CorreoDTO;
 import com.sqrc.module.backendsqrc.ticket.dto.DocumentacionDto;
+import com.sqrc.module.backendsqrc.ticket.dto.NotificacionExternaDTO;
 import com.sqrc.module.backendsqrc.ticket.dto.request.*;
 import com.sqrc.module.backendsqrc.ticket.dto.response.*;
 import com.sqrc.module.backendsqrc.ticket.model.Ticket;
 import com.sqrc.module.backendsqrc.ticket.repository.TicketRepository;
 import com.sqrc.module.backendsqrc.ticket.service.CorreoService;
 import com.sqrc.module.backendsqrc.ticket.service.DocumentacionService;
+import com.sqrc.module.backendsqrc.ticket.service.NotificacionExternaService;
 import com.sqrc.module.backendsqrc.ticket.service.TicketGestionService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -37,6 +39,7 @@ import java.util.stream.Collectors;
  * - GET    /api/tickets/{id}/documentacion        -> Listar documentación
  * - POST   /api/tickets/{id}/documentacion        -> Crear documentación
  * - GET    /api/tickets/{id}/correos              -> Obtener hilo de correos
+ * - GET    /api/tickets/{id}/notificaciones-externas -> Obtener derivaciones externas
  */
 @RestController
 @RequestMapping("/api/tickets")
@@ -47,6 +50,7 @@ public class TicketGestionController {
     private final TicketGestionService ticketGestionService;
     private final DocumentacionService documentacionService;
     private final CorreoService correoService;
+    private final NotificacionExternaService notificacionExternaService;
     private final TicketRepository ticketRepository;
 
     /**
@@ -333,5 +337,21 @@ public class TicketGestionController {
         List<CorreoDTO> correos = correoService.obtenerCorreosPorTicket(id);
         
         return ResponseEntity.ok(correos);
+    }
+
+    /**
+     * Obtiene las notificaciones externas (derivaciones) de un ticket.
+     * Útil para mostrar en el timeline las comunicaciones con áreas externas.
+     *
+     * @param id ID del ticket
+     * @return Lista de notificaciones externas del ticket
+     */
+    @GetMapping("/{id}/notificaciones-externas")
+    public ResponseEntity<List<NotificacionExternaDTO>> obtenerNotificacionesExternas(@PathVariable Long id) {
+        log.info("GET /api/tickets/{}/notificaciones-externas - Obteniendo derivaciones externas", id);
+
+        List<NotificacionExternaDTO> notificaciones = notificacionExternaService.obtenerPorTicket(id);
+
+        return ResponseEntity.ok(notificaciones);
     }
 }

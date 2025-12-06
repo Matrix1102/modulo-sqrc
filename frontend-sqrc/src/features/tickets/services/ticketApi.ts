@@ -15,6 +15,7 @@ import type {
   ClienteDTO,
   CorreoDTO,
   CierreValidacionResponse,
+  NotificacionExternaDTO,
 } from '../types';
 
 const TICKETS_ENDPOINT = '/api/tickets';
@@ -138,6 +139,15 @@ export async function getCorreos(ticketId: number): Promise<CorreoDTO[]> {
   return response.data;
 }
 
+/**
+ * Obtiene las notificaciones externas (derivaciones) de un ticket.
+ * Muestra el historial de derivaciones a áreas externas.
+ */
+export async function getNotificacionesExternas(ticketId: number): Promise<NotificacionExternaDTO[]> {
+  const response = await http.get<NotificacionExternaDTO[]>(`${TICKETS_ENDPOINT}/${ticketId}/notificaciones-externas`);
+  return response.data;
+}
+
 // ==================== Clientes ====================
 
 /**
@@ -172,6 +182,7 @@ export const ticketApi = {
   addDocumentacion,
   getAsignaciones,
   getCorreos,
+  getNotificacionesExternas,
   buscarClientePorDni,
   getClienteById,
 };

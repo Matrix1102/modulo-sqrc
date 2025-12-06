@@ -1,17 +1,62 @@
 /**
  * Pestaña de Hilo del Ticket
- * Muestra el historial de correos y comunicaciones del ticket
+ * Muestra el historial de correos y notificaciones externas del ticket
  */
-import React from 'react';
-import { useCorreos } from '../../hooks/useCorreos';
-import type { TipoCorreo } from '../../types';
+import React, { useState, useEffect } from 'react';
+import { getCorreos, getNotificacionesExternas } from '../../services/ticketApi';
+import type { TipoCorreo, CorreoDTO, NotificacionExternaDTO } from '../../types';
+import { AREAS_EXTERNAS } from '../../types';
 
 interface HiloTabProps {
   ticketId: number;
 }
 
+// Union type para elementos del timeline
+type TimelineItem = 
+  | { type: 'correo'; data: CorreoDTO; fecha: Date }
+  | { type: 'notificacion'; data: NotificacionExternaDTO; fecha: Date };
+
 export const HiloTab: React.FC<HiloTabProps> = ({ ticketId }) => {
-  const { correos, loading, error } = useCorreos(ticketId);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [timelineItems, setTimelineItems] = useState<TimelineItem[]>([]);
+
+  useEffect(() => {
+    const fetchTimeline = async () => {
+      try {
+        setLoading(true);
+        setError(null);
+
+        // Fetch en paralelo
+        const [correosData, notificacionesData] = await Promise.all([
+          getCorreos(ticketId),
+          getNotificacionesExternas(ticketId),
+        ]);
+
+        // Fusionar y ordenar por fecha
+        const items: TimelineItem[] = [
+          ...correosData.map((correo) => ({
+            type: 'correo' as const,
+            data: correo,
+            fecha: new Date(correo.fechaEnvio),
+          })),
+          ...notificacionesData.map((notif) => ({
+            type: 'notificacion' as const,
+            data: notif,
+            fecha: new Date(notif.fechaEnvio),
+          })),
+        ].sort((a, b) => b.fecha.getTime() - a.fecha.getTime()); // Más reciente primero
+
+        setTimelineItems(items);
+      } catch (err: any) {
+        setError(err?.response?.data?.message || 'Error al cargar el historial');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchTimeline();
+  }, [ticketId]);
 
   if (loading) {
     return (
@@ -38,7 +83,7 @@ export const HiloTab: React.FC<HiloTabProps> = ({ ticketId }) => {
     );
   }
 
-  if (correos.length === 0) {
+  if (timelineItems.length === 0) {
     return (
       <div className="max-w-3xl">
         <div className="bg-white rounded-xl border border-gray-200 p-8 text-center">
@@ -49,10 +94,10 @@ export const HiloTab: React.FC<HiloTabProps> = ({ ticketId }) => {
           </div>
           <h3 className="text-lg font-semibold text-gray-900 mb-2">Sin comunicaciones aún</h3>
           <p className="text-gray-500">
-            No hay correos registrados para este ticket.
+            No hay correos ni notificaciones registradas para este ticket.
           </p>
           <p className="text-sm text-gray-400 mt-2">
-            Los correos de escalamiento y derivación aparecerán aquí.
+            Los correos de escalamiento, derivaciones y respuestas aparecerán aquí.
           </p>
         </div>
       </div>
@@ -66,18 +111,149 @@ export const HiloTab: React.FC<HiloTabProps> = ({ ticketId }) => {
           Historial de Comunicaciones
         </h3>
         <p className="text-sm text-gray-500 mt-1">
-          {correos.length} {correos.length === 1 ? 'correo' : 'correos'} registrados
+          {timelineItems.length} {timelineItems.length === 1 ? 'registro' : 'registros'} en total
         </p>
       </div>
 
       <div className="space-y-4">
-        {correos.map((correo) => (
-          <CorreoCard key={correo.idCorreo} correo={correo} />
+        {timelineItems.map((item) => (
+          <div key={`${item.type}-${item.type === 'correo' ? item.data.idCorreo : item.data.idNotificacion}`}>
+            {item.type === 'correo' ? (
+              <CorreoCard correo={item.data} />
+            ) : (
+              <NotificacionCard notificacion={item.data} />
+            )}
+          </div>
         ))}
       </div>
     </div>
   );
 };
+
+// ==================== Componente NotificacionCard ====================
+
+interface NotificacionCardProps {
+  notificacion: NotificacionExternaDTO;
+}
+
+const NotificacionCard: React.FC<NotificacionCardProps> = ({ notificacion }) => {
+  const [expanded, setExpanded] = useState(false);
+  const tieneRespuesta = notificacion.respuesta && notificacion.respuesta.trim() !== '';
+
+  const fechaFormateada = new Date(notificacion.fechaEnvio).toLocaleString('es-ES', {
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+  });
+
+  const fechaRespuestaFormateada = notificacion.fechaRespuesta 
+    ? new Date(notificacion.fechaRespuesta).toLocaleString('es-ES', {
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit',
+      })
+    : null;
+
+  const areaNombre = AREAS_EXTERNAS.find((a) => a.id === notificacion.areaDestinoId)?.nombre || 'Área Externa';
+
+  return (
+    <div className="bg-indigo-50 border-l-4 border-indigo-400 rounded-lg overflow-hidden transition-all duration-200">
+      {/* DERIVACIÓN (SALIDA) */}
+      <div className="p-4">
+        <div className="flex items-start justify-between mb-3">
+          <div className="flex items-center gap-2">
+            <span className="text-2xl">📤</span>
+            <div>
+              <span className="inline-block px-2 py-1 text-xs font-medium rounded-full bg-indigo-100 text-indigo-800">
+                Derivación Externa
+              </span>
+            </div>
+          </div>
+          <span className="text-sm text-gray-500">{fechaFormateada}</span>
+        </div>
+
+        <h4 className="text-base font-semibold text-indigo-700 mb-2">
+          {notificacion.asunto}
+        </h4>
+
+        <div className="flex flex-col gap-2 text-sm text-gray-600">
+          <div className="flex items-center gap-2">
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+            </svg>
+            <span className="font-medium">{areaNombre}</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+            </svg>
+            <span className="text-gray-500">{notificacion.destinatarioEmail}</span>
+          </div>
+        </div>
+
+        {expanded && (
+          <div className="mt-3 p-3 bg-white rounded border border-indigo-200">
+            <p className="text-sm text-gray-700 whitespace-pre-wrap">{notificacion.cuerpo}</p>
+          </div>
+        )}
+      </div>
+
+      {/* RESPUESTA (ENTRADA) - SI EXISTE */}
+      {tieneRespuesta ? (
+        <div className="border-t border-indigo-200 bg-green-50 p-4">
+          <div className="flex items-center gap-2 mb-2">
+            <span className="text-2xl">📥</span>
+            <h4 className="font-semibold text-green-900">Respuesta Recibida</h4>
+            <span className="text-sm text-gray-500 ml-auto">{fechaRespuestaFormateada}</span>
+          </div>
+
+          <div className="text-sm bg-white p-3 rounded border border-green-200">
+            <p className="text-gray-700 whitespace-pre-wrap">{notificacion.respuesta}</p>
+          </div>
+        </div>
+      ) : (
+        <div className="border-t border-indigo-200 bg-yellow-50 p-3">
+          <div className="flex items-center gap-2 text-sm text-yellow-700">
+            <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+              <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clipRule="evenodd" />
+            </svg>
+            <span className="italic">Esperando respuesta del área externa...</span>
+          </div>
+        </div>
+      )}
+
+      {/* Botón expandir */}
+      <div className="p-3 bg-indigo-50 border-t border-indigo-100">
+        <button
+          onClick={() => setExpanded(!expanded)}
+          className="text-indigo-600 hover:text-indigo-700 text-sm font-medium flex items-center gap-1"
+        >
+          {expanded ? (
+            <>
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 15l7-7 7 7" />
+              </svg>
+              Ver menos
+            </>
+          ) : (
+            <>
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+              </svg>
+              Ver detalles del mensaje
+            </>
+          )}
+        </button>
+      </div>
+    </div>
+  );
+};
+
+// ==================== Componente CorreoCard ====================
 
 // Componente para renderizar cada correo
 interface CorreoCardProps {

@@ -7,6 +7,7 @@ import {
   BookOpen,
   Search,
   Notebook,
+  History,
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 
@@ -59,6 +60,11 @@ export const Sidebar: React.FC<SidebarProps> = ({
         icon: Notebook,
         label: "Plantillas",
         path: "/supervisor/plantillas",
+      },
+      {
+        icon: History,
+        label: "Historial Respuestas",
+        path: "/supervisor/historial-respuestas",
       },
     ],
     AGENTE_LLAMADA: [

@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from "react";
-import { Filter, Plus, FileQuestion } from "lucide-react";
+import { Plus, FileQuestion } from "lucide-react";
 import { Badge } from "../../../components/ui/Badge";
 import SearchBar from "../../../components/ui/SearchBar";
 
@@ -35,20 +35,27 @@ export const TicketTable: React.FC<TicketTableProps> = ({
   emptyVariant = "simple",
 }) => {
   const [query, setQuery] = useState("");
+  const [statusFilter, setStatusFilter] = useState<string>("TODOS");
+
+  const STATUS_OPTIONS = ["TODOS", "ABIERTO", "ESCALADO", "DERIVADO", "CERRADO"];
 
   const filtered = useMemo(() => {
     const q = (query || "").trim().toLowerCase();
-    if (!q) return tickets;
+
     return tickets.filter((t) => {
-      return (
+      const matchesQuery =
+        q === "" ||
         String(t.id || "").toLowerCase().includes(q) ||
         String(t.client || "").toLowerCase().includes(q) ||
         String(t.motive || "").toLowerCase().includes(q) ||
         String(t.status || "").toLowerCase().includes(q) ||
-        String(t.date || "").toLowerCase().includes(q)
-      );
+        String(t.date || "").toLowerCase().includes(q);
+
+      const matchesStatus = statusFilter === "TODOS" || (t.status || "") === statusFilter;
+
+      return matchesQuery && matchesStatus;
     });
-  }, [tickets, query]);
+  }, [tickets, query, statusFilter]);
 
   return (
     <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100 h-full flex flex-col transition-all overflow-hidden">
@@ -71,10 +78,20 @@ export const TicketTable: React.FC<TicketTableProps> = ({
             />
           </div>
 
-          <button className="flex items-center gap-2 px-4 py-2 bg-gray-50 text-gray-600 rounded-lg text-sm font-medium hover:bg-gray-100 transition-colors border border-transparent hover:border-gray-200">
-            <Filter size={16} />
-            Todos
-          </button>
+          {/* Status filter select (replace 'Todos' button) */}
+          <div>
+            <select
+              value={statusFilter}
+              onChange={(e) => setStatusFilter(e.target.value)}
+              className="flex items-center gap-2 px-4 py-2 bg-gray-50 text-gray-600 rounded-lg text-sm font-medium hover:bg-gray-100 transition-colors border border-transparent hover:border-gray-200"
+            >
+              {STATUS_OPTIONS.map((s) => (
+                <option key={s} value={s} className="text-sm">
+                  {s}
+                </option>
+              ))}
+            </select>
+          </div>
 
           <button className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 shadow-sm hover:shadow-md transition-all active:scale-95">
             <Plus size={16} />
