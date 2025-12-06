@@ -57,18 +57,18 @@ public class Vista360Service {
         }
 
         /**
-         * Busca un cliente por su DNI.
-         * NOTA: Actualmente el endpoint de búsqueda por DNI no está habilitado en el API externo.
-         * Por ahora lanza una excepción indicando que la funcionalidad no está disponible.
+         * Busca un cliente por su DNI desde el API externo.
          *
          * @param dni Documento Nacional de Identidad
          * @return DTO con información básica del cliente
-         * @throws UnsupportedOperationException siempre, ya que el endpoint no está habilitado
+         * @throws ClienteNotFoundException si el cliente no existe
          */
         public ClienteBasicoDTO obtenerClientePorDni(String dni) {
-                log.warn("Intento de búsqueda por DNI: {} - Endpoint no disponible", dni);
-                throw new UnsupportedOperationException(
-                        "La búsqueda por DNI no está disponible actualmente. Por favor, busque por ID de cliente.");
+                log.debug("Buscando cliente por DNI: {}", dni);
+
+                ClienteExternoDTO clienteExterno = clienteApiClient.obtenerClientePorDni(dni);
+
+                return mapearDeExterno(clienteExterno);
         }
 
         /**

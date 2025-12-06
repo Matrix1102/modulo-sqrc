@@ -3,7 +3,7 @@
  */
 import { useState } from 'react';
 import type { ClienteDTO } from '../types';
-import { buscarClientePorDni } from '../services/ticketApi';
+import { buscarClientePorDni, getClienteById } from '../services/ticketApi';
 
 interface ClienteAuthModalProps {
   isOpen: boolean;
@@ -12,7 +12,7 @@ interface ClienteAuthModalProps {
 }
 
 export const ClienteAuthModal = ({ isOpen, onClose, onClienteAutenticado }: ClienteAuthModalProps) => {
-  const [dni, setDni] = useState('');
+  const [busqueda, setBusqueda] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [cliente, setCliente] = useState<ClienteDTO | null>(null);
@@ -20,8 +20,8 @@ export const ClienteAuthModal = ({ isOpen, onClose, onClienteAutenticado }: Clie
   const [nombreFamiliar, setNombreFamiliar] = useState('');
 
   const handleBuscar = async () => {
-    if (!dni || dni.length < 8) {
-      setError('Ingrese un DNI válido (8 dígitos)');
+    if (!busqueda || busqueda.trim().length === 0) {
+      setError('Ingrese un DNI (8 dígitos) o ID del cliente');
       return;
     }
 
@@ -30,10 +30,22 @@ export const ClienteAuthModal = ({ isOpen, onClose, onClienteAutenticado }: Clie
     setCliente(null);
 
     try {
-      const result = await buscarClientePorDni(dni);
-      setCliente(result);
+      // Detectar si es DNI (8 dígitos numéricos) o ID del cliente
+      const esNumerico = /^\d+$/.test(busqueda.trim());
+      
+      if (esNumerico && busqueda.trim().length === 8) {
+        // Buscar por DNI
+        const result = await buscarClientePorDni(busqueda.trim());
+        setCliente(result);
+      } else if (esNumerico) {
+        // Buscar por ID
+        const result = await getClienteById(parseInt(busqueda.trim()));
+        setCliente(result);
+      } else {
+        setError('Ingrese solo números (DNI de 8 dígitos o ID del cliente)');
+      }
     } catch {
-      setError('Cliente no encontrado. Verifique el DNI ingresado.');
+      setError('Cliente no encontrado. Verifique el DNI o ID ingresado.');
     } finally {
       setLoading(false);
     }
@@ -50,7 +62,7 @@ export const ClienteAuthModal = ({ isOpen, onClose, onClienteAutenticado }: Clie
   };
 
   const handleClose = () => {
-    setDni('');
+    setBusqueda('');
     setCliente(null);
     setError('');
     setEsFamiliar(false);
@@ -117,16 +129,16 @@ export const ClienteAuthModal = ({ isOpen, onClose, onClienteAutenticado }: Clie
                 <div className="flex gap-2">
                   <input
                     type="text"
-                    value={dni}
-                    onChange={(e) => setDni(e.target.value.replace(/\D/g, '').slice(0, 8))}
-                    placeholder="Ingrese DNI o ID del cliente"
+                    value={busqueda}
+                    onChange={(e) => setBusqueda(e.target.value.replace(/\D/g, ''))}
+                    placeholder="Ingrese DNI (8 dígitos) o ID"
                     className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                     onKeyDown={(e) => e.key === 'Enter' && handleBuscar()}
                   />
                   <button
                     onClick={handleBuscar}
                     disabled={loading}
-                    className="px-4 py-2 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors"
+                    className="px-4 py-2 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors disabled:opacity-50"
                   >
                     {loading ? (
                       <div className="w-5 h-5 border-2 border-gray-400 border-t-transparent rounded-full animate-spin" />

@@ -72,6 +72,48 @@ public class ClienteApiClient {
     }
 
     /**
+     * Busca un cliente por su DNI en el API externo.
+     * Endpoint: GET /api/clientes/integracion/atencion-cliente/buscar?dni={dni}
+     *
+     * @param dni DNI del cliente
+     * @return ClienteExternoDTO con los datos del cliente
+     * @throws ClienteNotFoundException si el cliente no existe
+     */
+    public ClienteExternoDTO obtenerClientePorDni(String dni) {
+        String url = apiBaseUrl + "/buscar?dni=" + dni;
+        log.info("GET {} - Buscando cliente por DNI desde API externa", url);
+
+        try {
+            ClienteExternoDTO cliente = webClient.get()
+                    .uri(url)
+                    .accept(MediaType.APPLICATION_JSON)
+                    .retrieve()
+                    .onStatus(HttpStatusCode::is4xxClientError, response -> {
+                        if (response.statusCode().value() == 404) {
+                            return Mono.error(new ClienteNotFoundException("Cliente con DNI " + dni + " no encontrado"));
+                        }
+                        return response.bodyToMono(String.class)
+                                .flatMap(body -> Mono.error(new RuntimeException("Error del cliente: " + body)));
+                    })
+                    .bodyToMono(ClienteExternoDTO.class)
+                    .block();
+
+            log.info("Cliente encontrado por DNI {}: {} {}", 
+                    dni,
+                    cliente != null ? cliente.getFirstName() : "null",
+                    cliente != null ? cliente.getLastName() : "null");
+            return cliente;
+
+        } catch (ClienteNotFoundException e) {
+            log.warn("Cliente con DNI {} no encontrado en API externa", dni);
+            throw e;
+        } catch (Exception e) {
+            log.error("Error al buscar cliente por DNI desde API externa: {}", e.getMessage());
+            throw new RuntimeException("Error al comunicarse con el servicio de clientes: " + e.getMessage(), e);
+        }
+    }
+
+    /**
      * Actualiza los datos de un cliente en el API externo.
      *
      * @param idCliente ID del cliente a actualizar
