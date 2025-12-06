@@ -6,12 +6,11 @@ import { useLocation } from 'react-router-dom';
 import type { ClienteDTO, TipoTicket, OrigenTicket, CreateTicketRequest } from '../types';
 import { createTicket } from '../services/ticketApi';
 
-// Mapeo de roles a empleados de la API externa (sincronizados)
-// IMPORTANTE: Ejecutar AGREGAR_AGENTES_API.sql para completar la jerarquía
+// Mapeo de roles a empleados de la BD local
 const ROLE_CONFIG: Record<string, { empleadoId: number; origen: OrigenTicket; label: string; nombreAgente: string }> = {
-  'agente-llamada': { empleadoId: 11, origen: 'LLAMADA', label: 'Llamada', nombreAgente: 'Rosa Martínez' },           // ID 11 - API externa
-  'agente-presencial': { empleadoId: 12, origen: 'PRESENCIAL', label: 'Presencial', nombreAgente: 'Diego Fernández' }, // ID 12 - API externa
-  'backoffice': { empleadoId: 3, origen: 'LLAMADA', label: 'Backoffice', nombreAgente: 'Jorge Resolver' },            // ID 3 - Local
+  'agente-llamada': { empleadoId: 6, origen: 'LLAMADA', label: 'Llamada', nombreAgente: 'Sofia Call' },           // ID 6 - Local
+  'agente-presencial': { empleadoId: 9, origen: 'PRESENCIAL', label: 'Presencial', nombreAgente: 'Fernando Face' }, // ID 9 - Local
+  'backoffice': { empleadoId: 3, origen: 'LLAMADA', label: 'Backoffice', nombreAgente: 'Jorge Resolver' },        // ID 3 - Local
 };
 
 interface CreateTicketModalProps {

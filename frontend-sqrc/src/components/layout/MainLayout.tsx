@@ -141,19 +141,17 @@ const DYNAMIC_ROUTES = [
   },
 ];
 
-// Empleados sincronizados de la API externa:
-// - ID 11: Rosa Martínez López (AGENTE_LLAMADA)
-// - ID 12: Diego Fernández Ruiz (AGENTE_PRESENCIAL)
+// Empleados de la BD local (del script V4_add_tickets.sql)
 const getUserName = (role: MainLayoutProps["role"]): string => {
   switch (role) {
     case "SUPERVISOR":
-      return "Juan Pérez";
+      return "Roberto Manager";  // ID 1
     case "BACKOFFICE":
-      return "Jorge Resolver";
+      return "Jorge Resolver";   // ID 3
     case "AGENTE_LLAMADA":
-      return "Rosa Martínez";  // ID 11 - API externa
+      return "Sofia Call";       // ID 6
     case "AGENTE_PRESENCIAL":
-      return "Diego Fernández"; // ID 12 - API externa
+      return "Fernando Face";    // ID 9
   }
 };
 
