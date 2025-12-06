@@ -17,6 +17,12 @@ public class PreguntaBooleana extends Pregunta {
     @Override
     public boolean validar(String valor) {
         if (valor == null) return !getObligatoria();
-        return valor.equalsIgnoreCase(valorVerdadero) || valor.equalsIgnoreCase(valorFalso);
+        // Aceptar los valores configurados (ej: "Sí", "No") o valores booleanos estándar ("true", "false")
+        return valor.equalsIgnoreCase(valorVerdadero) 
+            || valor.equalsIgnoreCase(valorFalso)
+            || valor.equalsIgnoreCase("true")
+            || valor.equalsIgnoreCase("false")
+            || valor.equalsIgnoreCase("si")
+            || valor.equalsIgnoreCase("no");
     }
 }

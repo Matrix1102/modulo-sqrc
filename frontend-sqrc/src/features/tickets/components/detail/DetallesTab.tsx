@@ -8,13 +8,16 @@ import { EscalarTicketModal } from '../EscalarTicketModal';
 import { RechazarEscalamientoModal } from '../RechazarEscalamientoModal';
 import { DerivarTicketModal } from '../DerivarTicketModal';
 import { RespuestaExternaModal } from '../RespuestaExternaModal';
+import { useUser } from '../../../../context/UserContext';
 
 interface DetallesTabProps {
   ticket: TicketDetail;
   onRefresh?: () => void;
+  onEscalated?: () => void; // se usa para redirigir tras escalar
 }
 
-export const DetallesTab: React.FC<DetallesTabProps> = ({ ticket, onRefresh }) => {
+export const DetallesTab: React.FC<DetallesTabProps> = ({ ticket, onRefresh, onEscalated }) => {
+  const { user } = useUser();
   const [isEscalarModalOpen, setIsEscalarModalOpen] = useState(false);
   const [isRechazarEscalamientoModalOpen, setIsRechazarEscalamientoModalOpen] = useState(false);
   const [isDerivarModalOpen, setIsDerivarModalOpen] = useState(false);
@@ -37,7 +40,7 @@ export const DetallesTab: React.FC<DetallesTabProps> = ({ ticket, onRefresh }) =
     <div className="space-y-6 max-w-3xl">
       {/* Botón de Escalar (solo si el ticket está ABIERTO) */}
       {ticket.estado === 'ABIERTO' && (
-        <div className="bg-gradient-to-r from-yellow-50 to-orange-50 rounded-xl border border-yellow-200 p-4 shadow-sm">
+        <div className="bg-linear-to-r from-yellow-50 to-orange-50 rounded-xl border border-yellow-200 p-4 shadow-sm">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 bg-yellow-100 rounded-full flex items-center justify-center">
@@ -67,7 +70,7 @@ export const DetallesTab: React.FC<DetallesTabProps> = ({ ticket, onRefresh }) =
 
       {/* Botón de Rechazar Escalamiento (solo si el ticket está ESCALADO - para BackOffice) */}
       {ticket.estado === 'ESCALADO' && (
-        <div className="bg-gradient-to-r from-red-50 to-orange-50 rounded-xl border border-red-200 p-4 shadow-sm">
+        <div className="bg-linear-to-r from-red-50 to-orange-50 rounded-xl border border-red-200 p-4 shadow-sm">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 bg-red-100 rounded-full flex items-center justify-center">
@@ -95,8 +98,8 @@ export const DetallesTab: React.FC<DetallesTabProps> = ({ ticket, onRefresh }) =
         </div>
       )}
 
-      {/* Botón de Derivar (solo si el ticket está ABIERTO o ESCALADO) */}
-      {(ticket.estado === 'ABIERTO' || ticket.estado === 'ESCALADO') && (
+      {/* Botón de Derivar (solo BackOffice: SUPERVISOR o ADMIN, y ticket ABIERTO o ESCALADO) */}
+      {(user?.rol === 'SUPERVISOR' || user?.rol === 'ADMIN') && (ticket.estado === 'ABIERTO' || ticket.estado === 'ESCALADO') && (
         <div className="bg-gradient-to-r from-purple-50 to-indigo-50 rounded-xl border border-purple-200 p-4 shadow-sm">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
@@ -127,7 +130,7 @@ export const DetallesTab: React.FC<DetallesTabProps> = ({ ticket, onRefresh }) =
 
       {/* Botón de Respuesta Externa (solo si el ticket está DERIVADO) */}
       {ticket.estado === 'DERIVADO' && (
-        <div className="bg-gradient-to-r from-blue-50 to-cyan-50 rounded-xl border border-blue-200 p-4 shadow-sm">
+        <div className="bg-linear-to-r from-blue-50 to-cyan-50 rounded-xl border border-blue-200 p-4 shadow-sm">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center">
@@ -324,6 +327,7 @@ export const DetallesTab: React.FC<DetallesTabProps> = ({ ticket, onRefresh }) =
         ticketId={ticket.idTicket}
         onSuccess={() => {
           onRefresh?.();
+          onEscalated?.();
         }}
       />
 

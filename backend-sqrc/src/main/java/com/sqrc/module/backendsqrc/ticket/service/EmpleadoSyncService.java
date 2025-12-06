@@ -15,6 +15,7 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.client.RestTemplate;
 
@@ -39,7 +40,8 @@ public class EmpleadoSyncService {
     private final SupervisorRepository supervisorRepository;
     private final RestTemplate restTemplate;
 
-    @Value("${api.empleados.url:}")
+    // URL de la API externa; se deja un valor por defecto para ambientes donde no se carga application-local
+    @Value("${api.empleados.url:https://unregenerable-nonaesthetically-lara.ngrok-free.dev/api/gempleados/area/atencion-cliente}")
     private String apiEmpleadosUrl;
 
     /**
@@ -48,7 +50,6 @@ public class EmpleadoSyncService {
      * 
      * @return Número de empleados sincronizados
      */
-    @Transactional
     public int sincronizarAgentesCallCenter() {
         if (apiEmpleadosUrl == null || apiEmpleadosUrl.isEmpty()) {
             log.warn("URL de API de empleados no configurada. Saltando sincronización.");
@@ -69,7 +70,7 @@ public class EmpleadoSyncService {
             for (int i = 0; i < empleadosExternos.size(); i++) {
                 EmpleadoExternoDTO externo = empleadosExternos.get(i);
                 try {
-                    sincronizarEmpleado(externo, i);
+                    sincronizarEmpleadoTx(externo, i);
                     sincronizados++;
                 } catch (Exception e) {
                     log.error("Error sincronizando empleado ID {}: {}", externo.getIdEmpleado(), e.getMessage());
@@ -104,9 +105,14 @@ public class EmpleadoSyncService {
                     new ParameterizedTypeReference<List<EmpleadoExternoDTO>>() {}
             );
 
+            log.info("Respuesta API empleados: status={} items={} url={}",
+                    response.getStatusCode(),
+                    response.getBody() != null ? response.getBody().size() : 0,
+                    apiEmpleadosUrl);
+
             return response.getBody();
         } catch (Exception e) {
-            log.error("Error al obtener empleados de la API externa: {}", e.getMessage());
+            log.error("Error al obtener empleados de la API externa: {}", e.getMessage(), e);
             return Collections.emptyList();
         }
     }
@@ -118,7 +124,8 @@ public class EmpleadoSyncService {
      * @param externo DTO del empleado externo
      * @param index Índice del empleado en la lista (para alternar tipos)
      */
-    private void sincronizarEmpleado(EmpleadoExternoDTO externo, int index) {
+    @Transactional(propagation = Propagation.REQUIRES_NEW, noRollbackFor = Exception.class)
+    public void sincronizarEmpleadoTx(EmpleadoExternoDTO externo, int index) {
         // Buscar por DNI en lugar de ID
         Optional<Empleado> existente = empleadoRepository.findByDni(externo.getDocumentoIdentidad());
         

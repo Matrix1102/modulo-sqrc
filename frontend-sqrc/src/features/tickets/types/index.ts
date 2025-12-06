@@ -189,11 +189,12 @@ export const ESTADO_CONFIG: Record<EstadoTicket, { label: string; color: string;
 };
 
 // Tipos con iconos según diseño
+// Tipos con estilo uniforme (pill gris con icono negro)
 export const TIPO_CONFIG: Record<TipoTicket, { label: string; color: string; bgColor: string; borderColor: string; icon: string }> = {
-  SOLICITUD: { label: 'Solicitud', color: 'text-purple-700', bgColor: 'bg-purple-50', borderColor: 'border-purple-200', icon: '📋' },
-  QUEJA: { label: 'Queja', color: 'text-orange-700', bgColor: 'bg-orange-50', borderColor: 'border-orange-200', icon: '🔊' },
-  CONSULTA: { label: 'Consulta', color: 'text-cyan-700', bgColor: 'bg-cyan-50', borderColor: 'border-cyan-200', icon: '❓' },
-  RECLAMO: { label: 'Reclamo', color: 'text-red-700', bgColor: 'bg-red-50', borderColor: 'border-red-200', icon: '⚠️' },
+  SOLICITUD: { label: 'Solicitud', color: 'text-gray-900', bgColor: 'bg-gray-200', borderColor: 'border-gray-300', icon: '🧾' },
+  QUEJA:     { label: 'Queja',     color: 'text-gray-900', bgColor: 'bg-gray-200', borderColor: 'border-gray-300', icon: '🎧' },
+  CONSULTA:  { label: 'Consulta',  color: 'text-gray-900', bgColor: 'bg-gray-200', borderColor: 'border-gray-300', icon: '🔍' },
+  RECLAMO:   { label: 'Reclamo',   color: 'text-gray-900', bgColor: 'bg-gray-200', borderColor: 'border-gray-300', icon: '⚠️' },
 };
 
 // ==================== Workflow (Escalamiento y Derivación) ====================

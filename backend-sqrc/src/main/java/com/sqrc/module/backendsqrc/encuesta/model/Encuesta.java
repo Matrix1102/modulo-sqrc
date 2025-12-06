@@ -65,7 +65,7 @@ public class Encuesta {
     private Long lastSentBy;
 
     // 4. Relación con la Respuesta (Inicialmente null, se llena cuando el cliente responde)
-    @OneToOne(mappedBy = "encuesta", cascade = CascadeType.ALL)
+    @OneToOne(mappedBy = "encuesta", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     private RespuestaEncuesta respuestaEncuesta;
 
     // Métodos útiles

@@ -187,12 +187,7 @@ export const ResponderTicketPage = () => {
                                 <input type="text" className="w-full border rounded p-2 text-sm" value={despedida} onChange={e => setDespedida(e.target.value)} />
                             </div>
 
-                            <div className="p-4 bg-blue-50 rounded border border-blue-100">
-                                <label className="flex items-center gap-2 cursor-pointer">
-                                    <input type="checkbox" className="w-4 h-4" checked={cerrarTicket} onChange={e => setCerrarTicket(e.target.checked)} />
-                                    <span className="text-sm font-medium">Cerrar Ticket al enviar</span>
-                                    </label>
-                            </div>
+        
                             <div className="mt-4">
                                         <button 
                                             onClick={handleDescargarPdf}

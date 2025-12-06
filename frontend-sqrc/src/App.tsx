@@ -9,6 +9,7 @@ import DashboardPage from "./pages/supervisor/DashboardPage";
 import EncuestasPage from "./pages/supervisor/SurveyPage";
 import SurveyCategoryPage from "./pages/supervisor/SurveyCategoryPage";
 import SurveyExecutionPage from "./pages/public/SurveyExecutionPage";
+import SimuladorAreaExterna from "./pages/public/SimuladorAreaExterna";
 import { ResponderTicketPage } from "./features/plantilla_respuestas/pages/ResponderTicketPage";
 
 // Tickets Feature - Pages
@@ -26,6 +27,9 @@ import {
 // plantillas de respuestas
 import { PlantillasDashboard } from "./features/plantilla_respuestas/pages/PlantillasDashboard";
 import HistorialRespuestasPage from "./features/plantilla_respuestas/pages/HistorialRespuestasPage"
+
+// Logs
+import LogsPage from "./pages/logs/LogsPage";
 
 // Contexto de Usuario
 import { UserProvider } from "./context";
@@ -90,6 +94,7 @@ const Home = () => (
           <span className="text-sm text-light-600 group-hover:text-light-700">Panel de control</span>
         </div>
       </Link>
+
     </div>
 
     <p className="text-light-500 text-xs mt-4">
@@ -111,6 +116,12 @@ export default function App() {
           <Route
             path="/encuestas/exec/:encuestaId"
             element={<SurveyExecutionPage />}
+          />
+
+          {/* ─── SIMULADOR DE ÁREA EXTERNA (Público) ─── */}
+          <Route
+            path="/simulador-area-externa"
+            element={<SimuladorAreaExterna />}
           />
 
           {/* ─── ZONA AGENTE LLAMADA ─── */}
@@ -238,6 +249,9 @@ export default function App() {
             <Route path="articulo/:id" element={<ArticuloExpandidoPage />} />
             <Route path="editar/:id" element={<EditarArticuloPage />} />
           </Route>
+
+          {/* ─── ZONA LOGS ─── */}
+          <Route path="/logs" element={<LogsPage />} />
         </Routes>
       </BrowserRouter>
       </CallSimulatorProvider>
