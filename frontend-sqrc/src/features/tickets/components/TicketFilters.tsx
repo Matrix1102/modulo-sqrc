@@ -62,7 +62,7 @@ export const TicketFilters = ({ onFiltersChange }: TicketFiltersProps) => {
         <div className="relative">
           <input
             type="text"
-            placeholder="Buscar tickets, clientes..."
+            placeholder="Buscar por asunto o ID (TC-0001)"
             value={search}
             onChange={(e) => handleSearchChange(e.target.value)}
             className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"

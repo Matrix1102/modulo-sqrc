@@ -37,7 +37,7 @@ import { UserProvider } from "./context";
 const Home = () => (
   <div className="min-h-screen flex flex-col items-center justify-center bg-light-100 text-dark-900 gap-8 p-6">
     <div className="text-center mb-4">
-      <h1 className="text-5xl font-extrabold mb-3 bg-gradient-to-r from-primary-500 to-primary-600 bg-clip-text text-transparent drop-shadow-lg">
+      <h1 className="text-5xl font-extrabold mb-3 bg-linear-to-r from-primary-500 to-primary-600 bg-clip-text text-transparent drop-shadow-lg">
         Sistema SQRC
       </h1>
       <p className="text-light-600 text-lg">
@@ -105,8 +105,8 @@ const Home = () => (
 export default function App() {
   return (
     <UserProvider>
-      <CallSimulatorProvider>
-        <BrowserRouter>
+      <BrowserRouter>
+        <CallSimulatorProvider>
           <Routes>
           {/* Ruta Pública (Inicio) */}
           <Route path="/" element={<Home />} />
@@ -246,8 +246,8 @@ export default function App() {
           {/* ─── ZONA LOGS ─── */}
           <Route path="/logs" element={<LogsPage />} />
         </Routes>
+        </CallSimulatorProvider>
       </BrowserRouter>
-      </CallSimulatorProvider>
     </UserProvider>
   );
 }
