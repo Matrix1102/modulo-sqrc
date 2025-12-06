@@ -207,6 +207,8 @@ public class ArticuloService {
         String visibilidadStr = request.getVisibilidad() != null ? request.getVisibilidad().name() : null;
         String tipoCasoStr = request.getTipoCaso() != null ? request.getTipoCaso().name() : null;
         Long idPropietario = request.getIdPropietario();
+        // Por defecto soloPublicados es true si no se especifica
+        Boolean soloPublicados = request.getSoloPublicados() != null ? request.getSoloPublicados() : true;
 
         // Verificar si hay texto de búsqueda
         String textoSearch = request.getTexto();
@@ -221,15 +223,17 @@ public class ArticuloService {
                     visibilidadStr,
                     tipoCasoStr,
                     idPropietario,
+                    soloPublicados,
                     textoSearch.trim(),
                     pageable);
         } else {
-            // Query SIN texto: query simple y rápida sin JOIN
+            // Query SIN texto: query simple y rápida
             page = articuloRepository.buscarSinTexto(
                     etiquetaStr,
                     visibilidadStr,
                     tipoCasoStr,
                     idPropietario,
+                    soloPublicados,
                     pageable);
         }
 

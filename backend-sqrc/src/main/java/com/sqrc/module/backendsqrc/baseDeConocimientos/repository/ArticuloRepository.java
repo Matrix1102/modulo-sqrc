@@ -68,27 +68,32 @@ public interface ArticuloRepository extends JpaRepository<Articulo, Integer> {
 
   /**
    * Búsqueda SIMPLE de artículos sin texto - OPTIMIZADA.
-   * Solo aplica filtros básicos, evita JOIN innecesario.
+   * Solo aplica filtros básicos. Usa LEFT JOIN solo cuando soloPublicados=true.
    */
   @Query(value = """
-      SELECT a.* FROM articulos a
+      SELECT DISTINCT a.* FROM articulos a
+      LEFT JOIN articulo_versiones v ON a.id_articulo = v.id_articulo
       WHERE (:etiqueta IS NULL OR :etiqueta = '' OR a.etiqueta = :etiqueta)
       AND (:visibilidad IS NULL OR :visibilidad = '' OR a.visibilidad = :visibilidad)
       AND (:tipoCaso IS NULL OR :tipoCaso = '' OR a.tipo_caso = :tipoCaso OR a.tipo_caso = 'TODOS')
       AND (:idPropietario IS NULL OR a.id_creador = :idPropietario)
+      AND (:soloPublicados = false OR v.estado_propuesta = 'PUBLICADO')
       ORDER BY COALESCE(a.actualizado_en, a.creado_en) DESC
       """, countQuery = """
-      SELECT COUNT(*) FROM articulos a
+      SELECT COUNT(DISTINCT a.id_articulo) FROM articulos a
+      LEFT JOIN articulo_versiones v ON a.id_articulo = v.id_articulo
       WHERE (:etiqueta IS NULL OR :etiqueta = '' OR a.etiqueta = :etiqueta)
       AND (:visibilidad IS NULL OR :visibilidad = '' OR a.visibilidad = :visibilidad)
       AND (:tipoCaso IS NULL OR :tipoCaso = '' OR a.tipo_caso = :tipoCaso OR a.tipo_caso = 'TODOS')
       AND (:idPropietario IS NULL OR a.id_creador = :idPropietario)
+      AND (:soloPublicados = false OR v.estado_propuesta = 'PUBLICADO')
       """, nativeQuery = true)
   Page<Articulo> buscarSinTexto(
       @Param("etiqueta") String etiqueta,
       @Param("visibilidad") String visibilidad,
       @Param("tipoCaso") String tipoCaso,
       @Param("idPropietario") Long idPropietario,
+      @Param("soloPublicados") Boolean soloPublicados,
       Pageable pageable);
 
   /**
@@ -102,6 +107,7 @@ public interface ArticuloRepository extends JpaRepository<Articulo, Integer> {
       AND (:visibilidad IS NULL OR :visibilidad = '' OR a.visibilidad = :visibilidad)
       AND (:tipoCaso IS NULL OR :tipoCaso = '' OR a.tipo_caso = :tipoCaso OR a.tipo_caso = 'TODOS')
       AND (:idPropietario IS NULL OR a.id_creador = :idPropietario)
+      AND (:soloPublicados = false OR v.estado_propuesta = 'PUBLICADO')
       AND (
           LOWER(a.titulo) LIKE LOWER(CONCAT('%', :texto, '%'))
           OR LOWER(a.resumen) LIKE LOWER(CONCAT('%', :texto, '%'))
@@ -129,6 +135,7 @@ public interface ArticuloRepository extends JpaRepository<Articulo, Integer> {
       AND (:visibilidad IS NULL OR :visibilidad = '' OR a.visibilidad = :visibilidad)
       AND (:tipoCaso IS NULL OR :tipoCaso = '' OR a.tipo_caso = :tipoCaso OR a.tipo_caso = 'TODOS')
       AND (:idPropietario IS NULL OR a.id_creador = :idPropietario)
+      AND (:soloPublicados = false OR v.estado_propuesta = 'PUBLICADO')
       AND (
           LOWER(a.titulo) LIKE LOWER(CONCAT('%', :texto, '%'))
           OR LOWER(a.resumen) LIKE LOWER(CONCAT('%', :texto, '%'))
@@ -146,6 +153,7 @@ public interface ArticuloRepository extends JpaRepository<Articulo, Integer> {
       @Param("visibilidad") String visibilidad,
       @Param("tipoCaso") String tipoCaso,
       @Param("idPropietario") Long idPropietario,
+      @Param("soloPublicados") Boolean soloPublicados,
       @Param("texto") String texto,
       Pageable pageable);
 
