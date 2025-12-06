@@ -2,6 +2,7 @@ package com.sqrc.module.backendsqrc.ticket.controller;
 
 import com.sqrc.module.backendsqrc.ticket.dto.DerivarRequestDTO;
 import com.sqrc.module.backendsqrc.ticket.dto.EscalarRequestDTO;
+import com.sqrc.module.backendsqrc.ticket.dto.RechazarEscalamientoDTO;
 import com.sqrc.module.backendsqrc.ticket.dto.RespuestaDerivacionDTO;
 import com.sqrc.module.backendsqrc.ticket.facade.TicketWorkflowFacade;
 import jakarta.validation.Valid;
@@ -74,6 +75,25 @@ public class TicketWorkflowController {
                 : "Respuesta registrada. Ticket requiere seguimiento adicional.";
 
         return ResponseEntity.ok(mensaje);
+    }
+
+    /**
+     * Rechaza un escalamiento y devuelve el ticket al Agente con feedback.
+     * El BackOffice usa este endpoint cuando no puede aceptar el caso escalado
+     * y necesita que el Agente continúe trabajando en él con nuevas instrucciones.
+     *
+     * @param id ID del ticket escalado a rechazar
+     * @param request DTO con motivo del rechazo e instrucciones
+     * @return Respuesta HTTP 200 si se rechazó exitosamente
+     */
+    @PostMapping("/{id}/rechazar-escalamiento")
+    public ResponseEntity<String> rechazarEscalamiento(
+            @PathVariable Long id,
+            @Valid @RequestBody RechazarEscalamientoDTO request) {
+
+        ticketWorkflowFacade.rechazarEscalamiento(id, request);
+
+        return ResponseEntity.ok("Ticket #" + id + " devuelto al Agente con feedback");
     }
 }
 
