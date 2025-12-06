@@ -12,7 +12,7 @@ import SurveyExecutionPage from "./pages/public/SurveyExecutionPage";
 import { ResponderTicketPage } from "./features/plantilla_respuestas/pages/ResponderTicketPage";
 
 // Tickets Feature - Pages
-import { TicketDetailPage as AgenteTicketDetailPage } from "./features/tickets";
+import { TicketDetailPage as AgenteTicketDetailPage, CallSimulatorProvider } from "./features/tickets";
 
 // Base de Conocimiento
 import {
@@ -98,8 +98,9 @@ const Home = () => (
 export default function App() {
   return (
     <UserProvider>
-      <BrowserRouter>
-        <Routes>
+      <CallSimulatorProvider>
+        <BrowserRouter>
+          <Routes>
           {/* Ruta Pública (Inicio) */}
           <Route path="/" element={<Home />} />
 
@@ -233,6 +234,7 @@ export default function App() {
           </Route>
         </Routes>
       </BrowserRouter>
+      </CallSimulatorProvider>
     </UserProvider>
   );
 }

@@ -54,6 +54,13 @@ export interface TicketDetail {
     idMotivo: number;
     descripcion: string;
   } | null;
+  // Información de llamada asociada
+  llamada?: {
+    idLlamada: number;
+    numeroOrigen: string;
+    duracionSegundos: number | null;
+    duracionFormateada: string | null;
+  } | null;
   // Campos específicos por tipo
   consultaInfo?: { tema: string };
   quejaInfo?: { impacto: string; areaInvolucrada: string };
@@ -305,4 +312,20 @@ export interface CierreValidacionResponse {
   tieneDocumentacion: boolean;
   estadoTicket: EstadoTicket;
   mensaje: string;
+}
+
+// ==================== Llamadas ====================
+
+export type EstadoLlamada = 'ACEPTADA' | 'DECLINADA' | 'EN_ESPERA' | 'FINALIZADA';
+
+export interface LlamadaDto {
+  idLlamada: number;
+  fechaHora: string;
+  duracionSegundos: number;
+  duracionFormateada: string;
+  numeroOrigen: string;
+  estado: EstadoLlamada;
+  ticketId: number | null;
+  empleadoId: number | null;
+  nombreEmpleado: string | null;
 }

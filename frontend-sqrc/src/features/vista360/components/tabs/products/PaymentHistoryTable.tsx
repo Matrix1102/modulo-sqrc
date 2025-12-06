@@ -1,20 +1,17 @@
 import React from "react";
-import DocumentAction from "./DocumentAction";
 import StatusBadge from "./StatusBadge";
+import { FileText } from "lucide-react";
 import type { PaymentDocument } from "./types";
 
 interface PaymentHistoryTableProps {
   productName: string;
   documents: PaymentDocument[];
+  isService?: boolean;
 }
 
-const PaymentHistoryTable: React.FC<PaymentHistoryTableProps> = ({ productName, documents }) => {
-  const handleDocumentAction = (url: string) => {
-    if (!url || url === "#") {
-      // Placeholder action until integration with real documentos
-      return;
-    }
-
+const PaymentHistoryTable: React.FC<PaymentHistoryTableProps> = ({ productName, documents, isService = false }) => {
+  const handleOpenUrl = (url: string) => {
+    if (!url || url === "#") return;
     if (typeof window !== "undefined") {
       window.open(url, "_blank", "noopener,noreferrer");
     }
@@ -23,8 +20,12 @@ const PaymentHistoryTable: React.FC<PaymentHistoryTableProps> = ({ productName, 
   return (
     <section className="flex h-full flex-col gap-4 rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
       <header className="flex flex-col gap-1">
-        <h3 className="text-lg font-semibold text-gray-900">Detalle de pagos</h3>
-        <p className="text-sm text-gray-500">{productName || "Selecciona un producto para ver su historial"}</p>
+        <h3 className="text-lg font-semibold text-gray-900">
+          {isService ? "Detalle de facturación" : "Detalle de pagos"}
+        </h3>
+        <p className="text-sm text-gray-500">
+          {productName || (isService ? "Selecciona un servicio para ver su historial" : "Selecciona un producto para ver su historial")}
+        </p>
       </header>
 
       <div className="overflow-x-auto">
@@ -43,8 +44,11 @@ const PaymentHistoryTable: React.FC<PaymentHistoryTableProps> = ({ productName, 
           <tbody className="divide-y divide-gray-100">
             {documents.length === 0 && (
               <tr>
-                <td colSpan={5} className="px-4 py-8 text-center text-sm text-gray-500">
-                  No hay comprobantes asociados al producto seleccionado en las fechas indicadas.
+                <td colSpan={7} className="px-4 py-8 text-center text-sm text-gray-500">
+                  {isService 
+                    ? "No hay facturas asociadas al servicio seleccionado."
+                    : "No hay comprobantes asociados al producto seleccionado."
+                  }
                 </td>
               </tr>
             )}
@@ -60,7 +64,15 @@ const PaymentHistoryTable: React.FC<PaymentHistoryTableProps> = ({ productName, 
                 </td>
                 <td className="px-4 py-3 text-gray-700">{document.paymentMethod}</td>
                 <td className="px-4 py-3 text-center">
-                  <DocumentAction onClick={() => handleDocumentAction(document.downloadUrl)} />
+                  <button
+                    type="button"
+                    onClick={() => handleOpenUrl(document.contractUrl)}
+                    className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-gray-200 bg-white text-gray-600 transition-colors hover:border-purple-200 hover:bg-purple-50 hover:text-purple-600"
+                    aria-label="Ver contrato"
+                    title="Ver contrato"
+                  >
+                    <FileText size={18} />
+                  </button>
                 </td>
               </tr>
             ))}
