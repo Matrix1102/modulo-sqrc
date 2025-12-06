@@ -399,6 +399,15 @@ public class TicketGestionService {
 
         if (asignacionActiva.isPresent()) {
             asignacionAnterior = asignacionActiva.get();
+
+            // Validar que la asignacion activa tenga documentacion antes de escalar
+            boolean tieneDocumentacion = documentacionRepository
+                    .findByAsignacionId(asignacionAnterior.getIdAsignacion())
+                    .isPresent();
+            if (!tieneDocumentacion) {
+                throw new DocumentacionNotFoundException("Debe documentar la asignacion activa antes de escalar el ticket.");
+            }
+
             empleadoAnterior = asignacionAnterior.getEmpleado();
             asignacionAnterior.setFechaFin(LocalDateTime.now());
             asignacionRepository.save(asignacionAnterior);
@@ -408,6 +417,8 @@ public class TicketGestionService {
                 ((Agente) empleadoAnterior).setEstaOcupado(false);
                 empleadoRepository.save(empleadoAnterior);
             }
+        } else {
+            throw new InvalidStateTransitionException("El ticket no tiene asignacion activa para escalar.");
         }
 
         // Crear nueva asignación al BackOffice
