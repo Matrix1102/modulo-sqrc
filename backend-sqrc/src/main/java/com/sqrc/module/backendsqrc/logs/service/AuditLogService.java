@@ -79,6 +79,44 @@ public class AuditLogService {
         logAudit(level, category, action, null, null, null, entityType, entityId, details);
     }
 
+    /**
+     * Registra un log de auditoría con métricas (status, duration).
+     */
+    @Async
+    @Transactional("logsTransactionManager")
+    public void logAuditWithMetrics(LogLevel level, LogCategory category, String action,
+                         Long userId, String userName, String userType,
+                         String entityType, String entityId,
+                         Map<String, Object> details, Integer responseStatus, Long durationMs) {
+        try {
+            HttpServletRequest request = getCurrentRequest();
+
+            AuditLog auditLog = AuditLog.builder()
+                    .timestamp(LocalDateTime.now())
+                    .level(level)
+                    .category(category)
+                    .action(action)
+                    .userId(userId)
+                    .userName(userName)
+                    .userType(userType)
+                    .entityType(entityType)
+                    .entityId(entityId)
+                    .details(details)
+                    .ipAddress(request != null ? getClientIp(request) : null)
+                    .userAgent(request != null ? request.getHeader("User-Agent") : null)
+                    .requestUri(request != null ? request.getRequestURI() : null)
+                    .httpMethod(request != null ? request.getMethod() : null)
+                    .responseStatus(responseStatus)
+                    .durationMs(durationMs)
+                    .build();
+
+            auditLogRepository.save(auditLog);
+            log.debug("Audit log con métricas guardado: {} - {} - {}", category, action, entityId);
+        } catch (Exception e) {
+            log.error("Error al guardar audit log con métricas: {}", e.getMessage());
+        }
+    }
+
     // ==================== LOGS DE CLIENTES (VISTA 360) ====================
 
     /**
@@ -468,7 +506,39 @@ public class AuditLogService {
      * Versión simplificada para errores sin contexto de usuario.
      */
     public void logError(Exception exception, String requestUri, String httpMethod) {
-        logError(exception, requestUri, httpMethod, null, null, null, null);
+        try {
+            HttpServletRequest request = getCurrentRequest();
+            String requestBody = request != null ? extractRequestBody(request) : null;
+            logError(exception, requestUri, httpMethod, null, null, requestBody, generateCorrelationId());
+        } catch (Exception e) {
+            logError(exception, requestUri, httpMethod, null, null, null, null);
+        }
+    }
+
+    /**
+     * Extrae el body del request para debugging.
+     */
+    private String extractRequestBody(HttpServletRequest request) {
+        try {
+            // Solo para POST, PUT, PATCH
+            String method = request.getMethod();
+            if ("POST".equals(method) || "PUT".equals(method) || "PATCH".equals(method)) {
+                Object body = request.getAttribute("REQUEST_BODY");
+                if (body != null) {
+                    return body.toString();
+                }
+            }
+        } catch (Exception e) {
+            log.debug("No se pudo extraer request body: {}", e.getMessage());
+        }
+        return null;
+    }
+
+    /**
+     * Genera un ID de correlación único.
+     */
+    private String generateCorrelationId() {
+        return java.util.UUID.randomUUID().toString();
     }
 
     // ==================== LOGS DE INTEGRACIÓN ====================

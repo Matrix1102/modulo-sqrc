@@ -36,21 +36,24 @@ public class AuditAspect {
         long startTime = System.currentTimeMillis();
         Object result = null;
         Exception exception = null;
+        Integer responseStatus = null;
 
         try {
             result = joinPoint.proceed();
+            responseStatus = 200; // Asumimos éxito si no hay excepción
             return result;
         } catch (Exception e) {
             exception = e;
+            responseStatus = 500; // Error interno
             throw e;
         } finally {
             long duration = System.currentTimeMillis() - startTime;
-            logAuditableMethod(joinPoint, auditable, result, exception, duration);
+            logAuditableMethod(joinPoint, auditable, result, exception, duration, responseStatus);
         }
     }
 
     private void logAuditableMethod(ProceedingJoinPoint joinPoint, Auditable auditable,
-                                     Object result, Exception exception, long duration) {
+                                     Object result, Exception exception, long duration, Integer responseStatus) {
         try {
             Map<String, Object> details = new HashMap<>();
             details.put("method", joinPoint.getSignature().getName());
@@ -68,8 +71,8 @@ public class AuditAspect {
 
             LogLevel level = exception != null ? LogLevel.ERROR : auditable.level();
 
-            auditLogService.logAudit(level, auditable.category(), auditable.action(),
-                    entityType, entityId, details);
+            auditLogService.logAuditWithMetrics(level, auditable.category(), auditable.action(),
+                    null, null, null, entityType, entityId, details, responseStatus, duration);
         } catch (Exception e) {
             log.error("Error en aspecto de auditoría: {}", e.getMessage());
         }

@@ -1,5 +1,6 @@
 package com.sqrc.module.backendsqrc.vista360.service;
 
+import com.sqrc.module.backendsqrc.logs.service.AuditLogService;
 import com.sqrc.module.backendsqrc.vista360.dto.ActualizarClienteExternoDTO;
 import com.sqrc.module.backendsqrc.vista360.dto.ClienteExternoDTO;
 import com.sqrc.module.backendsqrc.vista360.exception.ClienteNotFoundException;
@@ -21,11 +22,13 @@ import reactor.core.publisher.Mono;
 public class ClienteApiClient {
 
     private final WebClient webClient;
+    private final AuditLogService auditLogService;
 
     @Value("${api.clientes.url:https://mod-ventas.onrender.com/api/clientes/integracion/atencion-cliente}")
     private String apiBaseUrl;
 
-    public ClienteApiClient() {
+    public ClienteApiClient(AuditLogService auditLogService) {
+        this.auditLogService = auditLogService;
         this.webClient = WebClient.builder()
                 .defaultHeader("ngrok-skip-browser-warning", "true")
                 .build();
@@ -41,6 +44,11 @@ public class ClienteApiClient {
     public ClienteExternoDTO obtenerClientePorId(Integer idCliente) {
         String url = apiBaseUrl + "/" + idCliente;
         log.info("GET {} - Obteniendo cliente desde API externa", url);
+        
+        long startTime = System.currentTimeMillis();
+        Integer responseStatus = null;
+        boolean success = false;
+        String errorMessage = null;
 
         try {
             ClienteExternoDTO cliente = webClient.get()
@@ -57,6 +65,14 @@ public class ClienteApiClient {
                     .bodyToMono(ClienteExternoDTO.class)
                     .block();
 
+            responseStatus = 200;
+            success = true;
+            long duration = System.currentTimeMillis() - startTime;
+            
+            // Log de integración exitosa
+            auditLogService.logIntegration("mod-ventas", "OBTENER_CLIENTE_POR_ID", url, 
+                    "GET", responseStatus, duration, success, null, null);
+
             log.info("Cliente obtenido exitosamente: {} {}", 
                     cliente != null ? cliente.getFirstName() : "null",
                     cliente != null ? cliente.getLastName() : "null");
@@ -64,9 +80,19 @@ public class ClienteApiClient {
 
         } catch (ClienteNotFoundException e) {
             log.warn("Cliente no encontrado en API externa: {}", idCliente);
+            responseStatus = 404;
+            errorMessage = e.getMessage();
+            long duration = System.currentTimeMillis() - startTime;
+            auditLogService.logIntegration("mod-ventas", "OBTENER_CLIENTE_POR_ID", url, 
+                    "GET", responseStatus, duration, false, errorMessage, null);
             throw e;
         } catch (Exception e) {
             log.error("Error al obtener cliente desde API externa: {}", e.getMessage());
+            responseStatus = 500;
+            errorMessage = e.getMessage();
+            long duration = System.currentTimeMillis() - startTime;
+            auditLogService.logIntegration("mod-ventas", "OBTENER_CLIENTE_POR_ID", url, 
+                    "GET", responseStatus, duration, false, errorMessage, null);
             throw new RuntimeException("Error al comunicarse con el servicio de clientes: " + e.getMessage(), e);
         }
     }
@@ -81,6 +107,11 @@ public class ClienteApiClient {
     public ClienteExternoDTO obtenerClientePorDni(String dni) {
         String url = apiBaseUrl + "/dni/" + dni;
         log.info("GET {} - Obteniendo cliente por DNI desde API externa", url);
+        
+        long startTime = System.currentTimeMillis();
+        Integer responseStatus = null;
+        boolean success = false;
+        String errorMessage = null;
 
         try {
             ClienteExternoDTO cliente = webClient.get()
@@ -97,6 +128,14 @@ public class ClienteApiClient {
                     .bodyToMono(ClienteExternoDTO.class)
                     .block();
 
+            responseStatus = 200;
+            success = true;
+            long duration = System.currentTimeMillis() - startTime;
+            
+            // Log de integración exitosa
+            auditLogService.logIntegration("mod-ventas", "OBTENER_CLIENTE_POR_DNI", url, 
+                    "GET", responseStatus, duration, success, null, null);
+
             log.info("Cliente obtenido por DNI exitosamente: {} {}", 
                     cliente != null ? cliente.getFirstName() : "null",
                     cliente != null ? cliente.getLastName() : "null");
@@ -104,9 +143,19 @@ public class ClienteApiClient {
 
         } catch (ClienteNotFoundException e) {
             log.warn("Cliente no encontrado por DNI en API externa: {}", dni);
+            responseStatus = 404;
+            errorMessage = e.getMessage();
+            long duration = System.currentTimeMillis() - startTime;
+            auditLogService.logIntegration("mod-ventas", "OBTENER_CLIENTE_POR_DNI", url, 
+                    "GET", responseStatus, duration, false, errorMessage, null);
             throw e;
         } catch (Exception e) {
             log.error("Error al obtener cliente por DNI desde API externa: {}", e.getMessage());
+            responseStatus = 500;
+            errorMessage = e.getMessage();
+            long duration = System.currentTimeMillis() - startTime;
+            auditLogService.logIntegration("mod-ventas", "OBTENER_CLIENTE_POR_DNI", url, 
+                    "GET", responseStatus, duration, false, errorMessage, null);
             throw new RuntimeException("Error al comunicarse con el servicio de clientes: " + e.getMessage(), e);
         }
     }
@@ -122,6 +171,11 @@ public class ClienteApiClient {
     public ClienteExternoDTO actualizarCliente(Integer idCliente, ActualizarClienteExternoDTO datos) {
         String url = apiBaseUrl + "/" + idCliente;
         log.info("PATCH {} - Actualizando cliente en API externa", url);
+        
+        long startTime = System.currentTimeMillis();
+        Integer responseStatus = null;
+        boolean success = false;
+        String errorMessage = null;
 
         try {
             ClienteExternoDTO clienteActualizado = webClient.patch()
@@ -140,14 +194,32 @@ public class ClienteApiClient {
                     .bodyToMono(ClienteExternoDTO.class)
                     .block();
 
+            responseStatus = 200;
+            success = true;
+            long duration = System.currentTimeMillis() - startTime;
+            
+            // Log de integración exitosa
+            auditLogService.logIntegration("mod-ventas", "ACTUALIZAR_CLIENTE", url, 
+                    "PATCH", responseStatus, duration, success, null, null);
+
             log.info("Cliente actualizado exitosamente: {}", idCliente);
             return clienteActualizado;
 
         } catch (ClienteNotFoundException e) {
             log.warn("Cliente no encontrado para actualizar: {}", idCliente);
+            responseStatus = 404;
+            errorMessage = e.getMessage();
+            long duration = System.currentTimeMillis() - startTime;
+            auditLogService.logIntegration("mod-ventas", "ACTUALIZAR_CLIENTE", url, 
+                    "PATCH", responseStatus, duration, false, errorMessage, null);
             throw e;
         } catch (Exception e) {
             log.error("Error al actualizar cliente en API externa: {}", e.getMessage());
+            responseStatus = 500;
+            errorMessage = e.getMessage();
+            long duration = System.currentTimeMillis() - startTime;
+            auditLogService.logIntegration("mod-ventas", "ACTUALIZAR_CLIENTE", url, 
+                    "PATCH", responseStatus, duration, false, errorMessage, null);
             throw new RuntimeException("Error al comunicarse con el servicio de clientes: " + e.getMessage(), e);
         }
     }
