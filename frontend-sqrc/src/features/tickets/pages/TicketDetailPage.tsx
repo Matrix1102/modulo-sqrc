@@ -85,6 +85,16 @@ export const TicketDetailPage = () => {
     }
   }, [ticketId, loadTicketData]);
 
+  // Si un agente intenta ver un ticket escalado, redirigir al listado
+  useEffect(() => {
+    if (!ticket) return;
+    const basePath = getBasePath();
+    const esAgente = basePath.startsWith('/agente');
+    if (esAgente && ticket.estado === 'ESCALADO') {
+      navigate(`${basePath}/tickets`, { replace: true });
+    }
+  }, [ticket, navigate]);
+
   const handleAddDocumentacion = async (data: CreateDocumentacionRequest) => {
     if (!ticketId) return;
     
@@ -223,6 +233,7 @@ export const TicketDetailPage = () => {
         <DetallesTab 
           ticket={ticket} 
           onRefresh={() => loadTicketData(parseInt(ticketId!))}
+          onEscalated={() => navigate(`${getBasePath()}/tickets`, { replace: true })}
         />
       )}
       
