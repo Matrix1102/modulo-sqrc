@@ -1,9 +1,11 @@
 package com.sqrc.module.backendsqrc.ticket.facade;
 
+import com.sqrc.module.backendsqrc.logs.service.AuditLogService;
 import com.sqrc.module.backendsqrc.ticket.dto.DerivarRequestDTO;
 import com.sqrc.module.backendsqrc.ticket.dto.EscalarRequestDTO;
 import com.sqrc.module.backendsqrc.ticket.dto.RechazarEscalamientoDTO;
 import com.sqrc.module.backendsqrc.ticket.dto.RespuestaDerivacionDTO;
+import com.sqrc.module.backendsqrc.ticket.enums.AreaExterna;
 import com.sqrc.module.backendsqrc.ticket.event.TicketDerivadoEvent;
 import com.sqrc.module.backendsqrc.ticket.event.TicketEscaladoEvent;
 import com.sqrc.module.backendsqrc.ticket.model.*;
@@ -39,6 +41,9 @@ public class TicketWorkflowFacade {
     // Servicio para gestión de correos (incluye persistencia en BD)
     private final TicketEmailService ticketEmailService;
 
+    // Servicio de logs de auditoría
+    private final AuditLogService auditLogService;
+
     // =========================================================================
     // CASO 1: ESCALAR (Agente -> Backoffice)
     // =========================================================================
@@ -52,6 +57,8 @@ public class TicketWorkflowFacade {
         if (ticket.getEstado() != EstadoTicket.ABIERTO) {
             throw new RuntimeException("No se puede escalar un ticket que no está ABIERTO.");
         }
+
+        String estadoAnterior = ticket.getEstado().name();
 
         // B. Logística interna (Ahora retorna la asignación creada)
         Asignacion nuevaAsignacion = asignacionService.reasignarTicket(ticket, "BACKOFFICE");
@@ -73,7 +80,21 @@ public class TicketWorkflowFacade {
             // No bloqueamos el escalamiento si falla el envío del correo
         }
 
-        // F. Notificar evento
+        // F. Registrar en logs de auditoría
+        Empleado agenteOrigen = nuevaAsignacion.getAsignacionPadre() != null 
+                ? nuevaAsignacion.getAsignacionPadre().getEmpleado() : null;
+        auditLogService.logTicketEscalamiento(
+                ticketId,
+                agenteOrigen != null ? agenteOrigen.getIdEmpleado() : null,
+                agenteOrigen != null ? agenteOrigen.getNombreCompleto() : "Desconocido",
+                nuevaAsignacion.getEmpleado().getIdEmpleado(),
+                nuevaAsignacion.getEmpleado().getNombreCompleto(),
+                estadoAnterior,
+                request.getProblematica(),
+                request.getJustificacion()
+        );
+
+        // G. Notificar evento
         eventPublisher.publishEvent(new TicketEscaladoEvent(this, ticket.getIdTicket()));
     }
 
@@ -86,6 +107,11 @@ public class TicketWorkflowFacade {
         Ticket ticket = ticketRepository.findById(ticketId)
                 .orElseThrow(() -> new RuntimeException("Ticket no encontrado: " + ticketId));
 
+        String estadoAnterior = ticket.getEstado().name();
+
+        // Obtener el BackOffice actual
+        Asignacion asignacionActual = asignacionRepository.findAsignacionActiva(ticketId).orElse(null);
+
         // A. Registrar salida
         derivacionService.registrarSalida(ticket, request);
 
@@ -93,7 +119,18 @@ public class TicketWorkflowFacade {
         ticket.setEstado(EstadoTicket.DERIVADO);
         ticketRepository.save(ticket);
 
-        // C. Notificar
+        // C. Registrar en logs de auditoría
+        auditLogService.logTicketDerivacion(
+                ticketId,
+                asignacionActual != null ? asignacionActual.getEmpleado().getIdEmpleado() : null,
+                asignacionActual != null ? asignacionActual.getEmpleado().getNombreCompleto() : "Desconocido",
+                request.getAreaDestinoId(),
+                AreaExterna.getNombreById(request.getAreaDestinoId()),
+                estadoAnterior,
+                request.getCuerpo() // Usamos cuerpo como motivo de derivación
+        );
+
+        // D. Notificar
         String emailDestino = "area." + request.getAreaDestinoId() + "@externo.com";
         eventPublisher.publishEvent(new TicketDerivadoEvent(this, ticket.getIdTicket(), emailDestino));
     }
@@ -140,16 +177,27 @@ public class TicketWorkflowFacade {
         }
 
         // 5. Cambiar estado del ticket según si está solucionado
+        String estadoNuevo;
         if (Boolean.TRUE.equals(respuesta.getSolucionado())) {
             ticket.setEstado(EstadoTicket.CERRADO);
             ticket.setFechaCierre(LocalDateTime.now());
+            estadoNuevo = "CERRADO";
             log.info("🔒 Ticket #{} marcado como CERRADO (solucionado por área externa)", ticketId);
         } else {
             ticket.setEstado(EstadoTicket.ABIERTO);
+            estadoNuevo = "ABIERTO";
             log.info("🔓 Ticket #{} regresa a ABIERTO para seguimiento del BackOffice", ticketId);
         }
 
         ticketRepository.save(ticket);
+
+        // 6. Registrar en logs de auditoría
+        auditLogService.logTicketRespuestaExterna(
+                ticketId,
+                "Área Externa",
+                Boolean.TRUE.equals(respuesta.getSolucionado()),
+                estadoNuevo
+        );
     }
 
     // =========================================================================
@@ -260,6 +308,17 @@ public class TicketWorkflowFacade {
         // 9. Cambiar estado del ticket a ABIERTO
         ticket.setEstado(EstadoTicket.ABIERTO);
         ticketRepository.save(ticket);
+
+        // 10. Registrar en logs de auditoría
+        auditLogService.logTicketRechazoEscalamiento(
+                ticketId,
+                asignacionBackoffice.getEmpleado().getIdEmpleado(),
+                asignacionBackoffice.getEmpleado().getNombreCompleto(),
+                agenteOriginal != null ? agenteOriginal.getIdEmpleado() : null,
+                agenteOriginal != null ? agenteOriginal.getNombreCompleto() : "Desconocido",
+                request.getMotivoRechazo(),
+                request.getInstrucciones()
+        );
         
         log.info("✅ Ticket #{} devuelto al Agente con estado ABIERTO", ticketId);
     }

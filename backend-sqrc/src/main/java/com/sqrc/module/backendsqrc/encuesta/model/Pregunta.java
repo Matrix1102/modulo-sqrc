@@ -15,6 +15,10 @@ public abstract class Pregunta {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long idPregunta;
 
+    // Columna de discriminador accesible como campo (solo lectura)
+    @Column(name = "tipo_pregunta", insertable = false, updatable = false)
+    private String tipoPregunta;
+
     @Column(nullable = false)
     private String texto; // "enunciado" en versiones anteriores, "texto" según tu diagrama
 

@@ -1,6 +1,8 @@
 package com.sqrc.module.backendsqrc.vista360.exception;
 
+import com.sqrc.module.backendsqrc.logs.service.AuditLogService;
 import jakarta.servlet.http.HttpServletRequest;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -16,10 +18,14 @@ import java.util.Map;
 /**
  * Manejador global de excepciones para el módulo Vista 360 Cliente.
  * Captura excepciones comunes y las transforma en respuestas HTTP estandarizadas.
+ * Además, registra los errores en la base de datos de logs para auditoría.
  */
 @RestControllerAdvice
+@RequiredArgsConstructor
 @Slf4j
 public class GlobalExceptionHandler {
+
+    private final AuditLogService auditLogService;
 
     /**
      * Maneja excepciones cuando no se encuentra un cliente.
@@ -34,6 +40,9 @@ public class GlobalExceptionHandler {
             HttpServletRequest request) {
 
         log.error("Cliente no encontrado: {}", ex.getMessage());
+
+        // Registrar en BD de logs
+        auditLogService.logError(ex, request.getRequestURI(), request.getMethod());
 
         ErrorResponse errorResponse = ErrorResponse.builder()
                 .timestamp(LocalDateTime.now())
@@ -59,6 +68,9 @@ public class GlobalExceptionHandler {
             HttpServletRequest request) {
 
         log.error("Errores de validación en la petición: {}", ex.getBindingResult().getFieldErrorCount());
+
+        // Registrar en BD de logs
+        auditLogService.logError(ex, request.getRequestURI(), request.getMethod());
 
         // Extraer los errores de validación de cada campo
         Map<String, String> validationErrors = new HashMap<>();
@@ -94,6 +106,9 @@ public class GlobalExceptionHandler {
 
         log.error("Argumento ilegal: {}", ex.getMessage());
 
+        // Registrar en BD de logs
+        auditLogService.logError(ex, request.getRequestURI(), request.getMethod());
+
         ErrorResponse errorResponse = ErrorResponse.builder()
                 .timestamp(LocalDateTime.now())
                 .status(HttpStatus.BAD_REQUEST.value())
@@ -118,6 +133,9 @@ public class GlobalExceptionHandler {
             HttpServletRequest request) {
 
         log.error("Error interno del servidor: {}", ex.getMessage(), ex);
+
+        // Registrar en BD de logs (errores críticos)
+        auditLogService.logError(ex, request.getRequestURI(), request.getMethod());
 
         ErrorResponse errorResponse = ErrorResponse.builder()
                 .timestamp(LocalDateTime.now())
